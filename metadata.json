@@ -1,0 +1,5 @@
+{
+  "name": "SeatPlanner",
+  "description": "An application for automatically generating and managing seating plans for buildings and rooms. It allows tracking seat status (available, allocated, broken) and managing student information, with a feature to intelligently allocate students to seats.",
+  "requestFramePermissions": []
+}
