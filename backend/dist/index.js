@@ -5,11 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const client_1 = require("./generated/prisma/client");
 const buildings_1 = __importDefault(require("./routes/buildings"));
 const rooms_1 = __importDefault(require("./routes/rooms"));
 const seats_1 = __importDefault(require("./routes/seats"));
 const students_1 = __importDefault(require("./routes/students"));
 const plan_1 = __importDefault(require("./routes/plan"));
+const prisma = new client_1.PrismaClient();
 const app = (0, express_1.default)();
 const port = 3001;
 app.use((0, cors_1.default)());

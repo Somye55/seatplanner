@@ -1,12 +1,15 @@
 
 import express from 'express';
 import cors from 'cors';
+import { PrismaClient } from './generated/prisma/client';
 import buildingsRouter from './routes/buildings';
 import roomsRouter from './routes/rooms';
 import seatsRouter from './routes/seats';
 import studentsRouter from './routes/students';
 import planRouter from './routes/plan';
 
+
+const prisma = new PrismaClient();
 
 const app = express();
 const port = 3001;

@@ -1,43 +1,63 @@
 
 import { Router } from 'express';
-import { students } from '../data';
-import { Student } from '../../types';
+import { PrismaClient } from '../generated/prisma/client';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 // GET /api/students
-router.get('/', (req, res) => {
-    res.json(students);
+router.get('/', async (req, res) => {
+    try {
+        const students = await prisma.student.findMany();
+        res.json(students);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch students' });
+    }
 });
 
 // POST /api/students
-router.post('/', (req, res) => {
-    const studentData: Omit<Student, 'id'> = req.body;
-    const newStudent: Student = { ...studentData, id: `st${Date.now()}` };
-    students.push(newStudent);
-    res.status(201).json(newStudent);
+router.post('/', async (req, res) => {
+    try {
+        const studentData = req.body;
+        const newStudent = await prisma.student.create({
+            data: studentData
+        });
+        res.status(201).json(newStudent);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create student' });
+    }
 });
 
 // PATCH /api/students/:id
-router.patch('/:id', (req, res) => {
-    const studentIndex = students.findIndex(s => s.id === req.params.id);
-    if (studentIndex > -1) {
-        students[studentIndex] = { ...students[studentIndex], ...req.body };
-        res.json(students[studentIndex]);
-    } else {
-        res.status(404).json({ message: 'Student not found' });
+router.patch('/:id', async (req, res) => {
+    try {
+        const updatedStudent = await prisma.student.update({
+            where: { id: req.params.id },
+            data: req.body
+        });
+        res.json(updatedStudent);
+    } catch (error: any) {
+        if (error.code === 'P2025') {
+            res.status(404).json({ message: 'Student not found' });
+        } else {
+            res.status(500).json({ error: 'Failed to update student' });
+        }
     }
 });
 
 // DELETE /api/students/:id
-router.delete('/:id', (req, res) => {
-    const initialLength = students.length;
-    const studentIndex = students.findIndex(s => s.id === req.params.id);
-    if (studentIndex > -1) {
-        students.splice(studentIndex, 1);
+router.delete('/:id', async (req, res) => {
+    try {
+        await prisma.student.delete({
+            where: { id: req.params.id }
+        });
         res.status(204).send();
-    } else {
-        res.status(404).json({ message: 'Student not found' });
+    } catch (error: any) {
+        if (error.code === 'P2025') {
+            res.status(404).json({ message: 'Student not found' });
+        } else {
+            res.status(500).json({ error: 'Failed to delete student' });
+        }
     }
 });
 
