@@ -1,36 +1,38 @@
-
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
+import { authService } from '../services/authService';
 import { Spinner, Modal, Button } from '../components/ui';
 import { Seat, SeatStatus, Student, Room } from '../types';
 import io from 'socket.io-client';
 
-const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; }> = ({ seat, student, onClick }) => {
+const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
   const statusClasses: Record<SeatStatus, string> = {
-    [SeatStatus.Available]: 'bg-green-100 border-green-400 hover:bg-green-200',
-    [SeatStatus.Allocated]: 'bg-blue-200 border-blue-500 hover:bg-blue-300',
-    [SeatStatus.Broken]: 'bg-red-200 border-red-500 hover:bg-red-300 cursor-not-allowed',
+    [SeatStatus.Available]: 'bg-green-100 border-green-400 hover:bg-green-200 text-green-800',
+    [SeatStatus.Allocated]: 'bg-gray-200 border-gray-500 hover:bg-gray-300 text-gray-800',
+    [SeatStatus.Broken]: 'bg-red-200 border-red-500 hover:bg-red-300 text-red-800',
   };
+
+  const cursorClass = isClickable ? 'cursor-pointer' : 'cursor-default';
 
   return (
     <div
-      onClick={onClick}
-      className={`w-16 h-16 m-1 rounded-lg border-2 flex flex-col justify-center items-center cursor-pointer transition-all ${statusClasses[seat.status]}`}
+      onClick={isClickable ? onClick : undefined}
+      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all ${statusClasses[seat.status]} ${cursorClass}`}
       title={seat.status === SeatStatus.Allocated ? `Allocated to: ${student?.name}` : seat.status}
     >
-      <span className="text-xs font-bold text-gray-700">{seat.label}</span>
+      <span className="text-sm font-bold">{seat.label}</span>
       {seat.status === SeatStatus.Allocated && (
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-        </svg>
-      )}
-       {seat.status === SeatStatus.Broken && (
-         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-800" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-        </svg>
-      )}
+         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 mt-1" viewBox="0 0 20 20" fill="currentColor">
+           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+         </svg>
+       )}
+        {seat.status === SeatStatus.Broken && (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 mt-1" viewBox="0 0 20 20" fill="currentColor">
+             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+         </svg>
+       )}
     </div>
   );
 };
@@ -40,12 +42,27 @@ const SeatMapPage: React.FC = () => {
   const navigate = useNavigate();
   const { state, dispatch } = useSeatPlanner();
   const { seats: allSeats, students, rooms, loading } = state;
+  const isAdmin = authService.isAdmin();
 
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId).sort((a, b) => a.row - b.row || a.col - b.col), [allSeats, roomId]);
+  const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId).sort((a,b) => a.row - b.row || a.col - b.col), [allSeats, roomId]);
+
+  const maxRow = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.row)) + 1 : 0, [roomSeats]);
+  const maxCol = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.col)) + 1 : 0, [roomSeats]);
+
+  const grid = useMemo(() => {
+    if (maxRow === 0 || maxCol === 0) return [];
+    const g: (Seat | null)[][] = Array.from({length: maxRow}, () => Array(maxCol).fill(null));
+    roomSeats.forEach(seat => {
+      if (seat.row < maxRow && seat.col < maxCol) {
+        g[seat.row][seat.col] = seat;
+      }
+    });
+    return g;
+  }, [roomSeats, maxRow, maxCol]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -60,7 +77,9 @@ const SeatMapPage: React.FC = () => {
         if (!roomData) throw new Error("Room not found");
 
         setCurrentRoom(roomData);
-        dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
+        // Replace seats for the current room, keeping others intact
+        const otherSeats = allSeats.filter(s => s.roomId !== roomId);
+        dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
         if (state.students.length === 0) dispatch({ type: 'GET_STUDENTS_SUCCESS', payload: studentsData });
       } catch (err) {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' });
@@ -70,13 +89,9 @@ const SeatMapPage: React.FC = () => {
 
     // Socket.io for real-time updates
     const socket = io('http://localhost:3001');
-    socket.on('seatStatusChanged', (data: { seatId: string; roomId: string; status: SeatStatus }) => {
-      if (data.roomId === roomId) {
-        // Update the seat in state
-        const updatedSeats = allSeats.map(seat =>
-          seat.id === data.seatId ? { ...seat, status: data.status, version: seat.version + 1 } : seat
-        );
-        dispatch({ type: 'GET_SEATS_SUCCESS', payload: updatedSeats });
+    socket.on('seatStatusChanged', (updatedSeat: Seat) => {
+      if (updatedSeat.roomId === roomId) {
+        dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
       }
     });
 
@@ -86,25 +101,27 @@ const SeatMapPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, dispatch]);
 
-  const gridTemplateColumns = useMemo(() => {
-    if (roomSeats.length === 0) return 'none';
-    const maxCols = Math.max(...roomSeats.map(s => s.col)) + 1;
-    return `repeat(${maxCols}, minmax(0, 1fr))`;
-  }, [roomSeats]);
-
   const handleSeatClick = (seat: Seat) => {
     setSelectedSeat(seat);
     setIsModalOpen(true);
   };
   
   const handleStatusChange = async (newStatus: SeatStatus) => {
-    if (!selectedSeat) return;
+    if (!selectedSeat || !isAdmin) return;
     dispatch({ type: 'API_REQUEST_START' });
     try {
       const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus, selectedSeat.version);
-      dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
+      // The socket event will trigger the dispatch, so we don't need it here.
     } catch(err) {
-      dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to update seat.' });
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update seat.';
+      if (errorMessage.includes('Conflict')) {
+          alert(errorMessage); // Give user specific feedback
+          // Optionally, refetch data to get the latest state
+          const seatsData = await api.getSeatsByRoom(roomId!);
+          const otherSeats = allSeats.filter(s => s.roomId !== roomId);
+          dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
+      }
+      dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
     } finally {
       setIsModalOpen(false);
       setSelectedSeat(null);
@@ -120,41 +137,59 @@ const SeatMapPage: React.FC = () => {
     <div>
       <button onClick={() => navigate(`/buildings/${currentBuildingId}/rooms`)} className="mb-6 text-primary hover:underline">&larr; Back to Rooms</button>
       <h1 className="text-3xl font-bold text-dark mb-2">Seat Map: {currentRoom?.name}</h1>
-      <div className="flex space-x-4 mb-6 text-sm text-gray-600">
-        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-200 mr-2 border-2 border-green-400"></div> Available</span>
-        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-blue-200 mr-2 border-2 border-blue-500"></div> Allocated</span>
-        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 text-sm text-gray-600">
+        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
+        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
+        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken/Unavailable</span>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <div className="inline-grid gap-1" style={{ gridTemplateColumns }}>
-          {roomSeats.map(seat => (
-            <SeatComponent 
-              key={seat.id} 
-              seat={seat} 
-              student={students.find(s => s.id === seat.studentId)}
-              onClick={() => handleSeatClick(seat)} />
-          ))}
-        </div>
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto">
+        {roomSeats.length > 0 ? (
+          <div className="inline-grid gap-2" style={{ gridTemplateColumns: `repeat(${maxCol}, minmax(0, 1fr))` }}>
+            {grid.map((row, rowIndex) =>
+              row.map((seat, colIndex) => (
+                seat ? (
+                  <SeatComponent
+                    key={seat.id}
+                    seat={seat}
+                    student={students.find(s => s.id === seat.studentId)}
+                    onClick={() => handleSeatClick(seat)}
+                    isClickable={isAdmin}
+                  />
+                ) : (
+                  <div key={`empty-${rowIndex}-${colIndex}`} className="w-16 h-16" />
+                )
+              ))
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 py-8">No seats have been configured for this room, or the room capacity is zero.</p>
+        )}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`}>
         {selectedSeat && (
           <div>
-            <p><strong>Status:</strong> <span className="capitalize">{selectedSeat.status}</span></p>
+            <p><strong>Status:</strong> <span className="capitalize font-semibold">{selectedSeat.status}</span></p>
             {selectedSeat.status === SeatStatus.Allocated && selectedSeatStudent && (
-              <div className="mt-2">
+              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
                 <p><strong>Allocated to:</strong> {selectedSeatStudent.name}</p>
                 <p><strong>Email:</strong> {selectedSeatStudent.email}</p>
               </div>
             )}
-            <div className="mt-6 flex flex-col space-y-2">
-                <h3 className="font-semibold">Actions</h3>
-                {selectedSeat.status !== SeatStatus.Available && 
-                    <Button variant="secondary" onClick={() => handleStatusChange(SeatStatus.Available)}>Mark as Available</Button>}
-                {selectedSeat.status !== SeatStatus.Broken && 
-                    <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)}>Mark as Broken</Button>}
-            </div>
+             {state.error && <p className="text-sm text-danger mt-2">{state.error}</p>}
+            
+            {isAdmin && (
+              <div className="mt-6">
+                  <h3 className="font-semibold text-dark mb-2">Change Status</h3>
+                  <div className="flex flex-col space-y-2">
+                      {selectedSeat.status !== SeatStatus.Available && 
+                          <Button variant="secondary" onClick={() => handleStatusChange(SeatStatus.Available)}>Mark as Available</Button>}
+                      {selectedSeat.status !== SeatStatus.Broken && 
+                          <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)}>Mark as Broken/Unavailable</Button>}
+                  </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

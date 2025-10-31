@@ -1,7 +1,7 @@
 export enum SeatStatus {
-  Available = 'available',
-  Allocated = 'allocated',
-  Broken = 'broken',
+  Available = 'Available',
+  Allocated = 'Allocated',
+  Broken = 'Broken',
 }
 
 export interface User {
