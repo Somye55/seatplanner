@@ -1,158 +1,145 @@
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient, Seat, Student } from '../generated/prisma/client';
 
 const prisma = new PrismaClient();
 
 export interface AllocationResult {
   allocatedCount: number;
   unallocatedCount: number;
-  unallocatedStudents: { student: any; reason: string }[];
+  unallocatedStudents: { student: Student; reason: string }[];
   utilization: number;
 }
 
 export interface RebalanceResult {
   reallocatedCount: number;
   stillUnassignedCount: number;
-  stillUnassigned: { student: any; reason: string }[];
+  stillUnassigned: { student: Student; reason: string }[];
 }
 
 export class AllocationService {
-  static async allocate(): Promise<{ seats: any[]; summary: AllocationResult }> {
-    // Reset all allocated seats
+  static async allocate(): Promise<{ seats: (Seat & { student: Student | null })[]; summary: AllocationResult }> {
+    // 1. Reset all previously allocated seats to make the operation idempotent.
+    // This also increments the version for optimistic locking clients.
     await prisma.seat.updateMany({
       where: { status: 'Allocated' },
-      data: { status: 'Available', studentId: null }
+      data: { status: 'Available', studentId: null, version: { increment: 1 } }
     });
 
-    // Get available seats sorted by row
+    // 2. Fetch all available seats and all students.
     const availableSeats = await prisma.seat.findMany({
       where: { status: 'Available' },
-      orderBy: { row: 'asc' }
+      orderBy: [{ row: 'asc' }, { col: 'asc' }] // Sort for deterministic allocation
     });
 
-    // Get students not yet allocated
-    const allocatedStudentIds = await prisma.seat.findMany({
-      where: { status: 'Allocated' },
-      select: { studentId: true }
-    }).then(seats => seats.map(s => s.studentId).filter(Boolean));
-
-    const studentsToAllocate = await prisma.student.findMany({
-      where: {
-        id: { notIn: allocatedStudentIds.filter(Boolean) as string[] }
-      }
-    });
+    const studentsToAllocate = await prisma.student.findMany();
 
     let allocatedCount = 0;
-    const unallocatedStudents: { student: any; reason: string }[] = [];
+    const unallocatedStudents: { student: Student; reason: string }[] = [];
+    let seatsInUse = [...availableSeats];
 
+    // 3. Prioritize students with accessibility needs.
     const priorityStudents = studentsToAllocate.filter(s => s.accessibilityNeeds.length > 0);
     const otherStudents = studentsToAllocate.filter(s => s.accessibilityNeeds.length === 0);
 
-    const allocate = async (student: any) => {
-      let seatFound = false;
-      if (student.accessibilityNeeds.includes('front_row')) {
-        const frontRowSeat = availableSeats.find(s => s.row <= 1 && s.features.includes('front_row'));
-        if (frontRowSeat) {
-          await prisma.seat.update({
-            where: { id: frontRowSeat.id },
-            data: { status: 'Allocated', studentId: student.id }
-          });
-          availableSeats.splice(availableSeats.indexOf(frontRowSeat), 1);
-          allocatedCount++;
-          seatFound = true;
-        }
-      }
+    const allocateStudent = async (student: Student) => {
+      // Find a seat that matches all of the student's accessibility needs
+      const suitableSeatIndex = seatsInUse.findIndex(seat =>
+        student.accessibilityNeeds.every((need: string) => seat.features.includes(need))
+      );
+      
+      if (suitableSeatIndex > -1) {
+        const seatToAllocate = seatsInUse[suitableSeatIndex];
+        
+        await prisma.seat.update({
+          where: { id: seatToAllocate.id },
+          data: { status: 'Allocated', studentId: student.id, version: { increment: 1 } }
+        });
 
-      if (!seatFound) {
-        // Find a seat that matches all accessibility needs
-        const suitableSeat = availableSeats.find(seat =>
-          student.accessibilityNeeds.every((need: string) => seat.features.includes(need))
-        );
-        if (suitableSeat) {
-          await prisma.seat.update({
-            where: { id: suitableSeat.id },
-            data: { status: 'Allocated', studentId: student.id }
-          });
-          availableSeats.splice(availableSeats.indexOf(suitableSeat), 1);
-          allocatedCount++;
-          seatFound = true;
-        }
-      }
-
-      if (!seatFound) {
+        // Remove the allocated seat from the available pool for this run
+        seatsInUse.splice(suitableSeatIndex, 1);
+        allocatedCount++;
+      } else {
         unallocatedStudents.push({ student, reason: 'No suitable seats available.' });
       }
     };
 
+    // 4. Allocate priority students first, then others.
     for (const student of [...priorityStudents, ...otherStudents]) {
-      await allocate(student);
+      await allocateStudent(student);
     }
-
-    const totalSeats = await prisma.seat.count({
+    
+    // 5. Calculate summary metrics.
+    const totalUsableSeats = await prisma.seat.count({
       where: { status: { not: 'Broken' } }
     });
 
-    const seats = await prisma.seat.findMany();
+    const finalSeats = await prisma.seat.findMany({ include: { student: true } });
 
     const summary: AllocationResult = {
       allocatedCount,
       unallocatedCount: unallocatedStudents.length,
       unallocatedStudents,
-      utilization: totalSeats > 0 ? (allocatedCount / totalSeats) * 100 : 0
+      utilization: totalUsableSeats > 0 ? (allocatedCount / totalUsableSeats) * 100 : 0
     };
 
-    return { seats, summary };
+    return { seats: finalSeats, summary };
   }
 
-  static async rebalance(): Promise<{ seats: any[]; rebalanceSummary: RebalanceResult }> {
-    // Find students who were unassigned due to seat changes
+  static async rebalance(): Promise<{ seats: (Seat & { student: Student | null })[]; summary: RebalanceResult }> {
+    // 1. Find students who are currently unassigned.
     const unassignedStudents = await prisma.student.findMany({
       where: {
         seat: null
       }
     });
 
-    // Get available seats
+    if (unassignedStudents.length === 0) {
+      const seats = await prisma.seat.findMany({ include: { student: true } });
+      return { seats, summary: { reallocatedCount: 0, stillUnassignedCount: 0, stillUnassigned: [] }};
+    }
+
+    // 2. Fetch available seats.
     const availableSeats = await prisma.seat.findMany({
       where: { status: 'Available' },
-      orderBy: { row: 'asc' }
+      orderBy: [{ row: 'asc' }, { col: 'asc' }]
     });
 
     let reallocatedCount = 0;
-    const stillUnassigned: { student: any; reason: string }[] = [];
+    const stillUnassigned: { student: Student; reason: string }[] = [];
+    let seatsInUse = [...availableSeats];
 
-    const reallocate = async (student: any) => {
-      let seatFound = false;
-      // Find a seat that matches all accessibility needs
-      const suitableSeat = availableSeats.find(seat =>
+    const reallocateStudent = async (student: Student) => {
+      const suitableSeatIndex = seatsInUse.findIndex(seat =>
         student.accessibilityNeeds.every((need: string) => seat.features.includes(need))
       );
-      if (suitableSeat) {
-        await prisma.seat.update({
-          where: { id: suitableSeat.id },
-          data: { status: 'Allocated', studentId: student.id }
-        });
-        availableSeats.splice(availableSeats.indexOf(suitableSeat), 1);
-        reallocatedCount++;
-        seatFound = true;
-      }
 
-      if (!seatFound) {
+      if (suitableSeatIndex > -1) {
+        const seatToAllocate = seatsInUse[suitableSeatIndex];
+        
+        await prisma.seat.update({
+          where: { id: seatToAllocate.id },
+          data: { status: 'Allocated', studentId: student.id, version: { increment: 1 } }
+        });
+
+        seatsInUse.splice(suitableSeatIndex, 1);
+        reallocatedCount++;
+      } else {
         stillUnassigned.push({ student, reason: 'No suitable seats available for reallocation.' });
       }
     };
-
+    
+    // 3. Attempt to reallocate each unassigned student.
     for (const student of unassignedStudents) {
-      await reallocate(student);
+      await reallocateStudent(student);
     }
 
-    const seats = await prisma.seat.findMany();
+    const finalSeats = await prisma.seat.findMany({ include: { student: true } });
 
-    const rebalanceSummary: RebalanceResult = {
+    const summary: RebalanceResult = {
       reallocatedCount,
       stillUnassignedCount: stillUnassigned.length,
       stillUnassigned
     };
 
-    return { seats, rebalanceSummary };
+    return { seats: finalSeats, summary };
   }
 }
