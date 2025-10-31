@@ -38,7 +38,9 @@ model Seat {
   label     String
   row       Int
   col       Int
+  features  String[]
   status    SeatStatus @default(Available)
+  version   Int        @default(1)
   studentId String?    @unique
   student   Student?   @relation(fields: [studentId], references: [id])
   createdAt DateTime   @default(now())

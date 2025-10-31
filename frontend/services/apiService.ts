@@ -35,10 +35,10 @@ export const api = {
   
   getStudents: (): Promise<Student[]> => fetchApi('/students'),
   
-  updateSeatStatus: (seatId: string, status: SeatStatus): Promise<Seat> => 
+  updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> =>
     fetchApi(`/seats/${seatId}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, version }),
     }),
   
   addStudent: (studentData: Omit<Student, 'id'>): Promise<Student> => 
@@ -58,6 +58,9 @@ export const api = {
 
   runAllocation: (): Promise<{ seats: Seat[], summary: AllocationSummary }> =>
     fetchApi('/plan/allocate', { method: 'POST' }),
+
+  runRebalance: (): Promise<{ seats: Seat[], rebalanceSummary: any }> =>
+    fetchApi('/plan/rebalance', { method: 'POST' }),
 };
 
 

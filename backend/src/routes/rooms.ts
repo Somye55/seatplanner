@@ -1,12 +1,20 @@
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+import { param, validationResult } from 'express-validator';
 import { PrismaClient } from '../generated/prisma/client';
+import { cacheMiddleware } from '../middleware/cache';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // GET /api/rooms/:id
-router.get('/:id', async (req, res) => {
+router.get('/:id', [
+  param('id').isUUID()
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
     try {
         const room = await prisma.room.findUnique({
             where: { id: req.params.id }
@@ -22,7 +30,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // GET /api/rooms/:id/seats
-router.get('/:id/seats', async (req, res) => {
+router.get('/:id/seats', [
+  param('id').isUUID()
+], cacheMiddleware('room-seats'), async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
     try {
         const roomSeats = await prisma.seat.findMany({
             where: { roomId: req.params.id }

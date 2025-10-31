@@ -5,10 +5,10 @@ import { api, geminiService } from '../services/apiService';
 import { Card, Button, Spinner } from '../components/ui';
 
 const PlanningPage: React.FC = () => {
-  const { state, dispatch } = useSeatPlanner();
-  const { allocationSummary, students, rooms, loading } = state;
-  const [geminiSuggestion, setGeminiSuggestion] = useState('');
-  const [isSuggesting, setIsSuggesting] = useState(false);
+   const { state, dispatch } = useSeatPlanner();
+   const { allocationSummary, rebalanceSummary, students, rooms, loading } = state;
+   const [geminiSuggestion, setGeminiSuggestion] = useState('');
+   const [isSuggesting, setIsSuggesting] = useState(false);
   
   const handleRunAllocation = async () => {
     dispatch({ type: 'API_REQUEST_START' });
@@ -17,6 +17,16 @@ const PlanningPage: React.FC = () => {
       dispatch({ type: 'RUN_ALLOCATION_SUCCESS', payload: result });
     } catch (err) {
       dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to run allocation.' });
+    }
+  };
+
+  const handleRebalance = async () => {
+    dispatch({ type: 'API_REQUEST_START' });
+    try {
+      const result = await api.runRebalance();
+      dispatch({ type: 'RUN_REBALANCE_SUCCESS', payload: result });
+    } catch (err) {
+      dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to run rebalance.' });
     }
   };
   
@@ -44,6 +54,9 @@ const PlanningPage: React.FC = () => {
                     <h2 className="text-xl font-bold text-dark mb-4">Actions</h2>
                     <Button onClick={handleRunAllocation} disabled={loading} className="w-full">
                         {loading ? <Spinner /> : 'Run Automatic Allocation'}
+                    </Button>
+                    <Button onClick={handleRebalance} disabled={loading} variant="secondary" className="w-full mt-4">
+                        {loading ? <Spinner /> : 'Rebalance Allocations'}
                     </Button>
                 </div>
             </Card>
@@ -95,6 +108,34 @@ const PlanningPage: React.FC = () => {
                     )}
                 </div>
             </Card>
+
+            {rebalanceSummary && (
+                <Card>
+                    <div className="p-6">
+                        <h2 className="text-xl font-bold text-dark mb-4">Rebalance Summary</h2>
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <p className="text-2xl font-bold text-accent">{rebalanceSummary.reallocatedCount}</p>
+                                <p className="text-sm text-gray-500">Reallocated</p>
+                            </div>
+                            <div>
+                                <p className="text-2xl font-bold text-danger">{rebalanceSummary.stillUnassignedCount}</p>
+                                <p className="text-sm text-gray-500">Still Unassigned</p>
+                            </div>
+                        </div>
+                        {rebalanceSummary.stillUnassignedCount > 0 && (
+                            <div>
+                                <h3 className="font-semibold text-dark mt-6 mb-2">Still Unassigned Students</h3>
+                                <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md">
+                                    {rebalanceSummary.stillUnassigned.map(({ student, reason }: any) => (
+                                        <li key={student.id} className="text-sm">{student.name} - <span className="text-gray-600">{reason}</span></li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </Card>
+            )}
 
             {(isSuggesting || geminiSuggestion) && (
                  <Card>

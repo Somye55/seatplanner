@@ -1,12 +1,13 @@
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
+import { body, param, validationResult } from 'express-validator';
 import { PrismaClient } from '../generated/prisma/client';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // GET /api/students
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const students = await prisma.student.findMany();
         res.json(students);
@@ -16,7 +17,16 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/students
-router.post('/', async (req, res) => {
+router.post('/', [
+  body('name').isString().notEmpty(),
+  body('email').isEmail(),
+  body('tags').isArray(),
+  body('accessibilityNeeds').isArray()
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
     try {
         const studentData = req.body;
         const newStudent = await prisma.student.create({
@@ -29,7 +39,17 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/students/:id
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', [
+  param('id').isUUID(),
+  body('name').optional().isString().notEmpty(),
+  body('email').optional().isEmail(),
+  body('tags').optional().isArray(),
+  body('accessibilityNeeds').optional().isArray()
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
     try {
         const updatedStudent = await prisma.student.update({
             where: { id: req.params.id },
@@ -46,7 +66,13 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/students/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', [
+  param('id').isUUID()
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
     try {
         await prisma.student.delete({
             where: { id: req.params.id }

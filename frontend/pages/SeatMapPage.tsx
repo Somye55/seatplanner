@@ -5,6 +5,7 @@ import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { Spinner, Modal, Button } from '../components/ui';
 import { Seat, SeatStatus, Student, Room } from '../types';
+import io from 'socket.io-client';
 
 const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; }> = ({ seat, student, onClick }) => {
   const statusClasses: Record<SeatStatus, string> = {
@@ -57,7 +58,7 @@ const SeatMapPage: React.FC = () => {
           state.students.length > 0 ? Promise.resolve(state.students) : api.getStudents()
         ]);
         if (!roomData) throw new Error("Room not found");
-        
+
         setCurrentRoom(roomData);
         dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
         if (state.students.length === 0) dispatch({ type: 'GET_STUDENTS_SUCCESS', payload: studentsData });
@@ -66,6 +67,22 @@ const SeatMapPage: React.FC = () => {
       }
     };
     fetchData();
+
+    // Socket.io for real-time updates
+    const socket = io('http://localhost:3001');
+    socket.on('seatStatusChanged', (data: { seatId: string; roomId: string; status: SeatStatus }) => {
+      if (data.roomId === roomId) {
+        // Update the seat in state
+        const updatedSeats = allSeats.map(seat =>
+          seat.id === data.seatId ? { ...seat, status: data.status } : seat
+        );
+        dispatch({ type: 'GET_SEATS_SUCCESS', payload: updatedSeats });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, dispatch]);
 
@@ -84,7 +101,7 @@ const SeatMapPage: React.FC = () => {
     if (!selectedSeat) return;
     dispatch({ type: 'API_REQUEST_START' });
     try {
-      const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus);
+      const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus, selectedSeat.version);
       dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
     } catch(err) {
       dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to update seat.' });

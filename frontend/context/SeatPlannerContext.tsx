@@ -3,36 +3,39 @@ import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 import { Building, Room, Seat, Student, AllocationSummary } from '../types';
 
 interface State {
-  buildings: Building[];
-  rooms: Room[];
-  seats: Seat[];
-  students: Student[];
-  allocationSummary: AllocationSummary | null;
-  loading: boolean;
-  error: string | null;
+   buildings: Building[];
+   rooms: Room[];
+   seats: Seat[];
+   students: Student[];
+   allocationSummary: AllocationSummary | null;
+   rebalanceSummary: any | null;
+   loading: boolean;
+   error: string | null;
 }
 
 type Action =
-  | { type: 'API_REQUEST_START' }
-  | { type: 'API_REQUEST_FAIL'; payload: string }
-  | { type: 'GET_BUILDINGS_SUCCESS'; payload: Building[] }
-  | { type: 'GET_ROOMS_SUCCESS'; payload: Room[] }
-  | { type: 'GET_SEATS_SUCCESS'; payload: Seat[] }
-  | { type: 'GET_STUDENTS_SUCCESS'; payload: Student[] }
-  | { type: 'UPDATE_SEAT_SUCCESS'; payload: Seat }
-  | { type: 'ADD_STUDENT_SUCCESS'; payload: Student }
-  | { type: 'UPDATE_STUDENT_SUCCESS'; payload: Student }
-  | { type: 'DELETE_STUDENT_SUCCESS'; payload: string }
-  | { type: 'RUN_ALLOCATION_SUCCESS'; payload: { seats: Seat[]; summary: AllocationSummary } };
+   | { type: 'API_REQUEST_START' }
+   | { type: 'API_REQUEST_FAIL'; payload: string }
+   | { type: 'GET_BUILDINGS_SUCCESS'; payload: Building[] }
+   | { type: 'GET_ROOMS_SUCCESS'; payload: Room[] }
+   | { type: 'GET_SEATS_SUCCESS'; payload: Seat[] }
+   | { type: 'GET_STUDENTS_SUCCESS'; payload: Student[] }
+   | { type: 'UPDATE_SEAT_SUCCESS'; payload: Seat }
+   | { type: 'ADD_STUDENT_SUCCESS'; payload: Student }
+   | { type: 'UPDATE_STUDENT_SUCCESS'; payload: Student }
+   | { type: 'DELETE_STUDENT_SUCCESS'; payload: string }
+   | { type: 'RUN_ALLOCATION_SUCCESS'; payload: { seats: Seat[]; summary: AllocationSummary } }
+   | { type: 'RUN_REBALANCE_SUCCESS'; payload: { seats: Seat[]; rebalanceSummary: any } };
 
 const initialState: State = {
-  buildings: [],
-  rooms: [],
-  seats: [],
-  students: [],
-  allocationSummary: null,
-  loading: false,
-  error: null,
+   buildings: [],
+   rooms: [],
+   seats: [],
+   students: [],
+   allocationSummary: null,
+   rebalanceSummary: null,
+   loading: false,
+   error: null,
 };
 
 const reducer = (state: State, action: Action): State => {
@@ -79,6 +82,13 @@ const reducer = (state: State, action: Action): State => {
         loading: false,
         seats: action.payload.seats,
         allocationSummary: action.payload.summary,
+      };
+    case 'RUN_REBALANCE_SUCCESS':
+      return {
+        ...state,
+        loading: false,
+        seats: action.payload.seats,
+        rebalanceSummary: action.payload.rebalanceSummary,
       };
     default:
       return state;
