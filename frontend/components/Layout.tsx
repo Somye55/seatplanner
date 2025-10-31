@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { authService } from '../services/authService';
 
 const navigation = [
   { name: 'Buildings', href: '/buildings' },
@@ -9,6 +10,14 @@ const navigation = [
 ];
 
 const Header: React.FC = () => {
+  const navigate = useNavigate();
+  const user = authService.getUser();
+
+  const handleLogout = () => {
+    authService.logout();
+    navigate('/login');
+  };
+
   return (
     <header className="bg-primary text-white shadow-md">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,19 +30,32 @@ const Header: React.FC = () => {
             </div>
             <span className="ml-3 text-2xl font-bold">SeatPlanner</span>
           </div>
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navigation.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.href}
-                  className={({ isActive }) =>
-                    `${isActive ? 'bg-blue-900' : 'hover:bg-blue-800'} text-white px-3 py-2 rounded-md text-sm font-medium transition-colors`
-                  }
-                >
-                  {item.name}
-                </NavLink>
-              ))}
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-baseline space-x-4">
+                {navigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `${isActive ? 'bg-blue-900' : 'hover:bg-blue-800'} text-white px-3 py-2 rounded-md text-sm font-medium transition-colors`
+                    }
+                  >
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-300">
+                {user?.email} ({user?.role})
+              </span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

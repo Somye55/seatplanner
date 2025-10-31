@@ -11,6 +11,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(Student)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Building {
   id        String   @id @default(cuid())
   name      String
@@ -62,4 +71,9 @@ enum SeatStatus {
   Available
   Allocated
   Broken
+}
+
+enum UserRole {
+  Admin
+  Student
 }

@@ -74,7 +74,7 @@ const SeatMapPage: React.FC = () => {
       if (data.roomId === roomId) {
         // Update the seat in state
         const updatedSeats = allSeats.map(seat =>
-          seat.id === data.seatId ? { ...seat, status: data.status } : seat
+          seat.id === data.seatId ? { ...seat, status: data.status, version: seat.version + 1 } : seat
         );
         dispatch({ type: 'GET_SEATS_SUCCESS', payload: updatedSeats });
       }

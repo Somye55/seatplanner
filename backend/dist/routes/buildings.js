@@ -10,11 +10,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const express_validator_1 = require("express-validator");
 const client_1 = require("../generated/prisma/client");
+const cache_1 = require("../middleware/cache");
+const auth_1 = require("./auth");
 const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
 // GET /api/buildings -> list buildings
-router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/', (0, cache_1.cacheMiddleware)('buildings'), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const buildings = yield prisma.building.findMany({
             include: {
@@ -35,8 +38,43 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(500).json({ error: 'Failed to fetch buildings' });
     }
 }));
+// POST /api/buildings -> create building
+router.post('/', [
+    auth_1.authenticateToken,
+    auth_1.requireAdmin,
+    (0, express_validator_1.body)('name').isLength({ min: 1 }),
+    (0, express_validator_1.body)('code').isLength({ min: 1 })
+], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    try {
+        const { name, code } = req.body;
+        const existingBuilding = yield prisma.building.findUnique({
+            where: { code }
+        });
+        if (existingBuilding) {
+            return res.status(400).json({ error: 'Building with this code already exists' });
+        }
+        const building = yield prisma.building.create({
+            data: { name, code }
+        });
+        yield (0, cache_1.invalidateCache)('buildings');
+        res.status(201).json(building);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Failed to create building' });
+    }
+}));
 // GET /api/buildings/:id/rooms -> rooms in a building
-router.get('/:id/rooms', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/:id/rooms', [
+    (0, express_validator_1.param)('id').isUUID()
+], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try {
         const buildingId = req.params.id;
         const buildingRooms = yield prisma.room.findMany({

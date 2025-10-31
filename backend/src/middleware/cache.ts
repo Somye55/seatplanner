@@ -8,16 +8,27 @@ export const cacheMiddleware = (keyPrefix: string, ttl: number = 300) => {
     try {
       const cachedData = await redis.get(key);
       if (cachedData) {
-        res.json(JSON.parse(cachedData));
-        return;
+        // Data found in cache. Send it directly to bypass ETag middleware
+        // which can cause issues with 304 responses on cached empty arrays.
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).send(cachedData);
+        return; // End the request-response cycle here.
       }
     } catch (error) {
       console.error('Cache read error:', error);
+      // Fall through to the database if cache fails
     }
 
     const originalJson = res.json;
     res.json = function (data: any) {
-      redis.set(key, JSON.stringify(data), ttl).catch(err => console.error('Cache write error:', err));
+      // Prevent caching of empty arrays to avoid serving stale "empty" data.
+      const isDataEmpty = Array.isArray(data) && data.length === 0;
+
+      if (!isDataEmpty) {
+          // Use the { EX: ttl } option for setting expiry in modern redis clients.
+          redis.set(key, JSON.stringify(data), ttl)
+               .catch(err => console.error('Cache write error:', err));
+      }
       return originalJson.call(this, data);
     };
 
@@ -25,9 +36,13 @@ export const cacheMiddleware = (keyPrefix: string, ttl: number = 300) => {
   };
 };
 
-export const invalidateCache = async (key: string) => {
+// Invalidate cache based on a prefix (e.g., 'buildings')
+export const invalidateCache = async (prefix: string) => {
   try {
-    await redis.del(key);
+    const keys = await redis.keys(`${prefix}:*`);
+    if (keys.length > 0) {
+        await redis.del(...keys);
+    }
   } catch (error) {
     console.error('Cache invalidation error:', error);
   }

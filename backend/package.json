@@ -8,8 +8,13 @@
     "clean": "rm -rf dist",
     "prepare": "npm run build"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "axios": "^1.13.1",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
@@ -31,8 +36,10 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^24.9.2",
+    "@types/uuid": "^10.0.0",
     "prisma": "^6.18.0",
     "ts-jest": "^29.4.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "uuid": "^10.0.0"
   }
 }

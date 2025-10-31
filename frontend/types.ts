@@ -1,8 +1,18 @@
-
 export enum SeatStatus {
   Available = 'available',
   Allocated = 'allocated',
   Broken = 'broken',
+}
+
+export interface User {
+  id: string;
+  email: string;
+  role: 'Admin' | 'Student';
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
 }
 
 export interface Student {
@@ -21,6 +31,8 @@ export interface Seat {
   col: number;
   status: SeatStatus;
   studentId?: string;
+  features: string[];
+  version: number;
 }
 
 export interface Room {

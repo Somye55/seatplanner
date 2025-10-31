@@ -6,10 +6,12 @@ const API_BASE_URL = 'http://localhost:3001/api';
 
 // Helper for fetch requests
 async function fetchApi(url: string, options: RequestInit = {}) {
+    const { authService } = await import('./authService');
     const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
+            ...authService.getAuthHeaders(),
             ...options.headers,
         },
     });
@@ -25,37 +27,83 @@ async function fetchApi(url: string, options: RequestInit = {}) {
 
 // API FUNCTIONS
 export const api = {
+  // Auth
+  login: (email: string, password: string) => {
+    const { authService } = require('./authService');
+    return authService.login(email, password);
+  },
+
+  signup: (email: string, password: string, role?: 'Admin' | 'Student') => {
+    const { authService } = require('./authService');
+    return authService.signup(email, password, role);
+  },
+
+  // Buildings
   getBuildings: (): Promise<Building[]> => fetchApi('/buildings'),
-  
+
+  createBuilding: (buildingData: { name: string; code: string }): Promise<Building> =>
+    fetchApi('/buildings', {
+      method: 'POST',
+      body: JSON.stringify(buildingData),
+    }),
+
+  updateBuilding: (buildingId: string, buildingData: { name?: string; code?: string }): Promise<Building> =>
+    fetchApi(`/buildings/${buildingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildingData),
+    }),
+
+  deleteBuilding: (buildingId: string): Promise<void> =>
+    fetchApi(`/buildings/${buildingId}`, { method: 'DELETE' }),
+
   getRoomsByBuilding: (buildingId: string): Promise<Room[]> => fetchApi(`/buildings/${buildingId}/rooms`),
-  
+
+  // Rooms
+  createRoom: (roomData: { buildingId: string; name: string; capacity: number }): Promise<Room> =>
+    fetchApi('/rooms', {
+      method: 'POST',
+      body: JSON.stringify(roomData),
+    }),
+
+  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number }): Promise<Room> =>
+    fetchApi(`/rooms/${roomId}`, {
+      method: 'PUT',
+      body: JSON.stringify(roomData),
+    }),
+
+  deleteRoom: (roomId: string): Promise<void> =>
+    fetchApi(`/rooms/${roomId}`, { method: 'DELETE' }),
+
   getRoomById: (roomId: string): Promise<Room> => fetchApi(`/rooms/${roomId}`),
-  
+
   getSeatsByRoom: (roomId: string): Promise<Seat[]> => fetchApi(`/rooms/${roomId}/seats`),
-  
-  getStudents: (): Promise<Student[]> => fetchApi('/students'),
-  
+
+  // Seats
   updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> =>
     fetchApi(`/seats/${seatId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status, version }),
     }),
-  
-  addStudent: (studentData: Omit<Student, 'id'>): Promise<Student> => 
+
+  // Students
+  getStudents: (): Promise<Student[]> => fetchApi('/students'),
+
+  addStudent: (studentData: Omit<Student, 'id'>): Promise<Student> =>
     fetchApi('/students', {
         method: 'POST',
         body: JSON.stringify(studentData),
     }),
-  
-  updateStudent: (studentId: string, studentData: Partial<Student>): Promise<Student> => 
+
+  updateStudent: (studentId: string, studentData: Partial<Student>): Promise<Student> =>
     fetchApi(`/students/${studentId}`, {
         method: 'PATCH',
         body: JSON.stringify(studentData),
     }),
-  
-  deleteStudent: (studentId: string): Promise<void> => 
+
+  deleteStudent: (studentId: string): Promise<void> =>
     fetchApi(`/students/${studentId}`, { method: 'DELETE' }),
 
+  // Planning
   runAllocation: (): Promise<{ seats: Seat[], summary: AllocationSummary }> =>
     fetchApi('/plan/allocate', { method: 'POST' }),
 

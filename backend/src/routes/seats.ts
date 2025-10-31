@@ -57,7 +57,11 @@ router.patch('/:id/status', [
 
     // Emit real-time update
     const io: Server = req.app.get('io');
-    io.emit('seatUpdated', result);
+    io.emit('seatStatusChanged', {
+      seatId: result.id,
+      roomId: result.roomId,
+      status: result.status
+    });
 
     res.json(result);
 

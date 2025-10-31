@@ -1,6 +1,6 @@
 
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+dotenv.config({ path: '.env' });
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { PrismaClient } from './generated/prisma/client';
+import authRouter from './routes/auth';
 import buildingsRouter from './routes/buildings';
 import roomsRouter from './routes/rooms';
 import seatsRouter from './routes/seats';
@@ -50,6 +51,7 @@ app.get('/api', (req, res) => {
   res.json({ message: 'SeatPlanner API is running!' });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/buildings', buildingsRouter);
 app.use('/api/rooms', roomsRouter);
 app.use('/api/seats', seatsRouter);

@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const express_validator_1 = require("express-validator");
 const client_1 = require("../generated/prisma/client");
 const router = (0, express_1.Router)();
 const prisma = new client_1.PrismaClient();
@@ -24,7 +25,16 @@ router.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 }));
 // POST /api/students
-router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/', [
+    (0, express_validator_1.body)('name').isString().notEmpty(),
+    (0, express_validator_1.body)('email').isEmail(),
+    (0, express_validator_1.body)('tags').isArray(),
+    (0, express_validator_1.body)('accessibilityNeeds').isArray()
+], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try {
         const studentData = req.body;
         const newStudent = yield prisma.student.create({
@@ -37,7 +47,17 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 }));
 // PATCH /api/students/:id
-router.patch('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.patch('/:id', [
+    (0, express_validator_1.param)('id').isUUID(),
+    (0, express_validator_1.body)('name').optional().isString().notEmpty(),
+    (0, express_validator_1.body)('email').optional().isEmail(),
+    (0, express_validator_1.body)('tags').optional().isArray(),
+    (0, express_validator_1.body)('accessibilityNeeds').optional().isArray()
+], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try {
         const updatedStudent = yield prisma.student.update({
             where: { id: req.params.id },
@@ -55,7 +75,13 @@ router.patch('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 }));
 // DELETE /api/students/:id
-router.delete('/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.delete('/:id', [
+    (0, express_validator_1.param)('id').isUUID()
+], (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     try {
         yield prisma.student.delete({
             where: { id: req.params.id }

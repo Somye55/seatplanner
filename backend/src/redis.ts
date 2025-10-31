@@ -18,7 +18,7 @@ class UpstashRedis {
 
   async get(key: string): Promise<string | null> {
     try {
-      const response = await axios.get(`${this.baseURL}/get/${key}`, {
+      const response = await axios.get(`${this.baseURL}/get/${encodeURIComponent(key)}`, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
@@ -32,7 +32,7 @@ class UpstashRedis {
 
   async set(key: string, value: string, ex?: number): Promise<string | null> {
     try {
-      const url = ex ? `${this.baseURL}/setex/${key}/${ex}` : `${this.baseURL}/set/${key}`;
+      const url = ex ? `${this.baseURL}/setex/${encodeURIComponent(key)}/${ex}` : `${this.baseURL}/set/${encodeURIComponent(key)}`;
       const response = await axios.post(url, value, {
         headers: {
           Authorization: `Bearer ${this.token}`,
@@ -46,9 +46,10 @@ class UpstashRedis {
     }
   }
 
-  async del(key: string): Promise<number> {
+  async del(...keys: string[]): Promise<number> {
     try {
-      const response = await axios.delete(`${this.baseURL}/del/${key}`, {
+      const encodedKeys = keys.map(key => encodeURIComponent(key));
+      const response = await axios.delete(`${this.baseURL}/del/${encodedKeys.join('/')}`, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
@@ -57,6 +58,20 @@ class UpstashRedis {
     } catch (error) {
       console.error('Redis DEL error:', error);
       return 0;
+    }
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    try {
+      const response = await axios.get(`${this.baseURL}/keys?pattern=${encodeURIComponent(pattern)}`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      });
+      return response.data.result || [];
+    } catch (error) {
+      console.error('Redis KEYS error:', error);
+      return [];
     }
   }
 }
