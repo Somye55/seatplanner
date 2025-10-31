@@ -40,7 +40,7 @@ router.post('/', [
 
 // PATCH /api/students/:id
 router.patch('/:id', [
-  param('id').isUUID(),
+  param('id').isString().notEmpty(),
   body('name').optional().isString().notEmpty(),
   body('email').optional().isEmail(),
   body('tags').optional().isArray(),
@@ -67,7 +67,7 @@ router.patch('/:id', [
 
 // DELETE /api/students/:id
 router.delete('/:id', [
-  param('id').isUUID()
+  param('id').isString().notEmpty()
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

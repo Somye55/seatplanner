@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 
 // GET /api/rooms/:id
 router.get('/:id', [
-  param('id').isUUID()
+  param('id').isString().notEmpty()
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -34,7 +34,7 @@ router.get('/:id', [
 router.post('/', [
   authenticateToken,
   requireAdmin,
-  body('buildingId').isUUID(),
+  body('buildingId').isString().notEmpty(),
   body('name').isLength({ min: 1 }),
   body('capacity').isInt({ min: 1 })
 ], async (req: Request, res: Response) => {
@@ -70,7 +70,7 @@ router.post('/', [
 router.put('/:id', [
   authenticateToken,
   requireAdmin,
-  param('id').isUUID(),
+  param('id').isString().notEmpty(),
   body('name').optional().isLength({ min: 1 }),
   body('capacity').optional().isInt({ min: 1 })
 ], async (req: Request, res: Response) => {
@@ -108,7 +108,7 @@ router.put('/:id', [
 router.delete('/:id', [
   authenticateToken,
   requireAdmin,
-  param('id').isUUID()
+  param('id').isString().notEmpty()
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -145,7 +145,7 @@ router.delete('/:id', [
 
 // GET /api/rooms/:id/seats
 router.get('/:id/seats', [
-  param('id').isUUID()
+  param('id').isString().notEmpty()
 ], cacheMiddleware('room-seats'), async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

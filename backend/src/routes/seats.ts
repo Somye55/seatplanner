@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 // PATCH /api/seats/:id/status
 router.patch('/:id/status', [
-  param('id').isUUID(),
+  param('id').isString().notEmpty(),
   body('status').isIn(['Available', 'Allocated', 'Broken', 'Blocked']),
   body('version').isInt({ min: 0 }).withMessage('Version is required for updates.')
 ], async (req: Request, res: Response) => {

@@ -69,7 +69,7 @@ router.post('/', [
 router.put('/:id', [
   authenticateToken,
   requireAdmin,
-  param('id').isUUID(),
+  param('id').isString().notEmpty(),
   body('name').optional().isLength({ min: 1 }),
   body('code').optional().isLength({ min: 1 })
 ], async (req: Request, res: Response) => {
@@ -116,7 +116,7 @@ router.put('/:id', [
 router.delete('/:id', [
   authenticateToken,
   requireAdmin,
-  param('id').isUUID()
+  param('id').isString().notEmpty()
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -153,7 +153,7 @@ router.delete('/:id', [
 
 // GET /api/buildings/:id/rooms -> rooms in a building
 router.get('/:id/rooms', [
-  param('id').isUUID()
+  param('id').isLength({ min: 1 })
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
