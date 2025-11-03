@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient, SeatStatus } from '../../generated/prisma/client';
 
 export class SeatGenerationService {
   static async generateSeatsForRoom(roomId: string, capacity: number, prisma: PrismaClient): Promise<void> {
@@ -19,7 +19,7 @@ export class SeatGenerationService {
           row,
           col,
           features: [],
-          status: 'Available' as const,
+          status: SeatStatus.Available,
           version: 1
         });
       }

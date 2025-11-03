@@ -1,7 +1,6 @@
-
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { authenticateToken, requireAdmin, AuthRequest } from './auth';
 
 const router = Router();

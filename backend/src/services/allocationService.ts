@@ -1,4 +1,4 @@
-import { PrismaClient, Seat, Student } from '../generated/prisma/client';
+import { PrismaClient, Seat, Student, SeatStatus } from '../../generated/prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -20,8 +20,8 @@ export class AllocationService {
     // 1. Reset all previously allocated seats to make the operation idempotent.
     // This also increments the version for optimistic locking clients.
     await prisma.seat.updateMany({
-      where: { status: 'Allocated' },
-      data: { status: 'Available', studentId: null, version: { increment: 1 } }
+      where: { status: SeatStatus.Allocated },
+      data: { status: SeatStatus.Available, studentId: null, version: { increment: 1 } }
     });
 
     // Invalidate cache for all rooms since seat statuses have changed
@@ -30,7 +30,7 @@ export class AllocationService {
 
     // 2. Fetch all available seats and all students.
     const availableSeats = await prisma.seat.findMany({
-      where: { status: 'Available' },
+      where: { status: SeatStatus.Available },
       orderBy: [{ row: 'asc' }, { col: 'asc' }] // Sort for deterministic allocation
     });
 
@@ -55,7 +55,7 @@ export class AllocationService {
         
         await prisma.seat.update({
           where: { id: seatToAllocate.id },
-          data: { status: 'Allocated', studentId: student.id, version: { increment: 1 } }
+          data: { status: SeatStatus.Allocated, studentId: student.id, version: { increment: 1 } }
         });
 
         // Remove the allocated seat from the available pool for this run
@@ -73,7 +73,7 @@ export class AllocationService {
     
     // 5. Calculate summary metrics.
     const totalUsableSeats = await prisma.seat.count({
-      where: { status: { not: 'Broken' } }
+      where: { status: { not: SeatStatus.Broken } }
     });
 
     const finalSeats = await prisma.seat.findMany({ include: { student: true } });
@@ -109,7 +109,7 @@ export class AllocationService {
 
     // 2. Fetch available seats.
     const availableSeats = await prisma.seat.findMany({
-      where: { status: 'Available' },
+      where: { status: SeatStatus.Available },
       orderBy: [{ row: 'asc' }, { col: 'asc' }]
     });
 
@@ -127,7 +127,7 @@ export class AllocationService {
         
         await prisma.seat.update({
           where: { id: seatToAllocate.id },
-          data: { status: 'Allocated', studentId: student.id, version: { increment: 1 } }
+          data: { status: SeatStatus.Allocated, studentId: student.id, version: { increment: 1 } }
         });
 
         seatsInUse.splice(suitableSeatIndex, 1);

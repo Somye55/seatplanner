@@ -1,7 +1,6 @@
-
 import { Router, Request, Response } from 'express';
 import { param, body, validationResult } from 'express-validator';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '../../generated/prisma/client';
 import { cacheMiddleware, invalidateCache } from '../middleware/cache';
 import { authenticateToken, requireAdmin } from './auth';
 

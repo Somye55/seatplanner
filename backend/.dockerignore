@@ -1,6 +1,6 @@
 node_modules
 .env.local
-src/generated/prisma
+generated/prisma
 *.md
 dist
 .git

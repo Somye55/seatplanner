@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { PrismaClient } from './generated/prisma/client';
+import { PrismaClient } from '../generated/prisma/client';
 import authRouter from './routes/auth';
 import buildingsRouter from './routes/buildings';
 import roomsRouter from './routes/rooms';

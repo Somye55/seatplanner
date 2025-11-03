@@ -1,0 +1,8 @@
+// backend/.dockerignore
+node_modules
+.env.local
+*.md
+dist
+.git
+.gitignore
+README.md

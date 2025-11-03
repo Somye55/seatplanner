@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient, SeatStatus } from '../../generated/prisma/client';
 import { invalidateCache } from '../middleware/cache';
 import { Server } from 'socket.io';
 import { authenticateToken, requireAdmin, AuthRequest } from './auth';
@@ -13,7 +13,7 @@ router.patch('/:id/status', [
   authenticateToken,
   requireAdmin,
   param('id').isString().notEmpty(),
-  body('status').isIn(['Available', 'Broken', 'Allocated']).withMessage('Status must be either Available, Broken, or Allocated'),
+  body('status').isIn(Object.values(SeatStatus)).withMessage(`Status must be one of: ${Object.values(SeatStatus).join(', ')}`),
   body('version').isInt({ min: 0 }).withMessage('Version is required for updates.')
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -21,7 +21,7 @@ router.patch('/:id/status', [
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { status, version } = req.body as { status: string; version: number };
+  const { status, version } = req.body as { status: SeatStatus; version: number };
   const seatId = req.params.id;
 
   try {
@@ -46,7 +46,7 @@ router.patch('/:id/status', [
       const updatedSeat = await tx.seat.update({
         where: { id: seatId },
         data: {
-          status: status as any,
+          status: status,
           // If a seat is being marked as available or broken, unassign any student.
           studentId: null,
           version: { increment: 1 }
@@ -56,11 +56,11 @@ router.patch('/:id/status', [
 
       // Update room's claimed count based on status change
       let claimedIncrement = 0;
-      if (status === 'Broken' && oldStatus === 'Available') {
+      if (status === SeatStatus.Broken && oldStatus === SeatStatus.Available) {
         claimedIncrement = 1; // Becoming unavailable
-      } else if (status === 'Available' && oldStatus !== 'Available') {
+      } else if (status === SeatStatus.Available && oldStatus !== SeatStatus.Available) {
         claimedIncrement = -1; // Becoming available
-      } else if (status === 'Allocated' && oldStatus === 'Available') {
+      } else if (status === SeatStatus.Allocated && oldStatus === SeatStatus.Available) {
         claimedIncrement = 1; // Becoming unavailable
       }
 
@@ -151,7 +151,7 @@ router.post('/:id/claim', [
         }
   
         // 4. Check seat availability and version
-        if (seatToClaim.status !== 'Available') {
+        if (seatToClaim.status !== SeatStatus.Available) {
           throw new Error('SeatNotAvailable');
         }
         if (seatToClaim.version !== version) {
@@ -162,7 +162,7 @@ router.post('/:id/claim', [
         const updatedSeat = await tx.seat.update({
           where: { id: seatId },
           data: {
-            status: 'Allocated',
+            status: SeatStatus.Allocated,
             studentId: student.id,
             version: { increment: 1 },
           },

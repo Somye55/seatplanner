@@ -5,7 +5,7 @@ const mockSeatCount = jest.fn();
 const mockSeatUpdate = jest.fn();
 const mockStudentFindMany = jest.fn();
 
-jest.mock('../generated/prisma/client', () => ({
+jest.mock('../../generated/prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     seat: {
       updateMany: mockSeatUpdateMany,
@@ -17,6 +17,11 @@ jest.mock('../generated/prisma/client', () => ({
       findMany: mockStudentFindMany,
     },
   })),
+  SeatStatus: {
+    Available: 'Available',
+    Allocated: 'Allocated',
+    Broken: 'Broken'
+  }
 }));
 
 import { AllocationService } from '../services/allocationService';
@@ -108,7 +113,7 @@ describe('AllocationService', () => {
       const { summary } = await AllocationService.rebalance();
       
       // Assert
-      expect(mockStudentFindMany).toHaveBeenCalledWith({ where: { seat: null } });
+      expect(mockStudentFindMany).toHaveBeenCalledWith({ where: { seats: { none: {} } } });
       expect(mockSeatUpdate).toHaveBeenCalledTimes(1);
       expect(summary.reallocatedCount).toBe(1);
       expect(summary.stillUnassignedCount).toBe(0);
