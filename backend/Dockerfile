@@ -1,5 +1,3 @@
-# Multi-stage build for a Node.js TypeScript application with Prisma
-
 # ---- Builder Stage ----
 # This stage installs all dependencies, generates the Prisma client, and builds the TypeScript code.
 FROM node:18-alpine AS builder
@@ -9,7 +7,7 @@ WORKDIR /app
 # Copy package.json and lock file first to leverage Docker cache
 COPY package*.json ./
 
-# Copy the Prisma schema file. This is required to generate the client.
+# Copy the Prisma schema file
 COPY prisma ./prisma/
 
 # Install all dependencies (including devDependencies like typescript and prisma)
@@ -17,6 +15,11 @@ RUN npm ci
 
 # Copy the rest of your application's source code
 COPY . .
+
+# Provide a dummy DATABASE_URL for the prisma generate command.
+# This is ONLY for the build step. Render will provide the real one at runtime.
+# The value must be a correctly formatted but fake connection string.
+ENV DATABASE_URL="postgresql://user:password@host:port/db?schema=public"
 
 # Generate the Prisma Client. This MUST happen before the build step.
 RUN npx prisma generate
