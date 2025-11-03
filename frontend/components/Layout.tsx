@@ -3,15 +3,16 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 
-const navigation = [
-  { name: 'Buildings', href: '/buildings' },
-  { name: 'Students', href: '/students' },
-  { name: 'Planning', href: '/planning' },
-];
-
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const user = authService.getUser();
+  const isAdmin = authService.isAdmin();
+
+  const navigation = isAdmin ? [
+    { name: 'Buildings', href: '/buildings' },
+    { name: 'Students', href: '/students' },
+    { name: 'Planning', href: '/planning' }
+  ] : [];
 
   const handleLogout = () => {
     authService.logout();

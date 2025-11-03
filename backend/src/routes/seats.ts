@@ -106,19 +106,26 @@ router.post('/:id/claim', [
           throw new Error('StudentProfileNotFound');
         }
   
-        // 2. Check if student already has a seat
-        const existingSeat = await tx.seat.findFirst({
-          where: { studentId: student.id },
-        });
-  
-        if (existingSeat) {
-          throw new Error('StudentAlreadyHasSeat');
-        }
-  
-        // 3. Find the seat to be claimed
+        // 2. Find the seat to be claimed
         const seatToClaim = await tx.seat.findUnique({
           where: { id: seatId },
         });
+
+        if (!seatToClaim) {
+          throw new Error('SeatNotFound');
+        }
+
+        // 3. Check if student already has a seat in this room
+        const existingSeatInRoom = await tx.seat.findFirst({
+          where: {
+            studentId: student.id,
+            roomId: seatToClaim.roomId
+          },
+        });
+
+        if (existingSeatInRoom) {
+          throw new Error('StudentAlreadyHasSeatInRoom');
+        }
   
         if (!seatToClaim) {
           throw new Error('SeatNotFound');
@@ -157,8 +164,8 @@ router.post('/:id/claim', [
       if (error.message === 'StudentProfileNotFound') {
         return res.status(404).json({ message: 'No student profile found for this user.' });
       }
-      if (error.message === 'StudentAlreadyHasSeat') {
-        return res.status(400).json({ message: 'You already have a seat allocated.' });
+      if (error.message === 'StudentAlreadyHasSeatInRoom') {
+        return res.status(400).json({ message: 'You already have a seat allocated in this room.' });
       }
       if (error.message === 'SeatNotFound') {
         return res.status(404).json({ message: 'Seat not found.' });

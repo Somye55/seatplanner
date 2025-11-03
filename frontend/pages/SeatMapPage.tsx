@@ -65,10 +65,10 @@ const SeatMapPage: React.FC = () => {
     return students.find(s => s.email === currentUser.email);
   }, [students, currentUser, isAdmin]);
 
-  const currentUserHasSeat = useMemo(() => {
+  const currentUserHasSeatInRoom = useMemo(() => {
     if (!studentForCurrentUser) return false;
-    return allSeats.some(s => s.studentId === studentForCurrentUser.id);
-  }, [allSeats, studentForCurrentUser]);
+    return roomSeats.some(s => s.studentId === studentForCurrentUser.id);
+  }, [roomSeats, studentForCurrentUser]);
 
   const maxRow = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.row)) + 1 : 0, [roomSeats]);
   const maxCol = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.col)) + 1 : 0, [roomSeats]);
@@ -248,8 +248,8 @@ const SeatMapPage: React.FC = () => {
             {!isAdmin && (
                 <div className="mt-4">
                     {selectedSeat.status === SeatStatus.Available && (
-                        <Button onClick={handleClaimSeat} disabled={currentUserHasSeat || claimingSeat}>
-                            {claimingSeat ? 'Claiming...' : currentUserHasSeat ? 'You already have a seat' : 'Claim This Seat'}
+                        <Button onClick={handleClaimSeat} disabled={currentUserHasSeatInRoom || claimingSeat}>
+                            {claimingSeat ? 'Claiming...' : currentUserHasSeatInRoom ? 'You already have a seat in this room' : 'Claim This Seat'}
                         </Button>
                     )}
                     {selectedSeat.status === SeatStatus.Allocated && selectedSeat.studentId === studentForCurrentUser?.id && (

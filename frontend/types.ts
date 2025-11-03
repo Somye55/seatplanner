@@ -21,6 +21,7 @@ export interface Student {
   email: string;
   tags: string[];
   accessibilityNeeds: string[];
+  seats?: Seat[];
 }
 
 export interface Seat {

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SeatPlannerProvider } from './context/SeatPlannerContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
@@ -14,7 +14,7 @@ import PlanningPage from './pages/PlanningPage';
 const App: React.FC = () => {
   return (
     <SeatPlannerProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/*" element={
@@ -27,12 +27,13 @@ const App: React.FC = () => {
                   <Route path="/rooms/:roomId" element={<SeatMapPage />} />
                   <Route path="/students" element={<StudentsPage />} />
                   <Route path="/planning" element={<PlanningPage />} />
+                  <Route path="*" element={<Navigate to="/buildings" replace />} />
                 </Routes>
               </Layout>
             </PrivateRoute>
           } />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </SeatPlannerProvider>
   );
 };

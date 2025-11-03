@@ -88,7 +88,9 @@ export class AllocationService {
     // 1. Find students who are currently unassigned.
     const unassignedStudents = await prisma.student.findMany({
       where: {
-        seat: null
+        seats: {
+          none: {}
+        }
       }
     });
 

@@ -2,12 +2,13 @@
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { PrismaClient } from '../generated/prisma/client';
+import { authenticateToken, requireAdmin, AuthRequest } from './auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // GET /api/students
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
         const students = await prisma.student.findMany();
         res.json(students);
@@ -17,12 +18,12 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/students
-router.post('/', [
+router.post('/', authenticateToken, requireAdmin, [
   body('name').isString().notEmpty(),
   body('email').isEmail(),
   body('tags').isArray(),
   body('accessibilityNeeds').isArray()
-], async (req: Request, res: Response) => {
+], async (req: AuthRequest, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -39,13 +40,13 @@ router.post('/', [
 });
 
 // PATCH /api/students/:id
-router.patch('/:id', [
+router.patch('/:id', authenticateToken, requireAdmin, [
   param('id').isString().notEmpty(),
   body('name').optional().isString().notEmpty(),
   body('email').optional().isEmail(),
   body('tags').optional().isArray(),
   body('accessibilityNeeds').optional().isArray()
-], async (req: Request, res: Response) => {
+], async (req: AuthRequest, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -66,9 +67,9 @@ router.patch('/:id', [
 });
 
 // DELETE /api/students/:id
-router.delete('/:id', [
+router.delete('/:id', authenticateToken, requireAdmin, [
   param('id').isString().notEmpty()
-], async (req: Request, res: Response) => {
+], async (req: AuthRequest, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });

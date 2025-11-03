@@ -50,7 +50,7 @@ model Seat {
   features  String[]
   status    SeatStatus @default(Available)
   version   Int        @default(1)
-  studentId String?    @unique
+  studentId String?
   student   Student?   @relation(fields: [studentId], references: [id])
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -62,7 +62,7 @@ model Student {
   email               String   @unique
   tags                String[]
   accessibilityNeeds  String[]
-  seat                Seat?
+  seats               Seat[]
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
