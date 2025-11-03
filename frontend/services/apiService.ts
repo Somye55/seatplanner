@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Building, Room, Seat, Student, SeatStatus, AllocationSummary } from '../types';
 
-const API_BASE_URL = import.meta.env.PROD ? 'https://seatplanner-zsi2.onrender.com/api' : 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? 'https://seatplanner-zsi2.onrender.com/api' : 'http://localhost:3001/api');
 
 // Helper for fetch requests
 async function fetchApi(url: string, options: RequestInit = {}) {
