@@ -21,14 +21,17 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // Corrected frontend port
+    origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"], // Allow both local and production frontend
     methods: ["GET", "POST"]
   }
 });
 const port = process.env.PORT || 3001;
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"],
+  credentials: true
+}));
 app.use(express.json());
 
 // Rate limiting
