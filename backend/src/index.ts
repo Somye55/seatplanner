@@ -84,6 +84,6 @@ server.listen(port, () => {
 // Graceful shutdown for nodemon restarts
 process.on('SIGUSR2', () => {
   server.close(() => {
-    process.exit(0);
+    process.kill(process.pid, 'SIGUSR2');
   });
 });

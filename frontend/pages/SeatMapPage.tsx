@@ -90,10 +90,9 @@ const SeatMapPage: React.FC = () => {
       if (!roomId) return;
       dispatch({ type: 'API_REQUEST_START' });
       try {
-        const [roomData, seatsData, studentsData] = await Promise.all([
+        const [roomData, seatsData] = await Promise.all([
           api.getRoomById(roomId),
-          api.getSeatsByRoom(roomId),
-          state.students.length > 0 ? Promise.resolve(state.students) : api.getStudents()
+          api.getSeatsByRoom(roomId)
         ]);
         if (!roomData) throw new Error("Room not found");
 
@@ -101,7 +100,6 @@ const SeatMapPage: React.FC = () => {
         // Replace seats for the current room, keeping others intact
         const otherSeats = allSeats.filter(s => s.roomId !== roomId);
         dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
-        if (state.students.length === 0) dispatch({ type: 'GET_STUDENTS_SUCCESS', payload: studentsData });
       } catch (err) {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' });
       }
@@ -185,7 +183,7 @@ const SeatMapPage: React.FC = () => {
   };
 
   const selectedSeatStudent = useMemo(() => students.find(s => s.id === selectedSeat?.studentId), [students, selectedSeat]);
-  const currentBuildingId = useMemo(() => rooms.find(r => r.id === roomId)?.buildingId, [rooms, roomId]);
+  const currentBuildingId = useMemo(() => currentRoom?.buildingId, [currentRoom]);
 
   if (loading && roomSeats.length === 0) return <Spinner />;
 
@@ -267,10 +265,13 @@ const SeatMapPage: React.FC = () => {
              )}
             {!isAdmin && (
                 <div className="mt-4">
-                    {selectedSeat.status === SeatStatus.Available && (
-                        <Button onClick={handleClaimSeat} disabled={currentUserHasSeatInRoom || claimingSeat}>
-                            {claimingSeat ? 'Claiming...' : currentUserHasSeatInRoom ? 'You already have a seat in this room' : 'Claim This Seat'}
+                    {selectedSeat.status === SeatStatus.Available && !currentUserHasSeatInRoom && (
+                        <Button onClick={handleClaimSeat} disabled={claimingSeat}>
+                            {claimingSeat ? 'Claiming...' : 'Claim This Seat'}
                         </Button>
+                    )}
+                    {selectedSeat.status === SeatStatus.Available && currentUserHasSeatInRoom && (
+                        <p className="text-sm text-gray-600">You already have a seat in this room.</p>
                     )}
                     {selectedSeat.status === SeatStatus.Allocated && selectedSeat.studentId === studentForCurrentUser?.id && (
                          <p className="text-sm font-semibold text-green-700 p-2 bg-green-50 rounded-md">This is your currently assigned seat.</p>

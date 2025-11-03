@@ -25,7 +25,7 @@ const App: React.FC = () => {
                   <Route path="/buildings" element={<BuildingsPage />} />
                   <Route path="/buildings/:buildingId/rooms" element={<RoomsPage />} />
                   <Route path="/rooms/:roomId" element={<SeatMapPage />} />
-                  <Route path="/students" element={<StudentsPage />} />
+                  <Route path="/students" element={<PrivateRoute requireAdmin={true}><StudentsPage /></PrivateRoute>} />
                   <Route path="/planning" element={<PlanningPage />} />
                   <Route path="*" element={<Navigate to="/buildings" replace />} />
                 </Routes>

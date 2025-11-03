@@ -160,7 +160,8 @@ router.get('/:id/seats', [
   }
     try {
         const roomSeats = await prisma.seat.findMany({
-            where: { roomId: req.params.id }
+            where: { roomId: req.params.id },
+            include: { student: true }
         });
         res.json(roomSeats);
     } catch (error) {
