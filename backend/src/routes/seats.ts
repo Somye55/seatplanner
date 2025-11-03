@@ -25,7 +25,7 @@ router.patch('/:id/status', [
   const seatId = req.params.id;
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const seat = await tx.seat.findUnique({
         where: { id: seatId }
       });
@@ -115,7 +115,7 @@ router.post('/:id/claim', [
     }
   
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         // 1. Find the student record associated with the authenticated user
         const student = await tx.student.findUnique({
           where: { email: userEmail },

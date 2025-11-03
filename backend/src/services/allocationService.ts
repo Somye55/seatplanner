@@ -46,7 +46,7 @@ export class AllocationService {
 
     const allocateStudent = async (student: Student) => {
       // Find a seat that matches all of the student's accessibility needs
-      const suitableSeatIndex = seatsInUse.findIndex(seat =>
+      const suitableSeatIndex = seatsInUse.findIndex((seat: any) =>
         student.accessibilityNeeds.every((need: string) => seat.features.includes(need))
       );
       
@@ -118,7 +118,7 @@ export class AllocationService {
     let seatsInUse = [...availableSeats];
 
     const reallocateStudent = async (student: Student) => {
-      const suitableSeatIndex = seatsInUse.findIndex(seat =>
+      const suitableSeatIndex = seatsInUse.findIndex((seat: any) =>
         student.accessibilityNeeds.every((need: string) => seat.features.includes(need))
       );
 

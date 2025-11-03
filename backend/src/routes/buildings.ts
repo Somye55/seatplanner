@@ -18,7 +18,7 @@ router.get('/', cacheMiddleware('buildings'), async (req: Request, res: Response
                 }
             }
         });
-        const buildingsWithRoomCount = buildings.map(b => ({
+        const buildingsWithRoomCount = buildings.map((b: any) => ({
             id: b.id,
             name: b.name,
             code: b.code,
