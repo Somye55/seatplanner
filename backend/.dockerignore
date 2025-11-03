@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+src/generated/prisma
+*.md
+dist
+.git
+.gitignore
+README.md

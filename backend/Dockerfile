@@ -4,13 +4,15 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./package.json
 
-# Install all dependencies (including dev dependencies for building)
+COPY backend/.env ./.env
+
+# Install all dependencies
 RUN npm ci
 
 # Copy source code
-COPY . .
+COPY backend ./
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -24,7 +26,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./package.json
 
 # Install only production dependencies
 RUN npm ci --only=production
