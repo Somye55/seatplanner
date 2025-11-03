@@ -1,24 +1,32 @@
-# Build stage
+# Multi-stage build for a Node.js TypeScript application with Prisma
+
+# ---- Builder Stage ----
+# This stage installs all dependencies, generates the Prisma client, and builds the TypeScript code.
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and lock file first to leverage Docker cache
 COPY package*.json ./
 
-# Install all dependencies
+# Copy the Prisma schema file. This is required to generate the client.
+COPY prisma ./prisma/
+
+# Install all dependencies (including devDependencies like typescript and prisma)
 RUN npm ci
 
-# Copy source code
+# Copy the rest of your application's source code
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Generate Prisma client
+# Generate the Prisma Client. This MUST happen before the build step.
 RUN npx prisma generate
 
-# Production stage
+# Build the TypeScript application into JavaScript
+RUN npm run build
+
+
+# ---- Production Stage ----
+# This stage creates the final, lean image for running the application.
 FROM node:18-alpine AS production
 
 WORKDIR /app
@@ -26,14 +34,22 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
+# Install ONLY production dependencies to keep the image small
 RUN npm ci --only=production
 
-# Copy built application from builder stage
+# Copy the compiled JavaScript code from the builder stage
 COPY --from=builder /app/dist ./dist
 
-# Expose port
+# Copy the generated Prisma client from the builder stage.
+# This is essential for your application to connect to the database.
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copy the Prisma schema. This is good practice and may be needed for runtime features.
+COPY --from=builder /app/prisma ./prisma
+
+# Expose the port your application will run on
 EXPOSE 3001
 
-# Start the application
+# The command to start your application
+# Ensure your "start" script in package.json points to the compiled output, e.g., "node dist/index.js"
 CMD ["npm", "start"]
