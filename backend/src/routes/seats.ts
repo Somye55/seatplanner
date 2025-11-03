@@ -139,7 +139,7 @@ router.post('/:id/claim', [
           throw new Error('Conflict');
         }
   
-        // 5. Update the seat
+        // 5. Update the seat and increment claimed on room
         const updatedSeat = await tx.seat.update({
           where: { id: seatId },
           data: {
@@ -148,6 +148,12 @@ router.post('/:id/claim', [
             version: { increment: 1 },
           },
           include: { student: true },
+        });
+
+        // Increment claimed count on the room
+        await tx.room.update({
+          where: { id: seatToClaim.roomId },
+          data: { claimed: { increment: 1 } },
         });
   
         return updatedSeat;

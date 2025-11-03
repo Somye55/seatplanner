@@ -35,6 +35,7 @@ model Room {
   building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   name       String
   capacity   Int
+  claimed    Int      @default(0)
   seats      Seat[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

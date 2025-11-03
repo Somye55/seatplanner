@@ -49,7 +49,7 @@ class UpstashRedis {
   async del(...keys: string[]): Promise<number> {
     try {
       const encodedKeys = keys.map(key => encodeURIComponent(key));
-      const response = await axios.delete(`${this.baseURL}/del/${encodedKeys.join('/')}`, {
+      const response = await axios.post(`${this.baseURL}/del/${encodedKeys.join('/')}`, undefined, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },

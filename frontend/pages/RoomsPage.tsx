@@ -50,7 +50,9 @@ const RoomsPage: React.FC = () => {
   }, [buildingId]);
 
   const getAvailableSeats = (roomId: string) => {
-    return seats.filter(seat => seat.roomId === roomId && seat.status === SeatStatus.Available).length;
+    const room = buildingRooms.find(r => r.id === roomId);
+    if (!room) return 0;
+    return room.capacity - (room.claimed || 0);
   };
   
   if (loading && buildingRooms.length === 0) return <Spinner />;

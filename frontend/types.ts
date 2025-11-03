@@ -41,6 +41,7 @@ export interface Room {
   buildingId: string;
   name: string;
   capacity: number;
+  claimed: number;
 }
 
 export interface Building {
