@@ -10,6 +10,7 @@ services:
       - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
       - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
+      - PORT=${PORT}
     depends_on:
       - postgres
       - redis

@@ -1,6 +1,5 @@
-
 import * as dotenv from 'dotenv';
-dotenv.config({ path: '.env' });
+dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,11 +21,11 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // frontend port
+    origin: "http://localhost:3000", // Corrected frontend port
     methods: ["GET", "POST"]
   }
 });
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 app.use(helmet());
 app.use(cors());
@@ -72,4 +71,11 @@ app.set('io', io);
 
 server.listen(port, () => {
   console.log(`SeatPlanner backend listening at http://localhost:${port}`);
+});
+
+// Graceful shutdown for nodemon restarts
+process.on('SIGUSR2', () => {
+  server.close(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  });
 });

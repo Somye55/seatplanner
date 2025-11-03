@@ -8,10 +8,18 @@ import { Seat, SeatStatus, Student, Room } from '../types';
 import io from 'socket.io-client';
 
 const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
-  const statusClasses: Record<SeatStatus, string> = {
-    [SeatStatus.Available]: 'bg-green-100 border-green-400 hover:bg-green-200 text-green-800',
-    [SeatStatus.Allocated]: 'bg-gray-200 border-gray-500 hover:bg-gray-300 text-gray-800',
-    [SeatStatus.Broken]: 'bg-red-200 border-red-500 hover:bg-red-300 text-red-800',
+  const getStatusClasses = (status: SeatStatus) => {
+    switch (status) {
+      case SeatStatus.Available:
+        return 'bg-green-100 border-green-400 hover:bg-green-200 text-green-800';
+      case SeatStatus.Allocated:
+        return 'bg-gray-200 border-gray-500 hover:bg-gray-300 text-gray-800';
+      case SeatStatus.Broken:
+        return 'bg-red-200 border-red-500 hover:bg-red-300 text-red-800';
+      default:
+        // Fallback for any unexpected status
+        return 'bg-yellow-100 border-yellow-400 text-yellow-800';
+    }
   };
 
   const cursorClass = isClickable ? 'cursor-pointer' : 'cursor-default';
@@ -19,7 +27,7 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
   return (
     <div
       onClick={isClickable ? onClick : undefined}
-      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all ${statusClasses[seat.status]} ${cursorClass}`}
+      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all ${getStatusClasses(seat.status)} ${cursorClass}`}
       title={seat.status === SeatStatus.Allocated ? `Allocated to: ${student?.name}` : seat.status}
     >
       <span className="text-sm font-bold">{seat.label}</span>
@@ -43,12 +51,24 @@ const SeatMapPage: React.FC = () => {
   const { state, dispatch } = useSeatPlanner();
   const { seats: allSeats, students, rooms, loading } = state;
   const isAdmin = authService.isAdmin();
+  const currentUser = authService.getUser();
 
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [claimingSeat, setClaimingSeat] = useState(false);
 
   const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId).sort((a,b) => a.row - b.row || a.col - b.col), [allSeats, roomId]);
+  
+  const studentForCurrentUser = useMemo(() => {
+    if (isAdmin || !currentUser) return null;
+    return students.find(s => s.email === currentUser.email);
+  }, [students, currentUser, isAdmin]);
+
+  const currentUserHasSeat = useMemo(() => {
+    if (!studentForCurrentUser) return false;
+    return allSeats.some(s => s.studentId === studentForCurrentUser.id);
+  }, [allSeats, studentForCurrentUser]);
 
   const maxRow = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.row)) + 1 : 0, [roomSeats]);
   const maxCol = useMemo(() => roomSeats.length > 0 ? Math.max(...roomSeats.map(s => s.col)) + 1 : 0, [roomSeats]);
@@ -108,23 +128,55 @@ const SeatMapPage: React.FC = () => {
   
   const handleStatusChange = async (newStatus: SeatStatus) => {
     if (!selectedSeat || !isAdmin) return;
-    dispatch({ type: 'API_REQUEST_START' });
+    
+    // Close modal immediately for responsiveness
+    setIsModalOpen(false); 
+    
     try {
+      // API call to update the backend
       const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus, selectedSeat.version);
-      // The socket event will trigger the dispatch, so we don't need it here.
+      
+      // Update local state immediately for instant UI feedback
+      dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
+
     } catch(err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update seat.';
       if (errorMessage.includes('Conflict')) {
           alert(errorMessage); // Give user specific feedback
-          // Optionally, refetch data to get the latest state
+          // Refetch data to get the latest state
           const seatsData = await api.getSeatsByRoom(roomId!);
           const otherSeats = allSeats.filter(s => s.roomId !== roomId);
           dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
       }
       dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
     } finally {
-      setIsModalOpen(false);
       setSelectedSeat(null);
+    }
+  };
+
+  const handleClaimSeat = async () => {
+    if (!selectedSeat || isAdmin || selectedSeat.status !== SeatStatus.Available) return;
+
+    setClaimingSeat(true);
+
+    try {
+        const updatedSeat = await api.claimSeat(selectedSeat.id, selectedSeat.version);
+        dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
+        setIsModalOpen(false); // Close modal on success
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to claim seat.';
+        alert(errorMessage); // Show specific error to user
+        if (errorMessage.includes('Conflict') || errorMessage.includes('no longer available')) {
+            // Refetch data to get the latest state
+            const seatsData = await api.getSeatsByRoom(roomId!);
+            const otherSeats = allSeats.filter(s => s.roomId !== roomId);
+            dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
+        } else {
+            dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
+        }
+    } finally {
+        setClaimingSeat(false);
+        setSelectedSeat(null);
     }
   };
 
@@ -154,7 +206,7 @@ const SeatMapPage: React.FC = () => {
                     seat={seat}
                     student={students.find(s => s.id === seat.studentId)}
                     onClick={() => handleSeatClick(seat)}
-                    isClickable={isAdmin}
+                    isClickable={true}
                   />
                 ) : (
                   <div key={`empty-${rowIndex}-${colIndex}`} className="w-16 h-16" />
@@ -167,7 +219,7 @@ const SeatMapPage: React.FC = () => {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`} hideCloseButton={claimingSeat}>
         {selectedSeat && (
           <div>
             <p><strong>Status:</strong> <span className="capitalize font-semibold">{selectedSeat.status}</span></p>
@@ -179,7 +231,7 @@ const SeatMapPage: React.FC = () => {
             )}
              {state.error && <p className="text-sm text-danger mt-2">{state.error}</p>}
             
-            {isAdmin && (
+            {isAdmin && selectedSeat.status !== SeatStatus.Allocated && (
               <div className="mt-6">
                   <h3 className="font-semibold text-dark mb-2">Change Status</h3>
                   <div className="flex flex-col space-y-2">
@@ -189,6 +241,24 @@ const SeatMapPage: React.FC = () => {
                           <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)}>Mark as Broken/Unavailable</Button>}
                   </div>
               </div>
+            )}
+             {isAdmin && selectedSeat.status === SeatStatus.Allocated && (
+                <p className="text-sm text-gray-600 mt-4">This seat is allocated. To make it available, run a new allocation plan or manually reassign the student.</p>
+             )}
+            {!isAdmin && (
+                <div className="mt-4">
+                    {selectedSeat.status === SeatStatus.Available && (
+                        <Button onClick={handleClaimSeat} disabled={currentUserHasSeat || claimingSeat}>
+                            {claimingSeat ? 'Claiming...' : currentUserHasSeat ? 'You already have a seat' : 'Claim This Seat'}
+                        </Button>
+                    )}
+                    {selectedSeat.status === SeatStatus.Allocated && selectedSeat.studentId === studentForCurrentUser?.id && (
+                         <p className="text-sm font-semibold text-green-700 p-2 bg-green-50 rounded-md">This is your currently assigned seat.</p>
+                    )}
+                    {selectedSeat.status === SeatStatus.Broken && (
+                         <p className="text-sm text-yellow-700">This seat is currently unavailable.</p>
+                    )}
+                </div>
             )}
           </div>
         )}

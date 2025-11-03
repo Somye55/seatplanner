@@ -63,7 +63,8 @@ class UpstashRedis {
 
   async keys(pattern: string): Promise<string[]> {
     try {
-      const response = await axios.get(`${this.baseURL}/keys?pattern=${encodeURIComponent(pattern)}`, {
+      // Corrected: pattern should be part of the URL path, not a query parameter.
+      const response = await axios.get(`${this.baseURL}/keys/${encodeURIComponent(pattern)}`, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },

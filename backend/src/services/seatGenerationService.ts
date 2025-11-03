@@ -2,31 +2,31 @@ import { PrismaClient } from '../generated/prisma/client';
 
 export class SeatGenerationService {
   static async generateSeatsForRoom(roomId: string, capacity: number, prisma: PrismaClient): Promise<void> {
-    const seats = [];
+    const cols = 10; // Assume 10 seats per row
+    const rows = Math.ceil(capacity / cols);
 
-    // Assume 10 seats per row for a simple grid layout
-    const seatsPerRow = 10;
-    const rows = Math.ceil(capacity / seatsPerRow);
+    const seatsData = [];
 
-    for (let i = 0; i < capacity; i++) {
-      const row = Math.floor(i / seatsPerRow) + 1;
-      const col = (i % seatsPerRow) + 1;
-      const label = `${String.fromCharCode(65 + row - 1)}${col}`; // A1, A2, ..., B1, etc.
+    for (let row = 0; row < rows; row++) {
+      for (let col = 1; col <= cols; col++) {
+        const seatIndex = row * cols + (col - 1);
+        if (seatIndex >= capacity) break;
 
-      seats.push({
-        roomId,
-        label,
-        row,
-        col,
-        features: [],
-        status: 'Available' as const,
-        version: 1
-      });
+        const label = `${String.fromCharCode(65 + row)}${col}`;
+        seatsData.push({
+          roomId,
+          label,
+          row,
+          col,
+          features: [],
+          status: 'Available' as const,
+          version: 1
+        });
+      }
     }
 
-    // Bulk insert seats
     await prisma.seat.createMany({
-      data: seats
+      data: seatsData
     });
   }
 }

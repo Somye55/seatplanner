@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
 }
 
@@ -37,12 +37,30 @@ router.post('/signup', [
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role
+    // Use a transaction to ensure both user and student profile are created
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          role,
+        },
+      });
+
+      // If the user is a student, create a corresponding student profile
+      if (newUser.role === 'Student') {
+        await tx.student.create({
+          data: {
+            email: newUser.email,
+            // Use email as a default name, can be updated later
+            name: newUser.email,
+            tags: [],
+            accessibilityNeeds: [],
+          },
+        });
       }
+
+      return newUser;
     });
 
     const token = jwt.sign(
@@ -84,6 +102,23 @@ router.post('/login', [
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    // Ensure student profile exists for Student role users
+    if (user.role === 'Student') {
+      const existingStudent = await prisma.student.findUnique({
+        where: { email: user.email }
+      });
+      if (!existingStudent) {
+        await prisma.student.create({
+          data: {
+            email: user.email,
+            name: user.email,
+            tags: [],
+            accessibilityNeeds: [],
+          },
+        });
+      }
     }
 
     const token = jwt.sign(

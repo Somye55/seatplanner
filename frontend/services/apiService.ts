@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { Building, Room, Seat, Student, SeatStatus, AllocationSummary } from '../types';
 
@@ -17,7 +16,8 @@ async function fetchApi(url: string, options: RequestInit = {}) {
     });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(errorData.message || 'Network response was not ok');
+        // The backend now sends "message" instead of "error" for some validation
+        throw new Error(errorData.message || errorData.error || 'Network response was not ok');
     }
     if (response.status === 204) {
         return;
@@ -79,6 +79,12 @@ export const api = {
   getSeatsByRoom: (roomId: string): Promise<Seat[]> => fetchApi(`/rooms/${roomId}/seats`),
 
   // Seats
+  claimSeat: (seatId: string, version: number): Promise<Seat> =>
+    fetchApi(`/seats/${seatId}/claim`, {
+        method: 'POST',
+        body: JSON.stringify({ version }),
+    }),
+  
   updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> =>
     fetchApi(`/seats/${seatId}/status`, {
         method: 'PATCH',
