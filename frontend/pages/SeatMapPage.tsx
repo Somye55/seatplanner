@@ -57,6 +57,7 @@ const SeatMapPage: React.FC = () => {
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [claimingSeat, setClaimingSeat] = useState(false);
+  const [markingSeat, setMarkingSeat] = useState(false);
 
   const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId).sort((a,b) => a.row - b.row || a.col - b.col), [allSeats, roomId]);
   
@@ -128,16 +129,18 @@ const SeatMapPage: React.FC = () => {
   
   const handleStatusChange = async (newStatus: SeatStatus) => {
     if (!selectedSeat || !isAdmin) return;
-    
-    // Close modal immediately for responsiveness
-    setIsModalOpen(false); 
-    
+
+    setMarkingSeat(true);
+
     try {
       // API call to update the backend
       const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus, selectedSeat.version);
-      
+
       // Update local state immediately for instant UI feedback
       dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
+
+      // Close modal after success
+      setIsModalOpen(false);
 
     } catch(err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update seat.';
@@ -150,6 +153,7 @@ const SeatMapPage: React.FC = () => {
       }
       dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
     } finally {
+      setMarkingSeat(false);
       setSelectedSeat(null);
     }
   };
@@ -219,7 +223,7 @@ const SeatMapPage: React.FC = () => {
         )}
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`} hideCloseButton={claimingSeat}>
+      <Modal isOpen={isModalOpen || markingSeat} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`} hideCloseButton={claimingSeat || markingSeat}>
         {selectedSeat && (
           <div>
             <p><strong>Status:</strong> <span className="capitalize font-semibold">{selectedSeat.status}</span></p>
@@ -235,10 +239,26 @@ const SeatMapPage: React.FC = () => {
               <div className="mt-6">
                   <h3 className="font-semibold text-dark mb-2">Change Status</h3>
                   <div className="flex flex-col space-y-2">
-                      {selectedSeat.status !== SeatStatus.Available && 
-                          <Button variant="secondary" onClick={() => handleStatusChange(SeatStatus.Available)}>Mark as Available</Button>}
-                      {selectedSeat.status !== SeatStatus.Broken && 
-                          <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)}>Mark as Broken/Unavailable</Button>}
+                      {selectedSeat.status === SeatStatus.Available && (
+                        <>
+                          <Button variant="primary" onClick={() => handleStatusChange(SeatStatus.Allocated)} disabled={markingSeat}>
+                            {markingSeat ? <Spinner /> : 'Mark as Filled'}
+                          </Button>
+                          <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)} disabled={markingSeat}>
+                            {markingSeat ? <Spinner /> : 'Mark as Broken'}
+                          </Button>
+                        </>
+                      )}
+                      {selectedSeat.status === SeatStatus.Broken && (
+                        <>
+                          <Button variant="secondary" onClick={() => handleStatusChange(SeatStatus.Available)} disabled={markingSeat}>
+                            {markingSeat ? <Spinner /> : 'Mark as Available'}
+                          </Button>
+                          <Button variant="primary" onClick={() => handleStatusChange(SeatStatus.Allocated)} disabled={markingSeat}>
+                            {markingSeat ? <Spinner /> : 'Mark as Filled'}
+                          </Button>
+                        </>
+                      )}
                   </div>
               </div>
             )}

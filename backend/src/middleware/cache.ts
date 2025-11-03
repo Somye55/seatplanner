@@ -36,10 +36,10 @@ export const cacheMiddleware = (keyPrefix: string, ttl: number = 300) => {
   };
 };
 
-// Invalidate cache based on a prefix (e.g., 'buildings')
-export const invalidateCache = async (prefix: string) => {
+// Invalidate cache based on a pattern (e.g., 'buildings:*' or exact key)
+export const invalidateCache = async (pattern: string) => {
   try {
-    const keys = await redis.keys(`${prefix}:*`);
+    const keys = await redis.keys(pattern);
     if (keys.length > 0) {
         await redis.del(...keys);
     }

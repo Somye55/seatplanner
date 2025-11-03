@@ -13,7 +13,7 @@ router.patch('/:id/status', [
   authenticateToken,
   requireAdmin,
   param('id').isString().notEmpty(),
-  body('status').isIn(['Available', 'Broken']).withMessage('Status must be either Available or Broken'),
+  body('status').isIn(['Available', 'Broken', 'Allocated']).withMessage('Status must be either Available, Broken, or Allocated'),
   body('version').isInt({ min: 0 }).withMessage('Version is required for updates.')
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
@@ -41,6 +41,8 @@ router.patch('/:id/status', [
         throw new Error('Conflict');
       }
 
+      const oldStatus = seat.status;
+
       const updatedSeat = await tx.seat.update({
         where: { id: seatId },
         data: {
@@ -51,6 +53,23 @@ router.patch('/:id/status', [
         },
         include: { student: true } // Include student for the response
       });
+
+      // Update room's claimed count based on status change
+      let claimedIncrement = 0;
+      if (status === 'Broken' && oldStatus === 'Available') {
+        claimedIncrement = 1; // Becoming unavailable
+      } else if (status === 'Available' && oldStatus !== 'Available') {
+        claimedIncrement = -1; // Becoming available
+      } else if (status === 'Allocated' && oldStatus === 'Available') {
+        claimedIncrement = 1; // Becoming unavailable
+      }
+
+      if (claimedIncrement !== 0) {
+        await tx.room.update({
+          where: { id: seat.roomId },
+          data: { claimed: { increment: claimedIncrement } },
+        });
+      }
 
       return updatedSeat;
     });

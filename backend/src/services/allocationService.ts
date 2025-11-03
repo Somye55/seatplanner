@@ -24,6 +24,10 @@ export class AllocationService {
       data: { status: 'Available', studentId: null, version: { increment: 1 } }
     });
 
+    // Invalidate cache for all rooms since seat statuses have changed
+    const { invalidateCache } = await import('../middleware/cache');
+    await invalidateCache('room-seats:*');
+
     // 2. Fetch all available seats and all students.
     const availableSeats = await prisma.seat.findMany({
       where: { status: 'Available' },
@@ -93,6 +97,10 @@ export class AllocationService {
         }
       }
     });
+
+    // Invalidate cache for all rooms since seat statuses may change
+    const { invalidateCache } = await import('../middleware/cache');
+    await invalidateCache('room-seats:*');
 
     if (unassignedStudents.length === 0) {
       const seats = await prisma.seat.findMany({ include: { student: true } });

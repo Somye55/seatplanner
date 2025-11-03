@@ -32,16 +32,24 @@ app.use(cors());
 app.use(express.json());
 
 // Rate limiting
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests per windowMs
+// });
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 1000, // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
 // Sensitive endpoints rate limiting
+// const sensitiveLimiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 10,
+// });
 const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
 });
 app.use('/api/plan/allocate', sensitiveLimiter);
 app.use('/api/auth/login', sensitiveLimiter); // if exists
@@ -76,6 +84,6 @@ server.listen(port, () => {
 // Graceful shutdown for nodemon restarts
 process.on('SIGUSR2', () => {
   server.close(() => {
-    process.kill(process.pid, 'SIGUSR2');
+    process.exit(0);
   });
 });
