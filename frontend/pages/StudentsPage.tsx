@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { Card, Spinner, Button, Modal } from '../components/ui';
-import { Student } from '../types';
+import { Student, BRANCH_OPTIONS, Branch } from '../types';
 
 // A centralized list of possible needs. In a more advanced app, this could be fetched from the API.
 const POSSIBLE_NEEDS = [
@@ -14,9 +14,10 @@ const POSSIBLE_NEEDS = [
 const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student, 'id'> | Student) => void, onCancel: () => void }> = ({ student, onSave, onCancel }) => {
     const [name, setName] = useState(student?.name || '');
     const [email, setEmail] = useState(student?.email || '');
+    const [branch, setBranch] = useState<Branch>(student?.branch || BRANCH_OPTIONS[0].id);
     const [tags, setTags] = useState(student?.tags?.join(', ') || '');
     const [needs, setNeeds] = useState<string[]>(student?.accessibilityNeeds || []);
-    const [errors, setErrors] = useState<{name?: string; email?: string}>({});
+    const [errors, setErrors] = useState<{name?: string; email?: string; branch?: string}>({});
 
     const handleNeedsChange = (needId: string) => {
         setNeeds(prev => 
@@ -25,12 +26,15 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
     };
 
     const validate = () => {
-        const newErrors: {name?: string; email?: string} = {};
+        const newErrors: {name?: string; email?: string; branch?: string} = {};
         if (!name) newErrors.name = "Name is required";
         if (!email) {
             newErrors.email = "Email is required";
         } else if (!/\S+@\S+\.\S+/.test(email)) {
             newErrors.email = "Email is invalid";
+        }
+        if (!branch) {
+            newErrors.branch = "Branch is required";
         }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -42,6 +46,7 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
         const studentData = {
             name,
             email,
+            branch,
             tags: tags.split(',').map(t => t.trim()).filter(Boolean),
             accessibilityNeeds: needs,
         };
@@ -49,7 +54,7 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
         if(student) {
             onSave({ ...student, ...studentData });
         } else {
-            onSave(studentData);
+            onSave(studentData as any);
         }
     };
 
@@ -65,6 +70,13 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
                     {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Branch</label>
+                    <select value={branch} onChange={e => setBranch(e.target.value as Branch)} className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.branch ? 'border-red-500' : 'border-gray-300'}`}>
+                        {BRANCH_OPTIONS.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                    </select>
+                    {errors.branch && <p className="text-red-500 text-xs mt-1">{errors.branch}</p>}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
@@ -112,9 +124,11 @@ const StudentsPage: React.FC = () => {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch students.' });
       }
     };
+    
     if (students.length === 0) {
-      fetchStudents();
+        fetchStudents();
     }
+    
   }, [dispatch, students.length]);
   
   const handleSaveStudent = async (studentData: Omit<Student, 'id'> | Student) => {
@@ -124,7 +138,7 @@ const StudentsPage: React.FC = () => {
             const updated = await api.updateStudent(studentData.id, studentData);
             dispatch({ type: 'UPDATE_STUDENT_SUCCESS', payload: updated });
         } else {
-            const added = await api.addStudent(studentData);
+            const added = await api.addStudent(studentData as Omit<Student, 'id'>);
             dispatch({ type: 'ADD_STUDENT_SUCCESS', payload: added });
         }
     } catch (err) {
@@ -173,24 +187,35 @@ const StudentsPage: React.FC = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allocation</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Needs</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {students.map((student) => (
-                <tr key={student.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.tags.join(', ')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.accessibilityNeeds.join(', ')}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <Button variant="secondary" onClick={() => openEditModal(student)}>Edit</Button>
-                    <Button variant="danger" onClick={() => handleDeleteStudent(student.id)}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
+              {students.map((student) => {
+                const allocation = student.seats && student.seats.length > 0 ? student.seats[0] : null;
+                return (
+                    <tr key={student.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {BRANCH_OPTIONS.find(b => b.id === student.branch)?.label || student.branch}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {allocation ? `${allocation.room?.building?.code} / ${allocation.room?.name} (${allocation.label})` : 'Not Allocated'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.accessibilityNeeds.join(', ')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.tags.join(', ')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <Button variant="secondary" onClick={() => openEditModal(student)}>Edit</Button>
+                            <Button variant="danger" onClick={() => handleDeleteStudent(student.id)}>Delete</Button>
+                        </td>
+                    </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

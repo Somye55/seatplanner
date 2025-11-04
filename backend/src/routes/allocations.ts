@@ -1,10 +1,59 @@
 import { Router, Request, Response } from 'express';
 import { query, param, validationResult } from 'express-validator';
-import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient, Branch } from '../../generated/prisma/client';
 import { authenticateToken, requireAdmin } from './auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// GET /api/allocations/eligible-branches
+router.get('/eligible-branches', [
+  authenticateToken,
+  requireAdmin,
+  query('buildingId').isString().notEmpty()
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const { buildingId } = req.query;
+
+  try {
+    // 1. Find branches already allocated to OTHER buildings
+    const allocatedRoomsInOtherBuildings = await prisma.room.findMany({
+      where: {
+        buildingId: { not: buildingId as string },
+        branchAllocated: { not: null }
+      },
+      select: { branchAllocated: true },
+      distinct: ['branchAllocated']
+    });
+    const allocatedBranchesSet = new Set(
+        allocatedRoomsInOtherBuildings
+            .map(r => r.branchAllocated)
+            .filter((b): b is Branch => b !== null)
+    );
+
+    // 2. Find branches that have students
+    const studentCounts = await prisma.student.groupBy({
+        by: ['branch'],
+        _count: { _all: true },
+    });
+    const branchesWithStudentsSet = new Set(studentCounts.map(sc => sc.branch));
+
+    // 3. Determine eligible branches
+    const allBranches = Object.values(Branch);
+    const eligibleBranches = allBranches.filter(branch => 
+        !allocatedBranchesSet.has(branch) && branchesWithStudentsSet.has(branch)
+    );
+
+    res.json(eligibleBranches);
+
+  } catch (error) {
+    console.error('Failed to fetch eligible branches:', error);
+    res.status(500).json({ error: 'Failed to fetch eligible branches' });
+  }
+});
 
 // GET /api/allocations -> query allocations (by studentId/roomId)
 router.get('/', [

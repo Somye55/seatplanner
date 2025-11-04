@@ -58,6 +58,12 @@ export const api = {
 
   runRebalance: (): Promise<{ seats: Seat[], rebalanceSummary: any }> =>
     fetchApi('/plan/rebalance', { method: 'POST' }),
+
+  allocateBranchToBuilding: (branch: Branch, buildingId: string): Promise<{ summary: AllocationSummary }> => 
+    fetchApi('/plan/allocate-branch', { method: 'POST', body: JSON.stringify({ branch, buildingId }) }),
+    
+  getEligibleBranches: (buildingId: string): Promise<Branch[]> => 
+    fetchApi(`/allocations/eligible-branches?buildingId=${buildingId}`),
 };
 
 

@@ -4,6 +4,7 @@ import { AllocationService } from '../services/allocationService';
 import { Server } from 'socket.io';
 import { authenticateToken, requireAdmin } from './auth';
 import { Branch } from '../../generated/prisma/client';
+import { invalidateCache } from '../middleware/cache';
 
 const router = Router();
 
@@ -22,7 +23,12 @@ router.post('/allocate-branch', [
     try {
         const { branch, buildingId } = req.body;
         const { summary } = await AllocationService.allocateBranchToBuilding(branch, buildingId);
-        
+
+        // Invalidate cache for affected rooms
+        for (const roomId of summary.affectedRoomIds) {
+            await invalidateCache(`room-seats:/api/rooms/${roomId}/seats`);
+        }
+
         const io: Server = req.app.get('io');
         // A broad signal that rooms/seats have changed
         io.emit('allocationsUpdated');

@@ -15,6 +15,17 @@ export enum Branch {
   RealEstateClub = 'RealEstateClub',
 }
 
+export const BRANCH_OPTIONS = [
+    { id: Branch.ConsultingClub, label: "Consulting Club" },
+    { id: Branch.InvestmentBankingClub, label: "Investment Banking Club" },
+    { id: Branch.TechAndInnovationClub, label: "Tech & Innovation Club" },
+    { id: Branch.EntrepreneurshipCell, label: "Entrepreneurship Cell" },
+    { id: Branch.SustainabilityAndCSRClub, label: "Sustainability & CSR Club" },
+    { id: Branch.WomenInBusiness, label: "Women in Business" },
+    { id: Branch.HealthcareManagementClub, label: "Healthcare Management Club" },
+    { id: Branch.RealEstateClub, label: "Real Estate Club" },
+];
+
 export interface User {
   id: string;
   email: string;
@@ -46,6 +57,7 @@ export interface Seat {
   studentId?: string;
   features: string[];
   version: number;
+  room?: Room;
 }
 
 export interface Room {
@@ -57,6 +69,7 @@ export interface Room {
   cols: number;
   claimed: number;
   branchAllocated?: Branch;
+  building?: Building;
 }
 
 export interface Building {

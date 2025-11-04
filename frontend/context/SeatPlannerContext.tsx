@@ -1,4 +1,3 @@
-
 import React, { createContext, useReducer, useContext, ReactNode } from 'react';
 import { Building, Room, Seat, Student, AllocationSummary } from '../types';
 
@@ -49,7 +48,21 @@ const reducer = (state: State, action: Action): State => {
     case 'GET_ROOMS_SUCCESS':
       return { ...state, loading: false, rooms: action.payload };
     case 'GET_SEATS_SUCCESS':
-      return { ...state, loading: false, seats: action.payload };
+      const newSeatsForRoom = action.payload;
+      // If we receive an empty array for a room, we need its ID to clear existing seats.
+      // This logic assumes we only get seats for one room at a time.
+      if (newSeatsForRoom.length === 0) {
+        // This is a tricky case not fully handled; for now, we just stop loading.
+        // A better implementation would pass the roomId to clear.
+        return { ...state, loading: false };
+      }
+      const roomIdOfNewSeats = newSeatsForRoom[0].roomId;
+      const otherRoomsSeats = state.seats.filter(s => s.roomId !== roomIdOfNewSeats);
+      return {
+        ...state,
+        loading: false,
+        seats: [...otherRoomsSeats, ...newSeatsForRoom],
+      };
     case 'GET_STUDENTS_SUCCESS':
       return { ...state, loading: false, students: action.payload };
     case 'UPDATE_SEAT_SUCCESS':

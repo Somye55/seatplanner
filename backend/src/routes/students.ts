@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { body, param, validationResult } from 'express-validator';
-import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient, Branch } from '../../generated/prisma/client';
 import { authenticateToken, requireAdmin, AuthRequest } from './auth';
 
 const router = Router();
@@ -77,7 +77,15 @@ router.put('/me', [
 // GET /api/students
 router.get('/', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {
-        const students = await prisma.student.findMany();
+        const students = await prisma.student.findMany({
+            include: {
+                seats: {
+                    include: {
+                        room: { include: { building: true } }
+                    }
+                }
+            }
+        });
         res.json(students);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch students' });
@@ -88,6 +96,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: AuthRequest, res: R
 router.post('/', authenticateToken, requireAdmin, [
   body('name').isString().notEmpty(),
   body('email').isEmail(),
+  body('branch').isIn(Object.values(Branch)).withMessage('A valid branch is required.'),
   body('tags').isArray(),
   body('accessibilityNeeds').isArray()
 ], async (req: AuthRequest, res: Response) => {
@@ -111,6 +120,7 @@ router.patch('/:id', authenticateToken, requireAdmin, [
   param('id').isString().notEmpty(),
   body('name').optional().isString().notEmpty(),
   body('email').optional().isEmail(),
+  body('branch').optional().isIn(Object.values(Branch)),
   body('tags').optional().isArray(),
   body('accessibilityNeeds').optional().isArray()
 ], async (req: AuthRequest, res: Response) => {

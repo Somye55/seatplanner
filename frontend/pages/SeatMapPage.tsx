@@ -29,12 +29,6 @@ const OTHER_FEATURES = [
     { id: 'near_exit', label: 'Near Exit' },
 ];
 
-const FeatureIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute top-1 right-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-);
-
 const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => { const isAdmin = authService.isAdmin();
   const getStatusClasses = (status: SeatStatus) => {
     switch (status) {
@@ -44,13 +38,15 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
       default: return 'bg-yellow-100 border-yellow-400 text-yellow-800';
     }
   };
-  const customFeatures = seat.features.filter(f => !STUDENT_ACCESSIBILITY_NEEDS.map(n=>n.id).includes(f));
   const cursorClass = isClickable ? 'cursor-pointer' : 'cursor-default';
   const title = useMemo(() => {
     if (seat.status === SeatStatus.Allocated) {
         return isAdmin ? `Allocated to: ${student?.name || 'a student'}` : 'Allocated';
     }
-    return `Features: ${seat.features.join(', ')}`;
+    if(seat.features.length > 0) {
+        return `Features: ${seat.features.join(', ')}`;
+    }
+    return seat.label;
   }, [seat, student, isAdmin]);
 
   return (
@@ -59,7 +55,6 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
       className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
       title={title}
     >
-      {customFeatures.length > 0 && <FeatureIcon />}
       <span className="text-sm font-bold">{seat.label}</span>
       {seat.status === SeatStatus.Allocated && ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>)}
       {seat.status === SeatStatus.Broken && (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>)}
@@ -72,14 +67,37 @@ const AllocationModal: React.FC<{
     onClose: () => void,
     buildingId: string | undefined
 }> = ({ isOpen, onClose, buildingId }) => {
-    const [selectedBranch, setSelectedBranch] = useState<Branch>(BRANCHES[0].id);
+    const [eligibleBranches, setEligibleBranches] = useState<{id: Branch, label: string}[]>([]);
+    const [selectedBranch, setSelectedBranch] = useState<Branch | ''>('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState<AllocationSummary | null>(null);
 
+    useEffect(() => {
+        if (isOpen && buildingId) {
+            setLoading(true);
+            setError('');
+            api.getEligibleBranches(buildingId)
+                .then(branches => {
+                    const branchOptions = branches.map(branchId => ({
+                        id: branchId,
+                        label: BRANCHES.find(b => b.id === branchId)?.label || branchId
+                    }));
+                    setEligibleBranches(branchOptions);
+                    if (branchOptions.length > 0) {
+                        setSelectedBranch(branchOptions[0].id);
+                    } else {
+                        setSelectedBranch('');
+                    }
+                })
+                .catch(() => setError("Failed to load eligible branches."))
+                .finally(() => setLoading(false));
+        }
+    }, [isOpen, buildingId]);
+
     const handleAllocate = async () => {
-        if (!buildingId) {
-            setError("Cannot determine the building.");
+        if (!buildingId || !selectedBranch) {
+            setError("Cannot determine the building or no branch selected.");
             return;
         }
         setLoading(true);
@@ -109,14 +127,16 @@ const AllocationModal: React.FC<{
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
-                        <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)}>
-                            {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                        <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)} disabled={loading || eligibleBranches.length === 0}>
+                            {loading && <option>Loading branches...</option>}
+                            {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
+                            {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
                         </select>
                     </div>
                 </div>
                 {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
                 <div className="mt-6 flex justify-end">
-                    <Button onClick={handleAllocate} disabled={loading}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
+                    <Button onClick={handleAllocate} disabled={loading || !selectedBranch}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
                 </div>
             </div>
             ) : (
@@ -160,6 +180,7 @@ const SeatMapPage: React.FC = () => {
     const isAdmin = authService.isAdmin();
   
     const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
+    const [roomsInBuilding, setRoomsInBuilding] = useState<Room[]>([]);
     const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
@@ -169,6 +190,11 @@ const SeatMapPage: React.FC = () => {
   
     const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId), [allSeats, roomId]);
     
+    const isBuildingFullyAllocated = useMemo(() => {
+        if (roomsInBuilding.length === 0) return false;
+        return roomsInBuilding.every(room => room.branchAllocated !== null);
+    }, [roomsInBuilding]);
+
     const seatColumns = useMemo(() => {
         if (!currentRoom || roomSeats.length === 0) return [];
         const actualRows = currentRoom.rows || Math.max(...roomSeats.map(s => s.row)) + 1;
@@ -190,7 +216,12 @@ const SeatMapPage: React.FC = () => {
         try {
           const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
           setCurrentRoom(roomData);
-          dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
+          dispatch({ type: 'GET_SEATS_SUCCESS', payload: seatsData });
+
+          if (roomData.buildingId) {
+            const allRoomsData = await api.getRoomsByBuilding(roomData.buildingId);
+            setRoomsInBuilding(allRoomsData);
+          }
         } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
       };
       fetchData();
@@ -244,11 +275,10 @@ const SeatMapPage: React.FC = () => {
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
-                  <span className="flex items-center"><FeatureIcon /> <span className="ml-1">= Custom Feature</span></span>
                   {currentRoom?.branchAllocated && <span className="font-semibold text-primary">Allocated to: {BRANCHES.find(b => b.id === currentRoom.branchAllocated)?.label}</span>}
               </div>
           </div>
-          {isAdmin && (
+          {isAdmin && !isBuildingFullyAllocated && (
               <Button onClick={() => setIsAllocationModalOpen(true)}>Allocate Branch to Building</Button>
           )}
         </div>
@@ -258,8 +288,8 @@ const SeatMapPage: React.FC = () => {
             <div className="flex gap-2">
               {seatColumns.map((column, colIndex) => (
                   <div key={colIndex} className={`flex flex-col gap-2 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-6' : ''}`}>
-                      {column.map((seat, rowIndex) => (
-                          seat ? ( <SeatComponent key={seat.id} seat={seat} student={students.find(s => s.id === seat.studentId)} onClick={() => handleSeatClick(seat)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${rowIndex}`} className="w-16 h-16" />
+                      {column.map((rowIndex, seatIndex) => (
+                          column[seatIndex] ? ( <SeatComponent key={column[seatIndex]!.id} seat={column[seatIndex]!} student={students.find(s => s.id === column[seatIndex]!.studentId)} onClick={() => handleSeatClick(column[seatIndex]!)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${seatIndex}`} className="w-16 h-16" />
                       ))}
                   </div>
               ))}

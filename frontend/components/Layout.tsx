@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { api } from '../services/apiService';
-import { Student } from '../types';
+import { Student, BRANCH_OPTIONS } from '../types';
 import { Modal, Button, Spinner } from './ui';
 
 // This could be moved to a shared constants file
@@ -59,6 +59,14 @@ const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isO
         <Modal isOpen={isOpen} onClose={onClose} title="My Profile">
             {loading && !student ? <Spinner /> : (
                 <div className="space-y-4">
+                     { student && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Club / Branch</label>
+                            <p className="mt-1 text-sm text-gray-900 bg-gray-100 p-2 rounded-md">
+                                {BRANCH_OPTIONS.find(b => b.id === student.branch)?.label || student.branch}
+                            </p>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Name</label>
                         <input type="text" value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full border rounded-md shadow-sm p-2 border-gray-300" />

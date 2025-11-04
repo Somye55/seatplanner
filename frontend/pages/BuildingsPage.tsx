@@ -36,11 +36,8 @@ const BuildingsPage: React.FC = () => {
       }
     };
 
-    // Fetch buildings only if they are not already in the state
-    if (buildings.length === 0) {
-        fetchData();
-    }
-  }, [dispatch, buildings.length]);
+    fetchData();
+  }, [dispatch]);
 
   if (loading && buildings.length === 0) return <Spinner />;
   if (error) return <p className="text-danger text-center">{error}</p>;
