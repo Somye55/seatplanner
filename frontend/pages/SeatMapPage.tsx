@@ -107,7 +107,7 @@ const SeatMapPage: React.FC = () => {
     fetchData();
 
     // Socket.io for real-time updates
-    const socket = io('http://localhost:3001');
+    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api');
     socket.on('seatStatusChanged', (updatedSeat: Seat) => {
       if (updatedSeat.roomId === roomId) {
         dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });

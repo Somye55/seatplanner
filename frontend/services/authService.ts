@@ -1,6 +1,6 @@
 import { User, AuthResponse } from '../types';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';;
 
 class AuthService {
   private token: string | null = null;
