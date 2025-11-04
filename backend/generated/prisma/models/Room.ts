@@ -47,6 +47,7 @@ export type RoomMinAggregateOutputType = {
   rows: number | null
   cols: number | null
   claimed: number | null
+  branchAllocated: $Enums.Branch | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,6 +60,7 @@ export type RoomMaxAggregateOutputType = {
   rows: number | null
   cols: number | null
   claimed: number | null
+  branchAllocated: $Enums.Branch | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -71,6 +73,7 @@ export type RoomCountAggregateOutputType = {
   rows: number
   cols: number
   claimed: number
+  branchAllocated: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -99,6 +102,7 @@ export type RoomMinAggregateInputType = {
   rows?: true
   cols?: true
   claimed?: true
+  branchAllocated?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -111,6 +115,7 @@ export type RoomMaxAggregateInputType = {
   rows?: true
   cols?: true
   claimed?: true
+  branchAllocated?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -123,6 +128,7 @@ export type RoomCountAggregateInputType = {
   rows?: true
   cols?: true
   claimed?: true
+  branchAllocated?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -222,6 +228,7 @@ export type RoomGroupByOutputType = {
   rows: number
   cols: number
   claimed: number
+  branchAllocated: $Enums.Branch | null
   createdAt: Date
   updatedAt: Date
   _count: RoomCountAggregateOutputType | null
@@ -257,6 +264,7 @@ export type RoomWhereInput = {
   rows?: Prisma.IntFilter<"Room"> | number
   cols?: Prisma.IntFilter<"Room"> | number
   claimed?: Prisma.IntFilter<"Room"> | number
+  branchAllocated?: Prisma.EnumBranchNullableFilter<"Room"> | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   building?: Prisma.XOR<Prisma.BuildingScalarRelationFilter, Prisma.BuildingWhereInput>
@@ -271,6 +279,7 @@ export type RoomOrderByWithRelationInput = {
   rows?: Prisma.SortOrder
   cols?: Prisma.SortOrder
   claimed?: Prisma.SortOrder
+  branchAllocated?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   building?: Prisma.BuildingOrderByWithRelationInput
@@ -288,6 +297,7 @@ export type RoomWhereUniqueInput = Prisma.AtLeast<{
   rows?: Prisma.IntFilter<"Room"> | number
   cols?: Prisma.IntFilter<"Room"> | number
   claimed?: Prisma.IntFilter<"Room"> | number
+  branchAllocated?: Prisma.EnumBranchNullableFilter<"Room"> | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   building?: Prisma.XOR<Prisma.BuildingScalarRelationFilter, Prisma.BuildingWhereInput>
@@ -302,6 +312,7 @@ export type RoomOrderByWithAggregationInput = {
   rows?: Prisma.SortOrder
   cols?: Prisma.SortOrder
   claimed?: Prisma.SortOrder
+  branchAllocated?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RoomCountOrderByAggregateInput
@@ -322,6 +333,7 @@ export type RoomScalarWhereWithAggregatesInput = {
   rows?: Prisma.IntWithAggregatesFilter<"Room"> | number
   cols?: Prisma.IntWithAggregatesFilter<"Room"> | number
   claimed?: Prisma.IntWithAggregatesFilter<"Room"> | number
+  branchAllocated?: Prisma.EnumBranchNullableWithAggregatesFilter<"Room"> | $Enums.Branch | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Room"> | Date | string
 }
@@ -333,6 +345,7 @@ export type RoomCreateInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
   building: Prisma.BuildingCreateNestedOneWithoutRoomsInput
@@ -347,6 +360,7 @@ export type RoomUncheckedCreateInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
   seats?: Prisma.SeatUncheckedCreateNestedManyWithoutRoomInput
@@ -359,6 +373,7 @@ export type RoomUpdateInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   building?: Prisma.BuildingUpdateOneRequiredWithoutRoomsNestedInput
@@ -373,6 +388,7 @@ export type RoomUncheckedUpdateInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seats?: Prisma.SeatUncheckedUpdateManyWithoutRoomNestedInput
@@ -386,6 +402,7 @@ export type RoomCreateManyInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -397,6 +414,7 @@ export type RoomUpdateManyMutationInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -409,6 +427,7 @@ export type RoomUncheckedUpdateManyInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -431,6 +450,7 @@ export type RoomCountOrderByAggregateInput = {
   rows?: Prisma.SortOrder
   cols?: Prisma.SortOrder
   claimed?: Prisma.SortOrder
+  branchAllocated?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -450,6 +470,7 @@ export type RoomMaxOrderByAggregateInput = {
   rows?: Prisma.SortOrder
   cols?: Prisma.SortOrder
   claimed?: Prisma.SortOrder
+  branchAllocated?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -462,6 +483,7 @@ export type RoomMinOrderByAggregateInput = {
   rows?: Prisma.SortOrder
   cols?: Prisma.SortOrder
   claimed?: Prisma.SortOrder
+  branchAllocated?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -528,6 +550,10 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number
 }
 
+export type NullableEnumBranchFieldUpdateOperationsInput = {
+  set?: $Enums.Branch | null
+}
+
 export type RoomCreateNestedOneWithoutSeatsInput = {
   create?: Prisma.XOR<Prisma.RoomCreateWithoutSeatsInput, Prisma.RoomUncheckedCreateWithoutSeatsInput>
   connectOrCreate?: Prisma.RoomCreateOrConnectWithoutSeatsInput
@@ -549,6 +575,7 @@ export type RoomCreateWithoutBuildingInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
   seats?: Prisma.SeatCreateNestedManyWithoutRoomInput
@@ -561,6 +588,7 @@ export type RoomUncheckedCreateWithoutBuildingInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
   seats?: Prisma.SeatUncheckedCreateNestedManyWithoutRoomInput
@@ -603,6 +631,7 @@ export type RoomScalarWhereInput = {
   rows?: Prisma.IntFilter<"Room"> | number
   cols?: Prisma.IntFilter<"Room"> | number
   claimed?: Prisma.IntFilter<"Room"> | number
+  branchAllocated?: Prisma.EnumBranchNullableFilter<"Room"> | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFilter<"Room"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Room"> | Date | string
 }
@@ -614,6 +643,7 @@ export type RoomCreateWithoutSeatsInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
   building: Prisma.BuildingCreateNestedOneWithoutRoomsInput
@@ -627,6 +657,7 @@ export type RoomUncheckedCreateWithoutSeatsInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -654,6 +685,7 @@ export type RoomUpdateWithoutSeatsInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   building?: Prisma.BuildingUpdateOneRequiredWithoutRoomsNestedInput
@@ -667,6 +699,7 @@ export type RoomUncheckedUpdateWithoutSeatsInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -678,6 +711,7 @@ export type RoomCreateManyBuildingInput = {
   rows: number
   cols: number
   claimed?: number
+  branchAllocated?: $Enums.Branch | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -689,6 +723,7 @@ export type RoomUpdateWithoutBuildingInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seats?: Prisma.SeatUpdateManyWithoutRoomNestedInput
@@ -701,6 +736,7 @@ export type RoomUncheckedUpdateWithoutBuildingInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   seats?: Prisma.SeatUncheckedUpdateManyWithoutRoomNestedInput
@@ -713,6 +749,7 @@ export type RoomUncheckedUpdateManyWithoutBuildingInput = {
   rows?: Prisma.IntFieldUpdateOperationsInput | number
   cols?: Prisma.IntFieldUpdateOperationsInput | number
   claimed?: Prisma.IntFieldUpdateOperationsInput | number
+  branchAllocated?: Prisma.NullableEnumBranchFieldUpdateOperationsInput | $Enums.Branch | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -756,6 +793,7 @@ export type RoomSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   rows?: boolean
   cols?: boolean
   claimed?: boolean
+  branchAllocated?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   building?: boolean | Prisma.BuildingDefaultArgs<ExtArgs>
@@ -771,6 +809,7 @@ export type RoomSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   rows?: boolean
   cols?: boolean
   claimed?: boolean
+  branchAllocated?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   building?: boolean | Prisma.BuildingDefaultArgs<ExtArgs>
@@ -784,6 +823,7 @@ export type RoomSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   rows?: boolean
   cols?: boolean
   claimed?: boolean
+  branchAllocated?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   building?: boolean | Prisma.BuildingDefaultArgs<ExtArgs>
@@ -797,11 +837,12 @@ export type RoomSelectScalar = {
   rows?: boolean
   cols?: boolean
   claimed?: boolean
+  branchAllocated?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buildingId" | "name" | "capacity" | "rows" | "cols" | "claimed" | "createdAt" | "updatedAt", ExtArgs["result"]["room"]>
+export type RoomOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buildingId" | "name" | "capacity" | "rows" | "cols" | "claimed" | "branchAllocated" | "createdAt" | "updatedAt", ExtArgs["result"]["room"]>
 export type RoomInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   building?: boolean | Prisma.BuildingDefaultArgs<ExtArgs>
   seats?: boolean | Prisma.Room$seatsArgs<ExtArgs>
@@ -828,6 +869,7 @@ export type $RoomPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     rows: number
     cols: number
     claimed: number
+    branchAllocated: $Enums.Branch | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["room"]>
@@ -1262,6 +1304,7 @@ export interface RoomFieldRefs {
   readonly rows: Prisma.FieldRef<"Room", 'Int'>
   readonly cols: Prisma.FieldRef<"Room", 'Int'>
   readonly claimed: Prisma.FieldRef<"Room", 'Int'>
+  readonly branchAllocated: Prisma.FieldRef<"Room", 'Branch'>
   readonly createdAt: Prisma.FieldRef<"Room", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Room", 'DateTime'>
 }

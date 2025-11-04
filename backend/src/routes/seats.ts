@@ -3,7 +3,7 @@ import { body, param, validationResult } from 'express-validator';
 import { PrismaClient, SeatStatus } from '../../generated/prisma/client';
 import { invalidateCache } from '../middleware/cache';
 import { Server } from 'socket.io';
-import { authenticateToken, requireAdmin, AuthRequest } from './auth';
+import { authenticateToken, requireAdmin } from './auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -23,45 +23,54 @@ router.patch('/:id/status', [
 
   const { status, version } = req.body as { status: SeatStatus; version: number };
   const seatId = req.params.id;
+  let displacedStudentInfo: { studentId: string; buildingId: string; roomId: string } | null = null;
 
   try {
-    const result = await prisma.$transaction(async (tx: any) => {
+    const updatedSeatResult = await prisma.$transaction(async (tx) => {
       const seat = await tx.seat.findUnique({
         where: { id: seatId }
       });
 
       if (!seat) {
-        // This will cause the transaction to roll back
         throw new Error('Seat not found');
       }
 
-      // Optimistic locking: check version
       if (version !== seat.version) {
-        // This will cause the transaction to roll back
         throw new Error('Conflict');
       }
 
       const oldStatus = seat.status;
-      const hadStudent = !!seat.studentId;
+      const studentIdOnSeat = seat.studentId;
+      const hadStudent = !!studentIdOnSeat;
 
       const updatedSeat = await tx.seat.update({
         where: { id: seatId },
         data: {
           status: status,
-          // If a seat is being marked as available or broken, unassign any student.
           studentId: status === SeatStatus.Allocated ? seat.studentId : null,
           version: { increment: 1 }
         },
-        include: { student: true } // Include student for the response
+        include: { student: true }
       });
 
-      // Update room's claimed count based on status change
+      // If a student was on this seat and it becomes broken, they are displaced.
+      if (oldStatus === SeatStatus.Allocated && status === SeatStatus.Broken && studentIdOnSeat) {
+        const room = await tx.room.findUnique({ where: { id: seat.roomId } });
+        if (room) {
+            displacedStudentInfo = {
+                studentId: studentIdOnSeat,
+                buildingId: room.buildingId,
+                roomId: room.id
+            };
+        }
+      }
+
       let claimedIncrement = 0;
       if (hadStudent && status !== SeatStatus.Allocated) {
-          // A student was unassigned (e.g., seat became broken or available)
           claimedIncrement = -1;
       } else if (!hadStudent && status === SeatStatus.Allocated) {
-          // A student was newly assigned
+          // This case is unlikely for admin, as they cannot assign students here
+          // but we keep it for logical consistency.
           claimedIncrement = 1;
       }
 
@@ -75,17 +84,30 @@ router.patch('/:id/status', [
       return updatedSeat;
     });
 
-    // Invalidate cache for the room's seats
-    await invalidateCache(`room-seats:/api/rooms/${result.roomId}/seats`);
+    // After transaction, handle async reallocation if needed
+    if (displacedStudentInfo) {
+        const { studentId, buildingId, roomId } = displacedStudentInfo;
+        import('../services/allocationService').then(({ AllocationService }) => {
+            AllocationService.reallocateStudent(studentId, buildingId, roomId)
+                .then((reallocResult: any) => {
+                    const io: Server = req.app.get('io');
+                    io.emit('reallocationResult', reallocResult);
+                    if (reallocResult.newSeat) {
+                       io.emit('seatUpdated', reallocResult.newSeat);
+                    }
+                })
+                .catch((err: any) => console.error(`Reallocation for student ${studentId} failed`, err));
+        });
+    }
 
-    // Emit real-time update with the FULL updated seat object
+
+    await invalidateCache(`room-seats:/api/rooms/${updatedSeatResult.roomId}/seats`);
+
     const io: Server = req.app.get('io');
-    io.emit('seatUpdated', result);
-    // Also emit a general update for rooms page
+    io.emit('seatUpdated', updatedSeatResult);
     io.emit('roomUpdated');
 
-
-    res.json(result);
+    res.json(updatedSeatResult);
 
   } catch (error: any) {
     if (error.message === 'Seat not found') {
@@ -127,7 +149,6 @@ router.patch('/:id/features', [
             return res.status(409).json({ message: 'Seat has been modified. Please refresh and try again.' });
         }
 
-        // Preserve positional features while updating custom ones
         const positionalFeatures = seat.features.filter(f => 
             ['front_row', 'back_row', 'middle_row', 'aisle_seat', 'middle_column_seat'].includes(f)
         );
@@ -159,117 +180,5 @@ router.patch('/:id/features', [
         res.status(500).json({ error: 'Failed to update seat features' });
     }
 });
-
-
-// POST /api/seats/:id/claim
-router.post('/:id/claim', [
-    authenticateToken, // All logged-in users can attempt to claim
-    param('id').isString().notEmpty(),
-    body('version').isInt({ min: 0 }).withMessage('Version is required.'),
-  ], async (req: AuthRequest, res: Response) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-  
-    const seatId = req.params.id;
-    const { version } = req.body;
-    const userEmail = req.user?.email;
-  
-    if (!userEmail) {
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-  
-    try {
-      const result = await prisma.$transaction(async (tx: any) => {
-        // 1. Find the student record associated with the authenticated user
-        const student = await tx.student.findUnique({
-          where: { email: userEmail },
-        });
-
-        if (!student) {
-          throw new Error('StudentProfileNotFound');
-        }
-  
-        // 2. Find the seat to be claimed
-        const seatToClaim = await tx.seat.findUnique({
-          where: { id: seatId },
-        });
-
-        if (!seatToClaim) {
-          throw new Error('SeatNotFound');
-        }
-
-        // 3. Check if student already has a seat in this room
-        const existingSeatInRoom = await tx.seat.findFirst({
-          where: {
-            studentId: student.id,
-            roomId: seatToClaim.roomId
-          },
-        });
-
-        if (existingSeatInRoom) {
-          throw new Error('StudentAlreadyHasSeatInRoom');
-        }
-  
-        if (!seatToClaim) {
-          throw new Error('SeatNotFound');
-        }
-  
-        // 4. Check seat availability and version
-        if (seatToClaim.status !== SeatStatus.Available) {
-          throw new Error('SeatNotAvailable');
-        }
-        if (seatToClaim.version !== version) {
-          throw new Error('Conflict');
-        }
-  
-        // 5. Update the seat and increment claimed on room
-        const updatedSeat = await tx.seat.update({
-          where: { id: seatId },
-          data: {
-            status: SeatStatus.Allocated,
-            studentId: student.id,
-            version: { increment: 1 },
-          },
-          include: { student: true },
-        });
-
-        // Increment claimed count on the room
-        await tx.room.update({
-          where: { id: seatToClaim.roomId },
-          data: { claimed: { increment: 1 } },
-        });
-  
-        return updatedSeat;
-      });
-  
-      // Invalidate cache and emit real-time update
-      await invalidateCache(`room-seats:/api/rooms/${result.roomId}/seats`);
-      const io: Server = req.app.get('io');
-      io.emit('seatUpdated', result);
-  
-      res.json(result);
-  
-    } catch (error: any) {
-      if (error.message === 'StudentProfileNotFound') {
-        return res.status(404).json({ message: 'No student profile found for this user.' });
-      }
-      if (error.message === 'StudentAlreadyHasSeatInRoom') {
-        return res.status(400).json({ message: 'You already have a seat allocated in this room.' });
-      }
-      if (error.message === 'SeatNotFound') {
-        return res.status(404).json({ message: 'Seat not found.' });
-      }
-      if (error.message === 'SeatNotAvailable') {
-        return res.status(409).json({ message: 'This seat is no longer available.' });
-      }
-      if (error.message === 'Conflict') {
-        return res.status(409).json({ message: 'Seat has been modified by another user. Please refresh and try again.' });
-      }
-      console.error('Failed to claim seat:', error);
-      res.status(500).json({ error: 'Failed to claim seat.' });
-    }
-  });
 
 export default router;

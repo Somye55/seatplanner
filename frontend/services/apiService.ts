@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Building, Room, Seat, Student, SeatStatus, AllocationSummary } from '../types';
+import { Building, Room, Seat, Student, SeatStatus, AllocationSummary, Branch } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
@@ -16,7 +16,6 @@ async function fetchApi(url: string, options: RequestInit = {}) {
     });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        // The backend now sends "message" instead of "error" for some validation
         throw new Error(errorData.message || errorData.error || 'Network response was not ok');
     }
     if (response.status === 204) {
@@ -27,93 +26,31 @@ async function fetchApi(url: string, options: RequestInit = {}) {
 
 // API FUNCTIONS
 export const api = {
-  // Auth
-  login: (email: string, password: string) => {
-    const { authService } = require('./authService');
-    return authService.login(email, password);
-  },
-
-  signup: (email: string, password: string, role?: 'Admin' | 'Student') => {
-    const { authService } = require('./authService');
-    return authService.signup(email, password, role);
-  },
-
   // Buildings
   getBuildings: (): Promise<Building[]> => fetchApi('/buildings'),
-
-  createBuilding: (buildingData: { name: string; code: string }): Promise<Building> =>
-    fetchApi('/buildings', {
-      method: 'POST',
-      body: JSON.stringify(buildingData),
-    }),
-
-  updateBuilding: (buildingId: string, buildingData: { name?: string; code?: string }): Promise<Building> =>
-    fetchApi(`/buildings/${buildingId}`, {
-      method: 'PUT',
-      body: JSON.stringify(buildingData),
-    }),
-
-  deleteBuilding: (buildingId: string): Promise<void> =>
-    fetchApi(`/buildings/${buildingId}`, { method: 'DELETE' }),
-
+  createBuilding: (buildingData: { name: string; code: string }): Promise<Building> => fetchApi('/buildings', { method: 'POST', body: JSON.stringify(buildingData) }),
+  updateBuilding: (buildingId: string, buildingData: { name?: string; code?: string }): Promise<Building> => fetchApi(`/buildings/${buildingId}`, { method: 'PUT', body: JSON.stringify(buildingData) }),
+  deleteBuilding: (buildingId: string): Promise<void> => fetchApi(`/buildings/${buildingId}`, { method: 'DELETE' }),
   getRoomsByBuilding: (buildingId: string): Promise<Room[]> => fetchApi(`/buildings/${buildingId}/rooms`),
 
   // Rooms
-  createRoom: (roomData: { buildingId: string; name: string; capacity: number; rows: number; cols: number; }): Promise<Room> =>
-    fetchApi('/rooms', {
-      method: 'POST',
-      body: JSON.stringify(roomData),
-    }),
-
-  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number; rows?: number; cols?: number; }): Promise<Room> =>
-    fetchApi(`/rooms/${roomId}`, {
-      method: 'PUT',
-      body: JSON.stringify(roomData),
-    }),
-
-  deleteRoom: (roomId: string): Promise<void> =>
-    fetchApi(`/rooms/${roomId}`, { method: 'DELETE' }),
-
+  createRoom: (roomData: { buildingId: string; name: string; capacity: number; rows: number; cols: number; }): Promise<Room> => fetchApi('/rooms', { method: 'POST', body: JSON.stringify(roomData) }),
+  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number; rows?: number; cols?: number; }): Promise<Room> => fetchApi(`/rooms/${roomId}`, { method: 'PUT', body: JSON.stringify(roomData) }),
+  deleteRoom: (roomId: string): Promise<void> => fetchApi(`/rooms/${roomId}`, { method: 'DELETE' }),
   getRoomById: (roomId: string): Promise<Room> => fetchApi(`/rooms/${roomId}`),
-
   getSeatsByRoom: (roomId: string): Promise<Seat[]> => fetchApi(`/rooms/${roomId}/seats`),
   
-  findAndClaimSeat: (roomId: string, accessibilityNeeds: string[]): Promise<Seat> =>
-    fetchApi(`/rooms/${roomId}/find-and-claim`, {
-      method: 'POST',
-      body: JSON.stringify({ accessibilityNeeds }),
-    }),
-
   // Seats
-  updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> =>
-    fetchApi(`/seats/${seatId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status, version }),
-    }),
+  updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> => fetchApi(`/seats/${seatId}/status`, { method: 'PATCH', body: JSON.stringify({ status, version }) }),
+  updateSeatFeatures: (seatId: string, features: string[], version: number): Promise<Seat> => fetchApi(`/seats/${seatId}/features`, { method: 'PATCH', body: JSON.stringify({ features, version }) }),
 
-  updateSeatFeatures: (seatId: string, features: string[], version: number): Promise<Seat> =>
-    fetchApi(`/seats/${seatId}/features`, {
-        method: 'PATCH',
-        body: JSON.stringify({ features, version }),
-    }),
-
-  // Students
+  // Students & Profile
   getStudents: (): Promise<Student[]> => fetchApi('/students'),
-
-  addStudent: (studentData: Omit<Student, 'id'>): Promise<Student> =>
-    fetchApi('/students', {
-        method: 'POST',
-        body: JSON.stringify(studentData),
-    }),
-
-  updateStudent: (studentId: string, studentData: Partial<Student>): Promise<Student> =>
-    fetchApi(`/students/${studentId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(studentData),
-    }),
-
-  deleteStudent: (studentId: string): Promise<void> =>
-    fetchApi(`/students/${studentId}`, { method: 'DELETE' }),
+  addStudent: (studentData: Omit<Student, 'id'>): Promise<Student> => fetchApi('/students', { method: 'POST', body: JSON.stringify(studentData) }),
+  updateStudent: (studentId: string, studentData: Partial<Student>): Promise<Student> => fetchApi(`/students/${studentId}`, { method: 'PATCH', body: JSON.stringify(studentData) }),
+  deleteStudent: (studentId: string): Promise<void> => fetchApi(`/students/${studentId}`, { method: 'DELETE' }),
+  getStudentProfile: (): Promise<Student> => fetchApi('/students/me'),
+  updateStudentProfile: (profileData: { name?: string; accessibilityNeeds?: string[] }): Promise<Student> => fetchApi('/students/me', { method: 'PUT', body: JSON.stringify(profileData) }),
 
   // Planning
   runAllocation: (): Promise<{ seats: Seat[], summary: AllocationSummary }> =>
@@ -142,7 +79,7 @@ export const geminiService = {
 
       Based on this, what is an optimal seating strategy?
     `;
-    
+
     // This is a MOCK API call. In a real app, this would be:
     // const response = await ai.models.generateContent({ model: 'gemini-2.5-pro', contents: prompt });
     // return response.text;

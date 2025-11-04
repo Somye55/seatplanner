@@ -25,7 +25,7 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"], // Allow both local and production frontend
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT"]
   }
 });
 const port = process.env.PORT || 3001;

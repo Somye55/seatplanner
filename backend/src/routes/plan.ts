@@ -1,38 +1,36 @@
 import { Router, Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
 import { AllocationService } from '../services/allocationService';
 import { Server } from 'socket.io';
+import { authenticateToken, requireAdmin } from './auth';
+import { Branch } from '../../generated/prisma/client';
 
 const router = Router();
 
-// POST /api/plan/allocate
-router.post('/allocate', async (req: Request, res: Response) => {
-    try {
-        const { seats, summary } = await AllocationService.allocate();
-        
-        // Emit an event to all clients with the new full list of seats
-        const io: Server = req.app.get('io');
-        io.emit('seatsUpdated', seats);
-
-        res.json({ seats, summary }); // Also return seats in the HTTP response
-    } catch (error) {
-        console.error("Allocation failed:", error);
-        res.status(500).json({ error: 'Failed to allocate seats' });
+// POST /api/plan/allocate-branch
+router.post('/allocate-branch', [
+    authenticateToken,
+    requireAdmin,
+    body('branch').isIn(Object.values(Branch)),
+    body('buildingId').isString().notEmpty()
+], async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
     }
-});
 
-// POST /api/plan/rebalance
-router.post('/rebalance', async (req: Request, res: Response) => {
     try {
-        const { seats, summary } = await AllocationService.rebalance();
-
-        // Emit an event to all clients with the new full list of seats
+        const { branch, buildingId } = req.body;
+        const { summary } = await AllocationService.allocateBranchToBuilding(branch, buildingId);
+        
         const io: Server = req.app.get('io');
-        io.emit('seatsUpdated', seats);
+        // A broad signal that rooms/seats have changed
+        io.emit('allocationsUpdated');
 
-        res.json({ seats, rebalanceSummary: summary }); // Return seats and rename summary for consistency
+        res.json({ summary });
     } catch (error) {
-        console.error("Rebalance failed:", error);
-        res.status(500).json({ error: 'Failed to rebalance allocations' });
+        console.error("Branch allocation failed:", error);
+        res.status(500).json({ error: 'Failed to allocate branch to building' });
     }
 });
 

@@ -23,3 +23,17 @@ export const UserRole = {
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
+
+
+export const Branch = {
+  ConsultingClub: 'ConsultingClub',
+  InvestmentBankingClub: 'InvestmentBankingClub',
+  TechAndInnovationClub: 'TechAndInnovationClub',
+  EntrepreneurshipCell: 'EntrepreneurshipCell',
+  SustainabilityAndCSRClub: 'SustainabilityAndCSRClub',
+  WomenInBusiness: 'WomenInBusiness',
+  HealthcareManagementClub: 'HealthcareManagementClub',
+  RealEstateClub: 'RealEstateClub'
+} as const
+
+export type Branch = (typeof Branch)[keyof typeof Branch]

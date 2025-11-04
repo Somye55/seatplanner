@@ -6,6 +6,74 @@ import { authenticateToken, requireAdmin, AuthRequest } from './auth';
 const router = Router();
 const prisma = new PrismaClient();
 
+
+// GET /api/students/me - gets current student profile
+router.get('/me', authenticateToken, async (req: AuthRequest, res: Response) => {
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const student = await prisma.student.findUnique({
+            where: { email: req.user.email },
+            include: { 
+                seats: {
+                    include: {
+                        room: {
+                            include: {
+                                building: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!student) {
+            return res.status(404).json({ error: 'Student profile not found' });
+        }
+        res.json(student);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch student profile' });
+    }
+});
+
+// PUT /api/students/me - updates current student profile
+router.put('/me', [
+    authenticateToken,
+    body('name').optional().isString().notEmpty(),
+    body('accessibilityNeeds').optional().isArray()
+], async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+    if (!req.user) {
+        return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    try {
+        const { name, accessibilityNeeds } = req.body;
+        const student = await prisma.student.findUnique({ where: { email: req.user.email } });
+        if (!student) {
+            return res.status(404).json({ error: 'Student profile not found' });
+        }
+        
+        const dataToUpdate: { name?: string; accessibilityNeeds?: string[] } = {};
+        if (name) dataToUpdate.name = name;
+        if (accessibilityNeeds) dataToUpdate.accessibilityNeeds = accessibilityNeeds;
+
+        const updatedStudent = await prisma.student.update({
+            where: { email: req.user.email },
+            data: dataToUpdate
+        });
+        res.json(updatedStudent);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update student profile' });
+    }
+});
+
+
 // GET /api/students
 router.get('/', authenticateToken, requireAdmin, async (req: AuthRequest, res: Response) => {
     try {

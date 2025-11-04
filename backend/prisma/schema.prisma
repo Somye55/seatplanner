@@ -18,6 +18,8 @@ model User {
   email     String   @unique
   password  String
   role      UserRole @default(Student)
+  studentId String? @unique
+  student   Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -32,17 +34,18 @@ model Building {
 }
 
 model Room {
-  id         String   @id @default(cuid())
-  buildingId String
-  building   Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
-  name       String
-  capacity   Int
-  rows       Int
-  cols       Int
-  claimed    Int      @default(0)
-  seats      Seat[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String   @id @default(cuid())
+  buildingId      String
+  building        Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  name            String
+  capacity        Int
+  rows            Int
+  cols            Int
+  claimed         Int      @default(0)
+  seats           Seat[]
+  branchAllocated Branch?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Seat {
@@ -56,20 +59,23 @@ model Seat {
   status    SeatStatus @default(Available)
   version   Int        @default(1)
   studentId String?
-  student   Student?   @relation(fields: [studentId], references: [id])
+  student   Student?   @relation(fields: [studentId], references: [id], onDelete: SetNull)
   createdAt DateTime   @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Student {
-  id                  String   @id @default(cuid())
-  name                String
-  email               String   @unique
-  tags                String[]
-  accessibilityNeeds  String[]
-  seats               Seat[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  userId             String?  @unique
+  user               User?
+  branch             Branch
+  tags               String[]
+  accessibilityNeeds String[]
+  seats              Seat[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 enum SeatStatus {
@@ -81,4 +87,15 @@ enum SeatStatus {
 enum UserRole {
   Admin
   Student
+}
+
+enum Branch {
+  ConsultingClub
+  InvestmentBankingClub
+  TechAndInnovationClub
+  EntrepreneurshipCell
+  SustainabilityAndCSRClub
+  WomenInBusiness
+  HealthcareManagementClub
+  RealEstateClub
 }

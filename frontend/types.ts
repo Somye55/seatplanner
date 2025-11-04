@@ -4,6 +4,17 @@ export enum SeatStatus {
   Broken = 'Broken',
 }
 
+export enum Branch {
+  ConsultingClub = 'ConsultingClub',
+  InvestmentBankingClub = 'InvestmentBankingClub',
+  TechAndInnovationClub = 'TechAndInnovationClub',
+  EntrepreneurshipCell = 'EntrepreneurshipCell',
+  SustainabilityAndCSRClub = 'SustainabilityAndCSRClub',
+  WomenInBusiness = 'WomenInBusiness',
+  HealthcareManagementClub = 'HealthcareManagementClub',
+  RealEstateClub = 'RealEstateClub',
+}
+
 export interface User {
   id: string;
   email: string;
@@ -19,6 +30,7 @@ export interface Student {
   id: string;
   name: string;
   email: string;
+  branch: Branch;
   tags: string[];
   accessibilityNeeds: string[];
   seats?: Seat[];
@@ -44,6 +56,7 @@ export interface Room {
   rows: number;
   cols: number;
   claimed: number;
+  branchAllocated?: Branch;
 }
 
 export interface Building {
@@ -56,6 +69,6 @@ export interface Building {
 export interface AllocationSummary {
   allocatedCount: number;
   unallocatedCount: number;
-  unallocatedStudents: { student: Student; reason: string }[];
-  utilization: number;
+  unallocatedStudents: { student: Student; reason:string }[];
+  utilization?: number;
 }

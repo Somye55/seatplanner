@@ -76,6 +76,7 @@ export const UserScalarFieldEnum = {
   email: 'email',
   password: 'password',
   role: 'role',
+  studentId: 'studentId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -102,6 +103,7 @@ export const RoomScalarFieldEnum = {
   rows: 'rows',
   cols: 'cols',
   claimed: 'claimed',
+  branchAllocated: 'branchAllocated',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -130,6 +132,8 @@ export const StudentScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  userId: 'userId',
+  branch: 'branch',
   tags: 'tags',
   accessibilityNeeds: 'accessibilityNeeds',
   createdAt: 'createdAt',

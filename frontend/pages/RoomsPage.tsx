@@ -4,8 +4,17 @@ import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Card, Spinner } from '../components/ui';
-import { Room } from '../types';
+import { Room, Seat } from '../types';
 import io from 'socket.io-client';
+
+const BookedIcon: React.FC = () => (
+    <div className="absolute top-2 right-2 bg-accent text-white rounded-full p-1.5 shadow-lg" title="You have a seat booked in this room">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+    </div>
+);
+
 
 const RoomsPage: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>();
@@ -19,6 +28,7 @@ const RoomsPage: React.FC = () => {
   const [editRoom, setEditRoom] = useState({ name: '', capacity: 1, rows: 1, cols: 1 });
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [myAllocations, setMyAllocations] = useState<Seat[]>([]);
   const isAdmin = authService.isAdmin();
 
   const building = useMemo(() => buildings.find(b => b.id === buildingId), [buildings, buildingId]);
@@ -38,13 +48,27 @@ const RoomsPage: React.FC = () => {
     dispatch({ type: 'API_REQUEST_START' });
     fetchRoomsForBuilding();
 
+    if (!isAdmin) {
+        api.getStudentProfile().then(profile => {
+            setMyAllocations(profile.seats || []);
+        });
+    }
+
     const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
     const socket = io(socketUrl);
-    socket.on('roomUpdated', () => {
-        fetchRoomsForBuilding();
+    socket.on('roomUpdated', fetchRoomsForBuilding);
+    socket.on('seatUpdated', (updatedSeat: Seat) => {
+        if (!isAdmin && updatedSeat.studentId === authService.getUser()?.id) {
+             api.getStudentProfile().then(profile => setMyAllocations(profile.seats || []));
+        }
     });
+
     return () => { socket.disconnect(); };
-  }, [buildingId, dispatch]);
+  }, [buildingId, dispatch, isAdmin]);
+
+  const studentHasSeatInRoom = (roomId: string) => {
+      return myAllocations.some(seat => seat.roomId === roomId);
+  };
 
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,10 +136,7 @@ const RoomsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-dark">Rooms in {building?.name || '...'}</h1>
         {isAdmin && (
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
+          <button onClick={() => setShowCreateForm(!showCreateForm)} className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
             {showCreateForm ? 'Cancel' : 'Add Room'}
           </button>
         )}
@@ -187,7 +208,8 @@ const RoomsPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {buildingRooms.map((room) => (
-            <Card key={room.id} className="hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <Card key={room.id} className="relative hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              {!isAdmin && studentHasSeatInRoom(room.id) && <BookedIcon />}
               <div className="p-6">
                 <div className="mb-4">
                   <h2 className="text-xl font-bold text-dark">{room.name}</h2>

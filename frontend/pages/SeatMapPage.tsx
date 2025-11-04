@@ -4,8 +4,19 @@ import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Spinner, Modal, Button } from '../components/ui';
-import { Seat, SeatStatus, Student, Room } from '../types';
+import { Seat, SeatStatus, Student, Room, Branch, AllocationSummary } from '../types';
 import io from 'socket.io-client';
+
+const BRANCHES = [
+    { id: Branch.ConsultingClub, label: "Consulting Club" },
+    { id: Branch.InvestmentBankingClub, label: "Investment Banking Club" },
+    { id: Branch.TechAndInnovationClub, label: "Tech & Innovation Club" },
+    { id: Branch.EntrepreneurshipCell, label: "Entrepreneurship Cell" },
+    { id: Branch.SustainabilityAndCSRClub, label: "Sustainability & CSR Club" },
+    { id: Branch.WomenInBusiness, label: "Women in Business" },
+    { id: Branch.HealthcareManagementClub, label: "Healthcare Management Club" },
+    { id: Branch.RealEstateClub, label: "Real Estate Club" },
+];
 
 const STUDENT_ACCESSIBILITY_NEEDS = [
     { id: 'front_row', label: 'Front Row' },
@@ -17,7 +28,6 @@ const OTHER_FEATURES = [
     { id: 'wheelchair_access', label: 'Wheelchair Access' },
     { id: 'near_exit', label: 'Near Exit' },
 ];
-const ALL_FEATURES = [...STUDENT_ACCESSIBILITY_NEEDS, ...OTHER_FEATURES];
 
 const FeatureIcon: React.FC = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute top-1 right-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
@@ -25,7 +35,7 @@ const FeatureIcon: React.FC = () => (
     </svg>
 );
 
-const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
+const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => { const isAdmin = authService.isAdmin();
   const getStatusClasses = (status: SeatStatus) => {
     switch (status) {
       case SeatStatus.Available: return 'bg-green-100 border-green-400 hover:bg-green-200 text-green-800';
@@ -36,197 +46,263 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
   };
   const customFeatures = seat.features.filter(f => !STUDENT_ACCESSIBILITY_NEEDS.map(n=>n.id).includes(f));
   const cursorClass = isClickable ? 'cursor-pointer' : 'cursor-default';
+  const title = useMemo(() => {
+    if (seat.status === SeatStatus.Allocated) {
+        return isAdmin ? `Allocated to: ${student?.name || 'a student'}` : 'Allocated';
+    }
+    return `Features: ${seat.features.join(', ')}`;
+  }, [seat, student, isAdmin]);
 
   return (
     <div
       onClick={isClickable ? onClick : undefined}
       className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
-      title={seat.status === SeatStatus.Allocated ? `Allocated to: ${student?.name}` : `Features: ${seat.features.join(', ')}`}
+      title={title}
     >
       {customFeatures.length > 0 && <FeatureIcon />}
       <span className="text-sm font-bold">{seat.label}</span>
       {seat.status === SeatStatus.Allocated && ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>)}
       {seat.status === SeatStatus.Broken && (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>)}
-    </div>
+         </div>
   );
 };
 
-const SeatMapPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
-  const navigate = useNavigate();
-  const { state, dispatch } = useSeatPlanner();
-  const { seats: allSeats, students, loading } = state;
-  const isAdmin = authService.isAdmin();
-  const currentUser = authService.getUser();
+const AllocationModal: React.FC<{
+    isOpen: boolean,
+    onClose: () => void,
+    buildingId: string | undefined
+}> = ({ isOpen, onClose, buildingId }) => {
+    const [selectedBranch, setSelectedBranch] = useState<Branch>(BRANCHES[0].id);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [result, setResult] = useState<AllocationSummary | null>(null);
 
-  const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
-  const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [modalError, setModalError] = useState('');
-  
-  const [editingFeatures, setEditingFeatures] = useState<string[]>([]);
-  const [requestedNeeds, setRequestedNeeds] = useState<string[]>([]);
-
-  const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId), [allSeats, roomId]);
-  const studentForCurrentUser = useMemo(() => students.find(s => s.email === currentUser?.email), [students, currentUser]);
-  const currentUserHasSeatInRoom = useMemo(() => roomSeats.some(s => s.studentId === studentForCurrentUser?.id), [roomSeats, studentForCurrentUser]);
-
-  const seatColumns = useMemo(() => {
-    if (!currentRoom || roomSeats.length === 0) return [];
-    // Calculate rows and cols from seats if room has 0 values
-    const actualRows = currentRoom.rows || Math.max(...roomSeats.map(s => s.row)) + 1;
-    const actualCols = currentRoom.cols || Math.max(...roomSeats.map(s => s.col)) + 1;
-    const columns: (Seat | null)[][] = Array.from({ length: actualCols }, () => Array(actualRows).fill(null));
-    roomSeats.forEach(seat => {
-      if (seat.col < actualCols && seat.row < actualRows) {
-          columns[seat.col][seat.row] = seat;
-      }
-    });
-    return columns;
-  }, [roomSeats, currentRoom]);
-
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!roomId) return;
-      dispatch({ type: 'API_REQUEST_START' });
-      try {
-        const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
-        setCurrentRoom(roomData);
-        dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
-      } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
+    const handleAllocate = async () => {
+        if (!buildingId) {
+            setError("Cannot determine the building.");
+            return;
+        }
+        setLoading(true);
+        setError('');
+        setResult(null);
+        try {
+            const response = await api.allocateBranchToBuilding(selectedBranch, buildingId);
+            setResult(response.summary);
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setLoading(false);
+        }
     };
-    fetchData();
 
-    const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
-    const socket = io(socketUrl);
-    socket.on('seatUpdated', (updatedSeat: Seat) => { if (updatedSeat.roomId === roomId) dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat }); });
-    socket.on('seatsUpdated', (allUpdatedSeats: Seat[]) => dispatch({ type: 'GET_SEATS_SUCCESS', payload: allUpdatedSeats }));
-    return () => socket.disconnect();
-  }, [roomId, dispatch]);
+    const closeModal = () => {
+        setResult(null);
+        setError('');
+        onClose();
+    };
 
-  const handleSeatClick = (seat: Seat) => {
-    if (!isAdmin) return;
-    setSelectedSeat(seat);
-    setModalError('');
-    setEditingFeatures(seat.features);
-    setIsModalOpen(true);
-  };
-  
-  const handleFindAndClaim = async () => {
-    if (!roomId || isAdmin) return;
-    setIsSubmitting(true);
-    setModalError('');
-    try {
-        const claimedSeat = await api.findAndClaimSeat(roomId, requestedNeeds);
-        alert(`Success! You have been assigned seat ${claimedSeat.label}.`);
-        setIsModalOpen(false);
-    } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
-  };
-
-  const handleSaveFeatures = async () => {
-    if (!selectedSeat || !isAdmin) return;
-    setIsSubmitting(true);
-    setModalError('');
-    try {
-        await api.updateSeatFeatures(selectedSeat.id, editingFeatures, selectedSeat.version);
-        setIsModalOpen(false);
-    } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
-  };
-
-  const selectedSeatStudent = useMemo(() => students.find(s => s.id === selectedSeat?.studentId), [students, selectedSeat]);
-
-  if (loading && roomSeats.length === 0) return <Spinner />;
-
-  return (
-    <div>
-      <button onClick={() => navigate(`/buildings/${currentRoom?.buildingId}/rooms`)} className="mb-6 text-primary hover:underline">&larr; Back to Rooms</button>
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-        <div>
-            <h1 className="text-3xl font-bold text-dark mb-2">Seat Map: {currentRoom?.name}</h1>
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
-                <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
-                <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
-                <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
-                <span className="flex items-center"><FeatureIcon /> <span className="ml-1">= Custom Feature</span></span>
-            </div>
-        </div>
-        {!isAdmin && (
-            <Button onClick={() => setIsModalOpen(true)} disabled={currentUserHasSeatInRoom}>
-                {currentUserHasSeatInRoom ? 'Seat Claimed' : 'Find a Seat For Me'}
-            </Button>
-        )}
-      </div>
-
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto">
-        {seatColumns.length > 0 ? (
-          <div className="flex gap-2">
-            {seatColumns.map((column, colIndex) => (
-                <div key={colIndex} className={`flex flex-col gap-2 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-6' : ''}`}>
-                    {column.map((seat, rowIndex) => (
-                        seat ? (
-                            <SeatComponent
-                                key={seat.id}
-                                seat={seat}
-                                student={students.find(s => s.id === seat.studentId)}
-                                onClick={() => handleSeatClick(seat)}
-                                isClickable={isAdmin}
-                            />
-                        ) : <div key={`empty-${colIndex}-${rowIndex}`} className="w-16 h-16" />
-                    ))}
+    return (
+        <Modal isOpen={isOpen} onClose={closeModal} title="Allocate Branch to Building">
+            {!result ? (
+            <div>
+                <p className="mb-4 text-sm text-gray-600">Select a branch to allocate all of its students to available seats within this building.</p>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
+                        <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)}>
+                            {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                        </select>
+                    </div>
                 </div>
-            ))}
-        </div>
-        ) : <p className="text-center text-gray-500 py-8">No seats found for this room.</p>}
-      </div>
+                {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                <div className="mt-6 flex justify-end">
+                    <Button onClick={handleAllocate} disabled={loading}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
+                </div>
+            </div>
+            ) : (
+            <div>
+                <h3 className="font-bold text-lg text-green-700 mb-2">Allocation Complete!</h3>
+                <div className="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <p className="text-2xl font-bold text-accent">{result.allocatedCount}</p>
+                        <p className="text-sm text-gray-500">Students Allocated</p>
+                    </div>
+                    <div>
+                        <p className="text-2xl font-bold text-danger">{result.unallocatedCount}</p>
+                        <p className="text-sm text-gray-500">Students Unallocated</p>
+                    </div>
+                </div>
+                 {result.unallocatedCount > 0 && (
+                    <div className="mt-4">
+                        <h4 className="font-semibold text-dark mb-2">Unallocated Students:</h4>
+                        <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto">
+                            {result.unallocatedStudents.map(({ student, reason }) => (
+                                <li key={student.id} className="text-sm">{student.name} - <span className="text-gray-600">{reason}</span></li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                <div className="mt-6 flex justify-end">
+                    <Button onClick={closeModal}>Close</Button>
+                </div>
+            </div>
+            )}
+        </Modal>
+    );
+};
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isAdmin ? `Edit Seat: ${selectedSeat?.label}` : `Request a Seat`}>
+
+const SeatMapPage: React.FC = () => {
+    const { roomId } = useParams<{ roomId: string }>();
+    const navigate = useNavigate();
+    const { state, dispatch } = useSeatPlanner();
+    const { seats: allSeats, students, loading } = state;
+    const isAdmin = authService.isAdmin();
+  
+    const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
+    const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [modalError, setModalError] = useState('');
+    const [editingFeatures, setEditingFeatures] = useState<string[]>([]);
+  
+    const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId), [allSeats, roomId]);
+    
+    const seatColumns = useMemo(() => {
+        if (!currentRoom || roomSeats.length === 0) return [];
+        const actualRows = currentRoom.rows || Math.max(...roomSeats.map(s => s.row)) + 1;
+        const actualCols = currentRoom.cols || Math.max(...roomSeats.map(s => s.col)) + 1;
+        const columns: (Seat | null)[][] = Array.from({ length: actualCols }, () => Array(actualRows).fill(null));
+        roomSeats.forEach(seat => {
+            if (seat.col < actualCols && seat.row < actualRows) {
+                columns[seat.col][seat.row] = seat;
+            }
+        });
+        return columns;
+    }, [roomSeats, currentRoom]);
+  
+  
+    useEffect(() => {
+      const fetchData = async () => {
+        if (!roomId) return;
+        dispatch({ type: 'API_REQUEST_START' });
+        try {
+          const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
+          setCurrentRoom(roomData);
+          dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
+        } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
+      };
+      fetchData();
+  
+      const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
+      const socket = io(socketUrl);
+      socket.on('seatUpdated', (updatedSeat: Seat) => { if (updatedSeat.roomId === roomId) dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat }); });
+      socket.on('allocationsUpdated', fetchData); // Refetch data on broad allocation changes
+      return () => socket.disconnect();
+    }, [roomId, dispatch]);
+  
+    const handleSeatClick = (seat: Seat) => {
+      if (!isAdmin) return;
+      setSelectedSeat(seat);
+      setModalError('');
+      setEditingFeatures(seat.features.filter(f => !STUDENT_ACCESSIBILITY_NEEDS.map(n=>n.id).includes(f)));
+      setIsEditModalOpen(true);
+    };
+    
+    const handleUpdateStatus = async (status: SeatStatus) => {
+      if (!selectedSeat || !isAdmin) return;
+      setIsSubmitting(true);
+      setModalError('');
+      try {
+          await api.updateSeatStatus(selectedSeat.id, status, selectedSeat.version);
+          setIsEditModalOpen(false);
+      } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
+    };
+  
+    const handleSaveFeatures = async () => {
+      if (!selectedSeat || !isAdmin) return;
+      setIsSubmitting(true);
+      setModalError('');
+      try {
+          await api.updateSeatFeatures(selectedSeat.id, editingFeatures, selectedSeat.version);
+          setIsEditModalOpen(false);
+      } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
+    };
+  
+    const selectedSeatStudent = useMemo(() => students.find(s => s.id === selectedSeat?.studentId), [students, selectedSeat]);
+  
+    if (loading && roomSeats.length === 0) return <Spinner />;
+  
+    return (
+      <div>
+        <button onClick={() => navigate(`/buildings/${currentRoom?.buildingId}/rooms`)} className="mb-6 text-primary hover:underline">&larr; Back to Rooms</button>
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
           <div>
-            {!isAdmin ? (
-                <div>
-                    <p className="text-sm text-gray-600 mb-4">Select any accessibility needs. The system will find the best available seat for you.</p>
+              <h1 className="text-3xl font-bold text-dark mb-2">Seat Map: {currentRoom?.name}</h1>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+                  <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
+                  <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
+                  <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
+                  <span className="flex items-center"><FeatureIcon /> <span className="ml-1">= Custom Feature</span></span>
+                  {currentRoom?.branchAllocated && <span className="font-semibold text-primary">Allocated to: {BRANCHES.find(b => b.id === currentRoom.branchAllocated)?.label}</span>}
+              </div>
+          </div>
+          {isAdmin && (
+              <Button onClick={() => setIsAllocationModalOpen(true)}>Allocate Branch to Building</Button>
+          )}
+        </div>
+  
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto">
+          {seatColumns.length > 0 ? (
+            <div className="flex gap-2">
+              {seatColumns.map((column, colIndex) => (
+                  <div key={colIndex} className={`flex flex-col gap-2 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-6' : ''}`}>
+                      {column.map((seat, rowIndex) => (
+                          seat ? ( <SeatComponent key={seat.id} seat={seat} student={students.find(s => s.id === seat.studentId)} onClick={() => handleSeatClick(seat)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${rowIndex}`} className="w-16 h-16" />
+                      ))}
+                  </div>
+              ))}
+          </div>
+          ) : <p className="text-center text-gray-500 py-8">No seats found for this room.</p>}
+        </div>
+  
+        <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Seat: ${selectedSeat?.label}`}>
+            {selectedSeat && (  <div>
+                <p><strong>Current Status:</strong> {selectedSeat.status}</p>
+                {selectedSeatStudent && <p><strong>Allocated To:</strong> {selectedSeatStudent.name}</p>}
+                
+                <div className="mt-4 border-t pt-4">
+                  <h3 className="font-semibold text-dark mb-2">Update Status</h3>
+                   <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => handleUpdateStatus(SeatStatus.Available)} disabled={isSubmitting || selectedSeat.status === 'Available'}>Available</Button>
+                        <Button variant="secondary" onClick={() => handleUpdateStatus(SeatStatus.Allocated)} disabled={isSubmitting || selectedSeat.status === 'Allocated'}>Filled</Button>
+                        <Button variant="danger" onClick={() => handleUpdateStatus(SeatStatus.Broken)} disabled={isSubmitting || selectedSeat.status === 'Broken'}>Broken</Button>
+                   </div>
+                </div>
+
+                <div className="mt-4 border-t pt-4">
+                    <h3 className="font-semibold text-dark mb-2">Manage Custom Features</h3>
                     <div className="space-y-2">
-                        {STUDENT_ACCESSIBILITY_NEEDS.map(need => (
-                            <label key={need.id} className="flex items-center">
-                                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    checked={requestedNeeds.includes(need.id)}
-                                    onChange={() => setRequestedNeeds(prev => prev.includes(need.id) ? prev.filter(n => n !== need.id) : [...prev, need.id])}
-                                />
-                                <span className="ml-2 text-sm text-gray-700">{need.label}</span>
+                        {OTHER_FEATURES.map(feature => (
+                            <label key={feature.id} className="flex items-center">
+                                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" checked={editingFeatures.includes(feature.id)} onChange={() => setEditingFeatures(prev => prev.includes(feature.id) ? prev.filter(f => f !== feature.id) : [...prev, feature.id])} />
+                                <span className="ml-2 text-sm text-gray-700">{feature.label}</span>
                             </label>
                         ))}
                     </div>
-                    {modalError && <p className="text-red-600 text-sm mt-4">{modalError}</p>}
-                    <div className="mt-6 flex justify-end"> <Button onClick={handleFindAndClaim} disabled={isSubmitting}>{isSubmitting ? 'Searching...' : 'Find and Claim Seat'}</Button> </div>
+                    <p className="text-xs text-gray-500 mt-2">Positional features (front row, aisle, etc.) are automatically assigned.</p>
+                    <div className="mt-4 flex justify-end"> <Button onClick={handleSaveFeatures} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Features'}</Button> </div>
                 </div>
-            ) : ( selectedSeat &&
-                <div>
-                    <p><strong>Status:</strong> {selectedSeat.status}</p>
-                    {selectedSeatStudent && <p><strong>Allocated To:</strong> {selectedSeatStudent.name}</p>}
-                    <div className="mt-4 border-t pt-4">
-                        <h3 className="font-semibold text-dark mb-2">Manage Custom Features</h3>
-                        <div className="space-y-2">
-                           {OTHER_FEATURES.map(feature => (
-                               <label key={feature.id} className="flex items-center">
-                                   <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                       checked={editingFeatures.includes(feature.id)}
-                                       onChange={() => setEditingFeatures(prev => prev.includes(feature.id) ? prev.filter(f => f !== feature.id) : [...prev, feature.id])}
-                                   />
-                                   <span className="ml-2 text-sm text-gray-700">{feature.label}</span>
-                               </label>
-                           ))}
-                        </div>
-                        <p className="text-xs text-gray-500 mt-2">Positional features (front row, aisle, etc.) are automatically assigned.</p>
-                        {modalError && <p className="text-red-600 text-sm mt-4">{modalError}</p>}
-                        <div className="mt-4 flex justify-end"> <Button onClick={handleSaveFeatures} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Features'}</Button> </div>
-                    </div>
-                </div>
-            )}
-          </div>
-      </Modal>
-    </div>
-  );
-};
 
-export default SeatMapPage;
+                {modalError && <p className="text-red-600 text-sm mt-4 text-center">{modalError}</p>}
+            </div>
+          )}
+        </Modal>
+        
+        <AllocationModal isOpen={isAllocationModalOpen} onClose={() => setIsAllocationModalOpen(false)} buildingId={currentRoom?.buildingId} />
+      </div>
+    );
+  };
+  
+  export default SeatMapPage;

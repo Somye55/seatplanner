@@ -1,4 +1,4 @@
-import { User, AuthResponse } from '../types';
+import { User, AuthResponse, Branch } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';;
 
@@ -39,18 +39,19 @@ class AuthService {
     return authData;
   }
 
-  async signup(email: string, password: string, role: 'Admin' | 'Student' = 'Student'): Promise<AuthResponse> {
+  async signup(email: string, password: string, role: 'Admin' | 'Student' = 'Student', accessibilityNeeds: string[] = [], branch?: Branch): Promise<AuthResponse> {
     const response = await fetch(`${API_BASE_URL}/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password, role }),
+      body: JSON.stringify({ email, password, role, accessibilityNeeds, branch }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Signup failed');
+      const errorMsg = error.errors?.[0]?.msg || error.error;
+      throw new Error(errorMsg || 'Signup failed');
     }
 
     const authData: AuthResponse = await response.json();

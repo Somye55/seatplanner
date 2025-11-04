@@ -563,10 +563,6 @@ export type EnumSeatStatusFieldUpdateOperationsInput = {
   set?: $Enums.SeatStatus
 }
 
-export type NullableStringFieldUpdateOperationsInput = {
-  set?: string | null
-}
-
 export type SeatCreateNestedManyWithoutStudentInput = {
   create?: Prisma.XOR<Prisma.SeatCreateWithoutStudentInput, Prisma.SeatUncheckedCreateWithoutStudentInput> | Prisma.SeatCreateWithoutStudentInput[] | Prisma.SeatUncheckedCreateWithoutStudentInput[]
   connectOrCreate?: Prisma.SeatCreateOrConnectWithoutStudentInput | Prisma.SeatCreateOrConnectWithoutStudentInput[]

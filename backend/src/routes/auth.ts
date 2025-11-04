@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
-import { PrismaClient } from '../../generated/prisma/client';
+import { PrismaClient, Branch } from '../../generated/prisma/client';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -17,7 +17,9 @@ export interface AuthRequest extends Request {
 router.post('/signup', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
-  body('role').optional().isIn(['Admin', 'Student'])
+  body('role').optional().isIn(['Admin', 'Student']),
+  body('accessibilityNeeds').optional().isArray(),
+  body('branch').if(body('role').equals('Student')).isIn(Object.values(Branch)).withMessage('A valid branch is required for students.')
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -25,7 +27,7 @@ router.post('/signup', [
   }
 
   try {
-    const { email, password, role = 'Student' } = req.body;
+    const { email, password, role = 'Student', accessibilityNeeds = [], branch } = req.body;
 
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -33,6 +35,10 @@ router.post('/signup', [
 
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
+    }
+
+    if (role === 'Student' && !branch) {
+        return res.status(400).json({ error: 'A branch is required for student sign-up.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -52,10 +58,10 @@ router.post('/signup', [
         await tx.student.create({
           data: {
             email: newUser.email,
-            // Use email as a default name, can be updated later
-            name: newUser.email,
+            name: newUser.email, // Use email as a default name, can be updated later
+            branch,
             tags: [],
-            accessibilityNeeds: [],
+            accessibilityNeeds: accessibilityNeeds,
           },
         });
       }
@@ -104,23 +110,7 @@ router.post('/login', [
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Ensure student profile exists for Student role users
-    if (user.role === 'Student') {
-      const existingStudent = await prisma.student.findUnique({
-        where: { email: user.email }
-      });
-      if (!existingStudent) {
-        await prisma.student.create({
-          data: {
-            email: user.email,
-            name: user.email,
-            tags: [],
-            accessibilityNeeds: [],
-          },
-        });
-      }
-    }
-
+    // Student profile would have been created at signup
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       JWT_SECRET,
