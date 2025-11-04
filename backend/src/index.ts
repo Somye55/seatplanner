@@ -13,6 +13,7 @@ import roomsRouter from './routes/rooms';
 import seatsRouter from './routes/seats';
 import studentsRouter from './routes/students';
 import planRouter from './routes/plan';
+import allocationsRouter from './routes/allocations';
 
 
 const prisma = new PrismaClient();
@@ -67,6 +68,7 @@ app.use('/api/rooms', roomsRouter);
 app.use('/api/seats', seatsRouter);
 app.use('/api/students', studentsRouter);
 app.use('/api/plan', planRouter);
+app.use('/api/allocations', allocationsRouter);
 
 // Socket.io connection
 io.on('connection', (socket) => {

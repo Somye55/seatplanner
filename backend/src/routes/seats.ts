@@ -206,4 +206,76 @@ router.post('/:id/claim', [
     }
   });
 
+// POST /api/seats -> create seats (bulk supported)
+router.post('/', [
+  authenticateToken,
+  requireAdmin,
+  body('seats').isArray({ min: 1 }).withMessage('Seats array is required'),
+  body('seats.*.roomId').isString().notEmpty().withMessage('roomId is required for each seat'),
+  body('seats.*.label').isString().notEmpty().withMessage('label is required for each seat'),
+  body('seats.*.row').isInt({ min: 0 }).withMessage('row must be a non-negative integer'),
+  body('seats.*.col').isInt({ min: 0 }).withMessage('col must be a non-negative integer'),
+  body('seats.*.features').optional().isArray().withMessage('features must be an array'),
+  body('seats.*.status').optional().isIn(Object.values(SeatStatus)).withMessage(`status must be one of: ${Object.values(SeatStatus).join(', ')}`)
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { seats } = req.body;
+
+    // Validate that all seats belong to the same room
+    const roomIds = [...new Set(seats.map((s: any) => s.roomId))];
+    if (roomIds.length !== 1) {
+      return res.status(400).json({ error: 'All seats must belong to the same room' });
+    }
+
+    const roomId = roomIds[0] as string;
+
+    // Check if room exists
+    const room = await prisma.room.findUnique({
+      where: { id: roomId }
+    });
+
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Check for duplicate labels in the same room
+    const existingLabels = await prisma.seat.findMany({
+      where: { roomId },
+      select: { label: true }
+    });
+    const existingLabelSet = new Set(existingLabels.map(s => s.label));
+
+    const duplicateLabels = seats.filter((s: any) => existingLabelSet.has(s.label));
+    if (duplicateLabels.length > 0) {
+      return res.status(400).json({
+        error: `Duplicate seat labels in room: ${duplicateLabels.map((s: any) => s.label).join(', ')}`
+      });
+    }
+
+    // Create seats in bulk
+    const createdSeats = await prisma.seat.createMany({
+      data: seats.map((s: any) => ({
+        roomId: s.roomId,
+        label: s.label,
+        row: s.row,
+        col: s.col,
+        features: s.features || [],
+        status: s.status || SeatStatus.Available
+      }))
+    });
+
+    // Invalidate cache for the room's seats
+    await invalidateCache(`room-seats:/api/rooms/${roomId}/seats`);
+
+    res.status(201).json({ message: `${createdSeats.count} seats created successfully` });
+  } catch (error) {
+    console.error('Failed to create seats:', error);
+    res.status(500).json({ error: 'Failed to create seats' });
+  }
+});
 export default router;
