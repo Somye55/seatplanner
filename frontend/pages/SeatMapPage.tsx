@@ -7,6 +7,20 @@ import { Spinner, Modal, Button } from '../components/ui';
 import { Seat, SeatStatus, Student, Room } from '../types';
 import io from 'socket.io-client';
 
+// A centralized list of possible needs/features.
+const POSSIBLE_FEATURES = [
+    { id: 'front_row', label: 'Front Row' },
+    { id: 'wheelchair_access', label: 'Wheelchair Access' },
+    { id: 'near_exit', label: 'Near Exit' },
+];
+
+const FeatureIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute top-1 right-1 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+    </svg>
+);
+
+
 const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
   const getStatusClasses = (status: SeatStatus) => {
     switch (status) {
@@ -17,7 +31,6 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
       case SeatStatus.Broken:
         return 'bg-red-200 border-red-500 hover:bg-red-300 text-red-800';
       default:
-        // Fallback for any unexpected status
         return 'bg-yellow-100 border-yellow-400 text-yellow-800';
     }
   };
@@ -27,9 +40,10 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
   return (
     <div
       onClick={isClickable ? onClick : undefined}
-      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all ${getStatusClasses(seat.status)} ${cursorClass}`}
+      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
       title={seat.status === SeatStatus.Allocated ? `Allocated to: ${student?.name}` : seat.status}
     >
+      {seat.features.length > 0 && <FeatureIcon />}
       <span className="text-sm font-bold">{seat.label}</span>
       {seat.status === SeatStatus.Allocated && (
          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 mt-1" viewBox="0 0 20 20" fill="currentColor">
@@ -56,8 +70,12 @@ const SeatMapPage: React.FC = () => {
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [claimingSeat, setClaimingSeat] = useState(false);
-  const [markingSeat, setMarkingSeat] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalError, setModalError] = useState('');
+  
+  // State for forms in the modal
+  const [editingFeatures, setEditingFeatures] = useState<string[]>([]);
+  const [requestedNeeds, setRequestedNeeds] = useState<string[]>([]);
 
   const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId).sort((a,b) => a.row - b.row || a.col - b.col), [allSeats, roomId]);
   
@@ -90,106 +108,58 @@ const SeatMapPage: React.FC = () => {
       if (!roomId) return;
       dispatch({ type: 'API_REQUEST_START' });
       try {
-        const [roomData, seatsData] = await Promise.all([
-          api.getRoomById(roomId),
-          api.getSeatsByRoom(roomId)
-        ]);
-        if (!roomData) throw new Error("Room not found");
-
+        const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
         setCurrentRoom(roomData);
-        // Replace seats for the current room, keeping others intact
-        const otherSeats = allSeats.filter(s => s.roomId !== roomId);
-        dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
+        dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...allSeats.filter(s => s.roomId !== roomId), ...seatsData] });
       } catch (err) {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' });
       }
     };
     fetchData();
 
-    // Socket.io for real-time updates
     const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
     const socket = io(socketUrl);
-
-    // Listen for single seat updates (e.g., claim, status change)
     socket.on('seatUpdated', (updatedSeat: Seat) => {
-      // Only update if it's for the room we are currently viewing
-      if (updatedSeat.roomId === roomId) {
-        dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
-      }
+      if (updatedSeat.roomId === roomId) dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
     });
-
-    // Listen for bulk seat updates (e.g., after a plan allocation)
-    socket.on('seatsUpdated', (allUpdatedSeats: Seat[]) => {
-      // The payload is the complete list of all seats.
-      // We can replace our entire seat state in the context.
-      dispatch({ type: 'GET_SEATS_SUCCESS', payload: allUpdatedSeats });
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    socket.on('seatsUpdated', (allUpdatedSeats: Seat[]) => dispatch({ type: 'GET_SEATS_SUCCESS', payload: allUpdatedSeats }));
+    return () => socket.disconnect();
   }, [roomId, dispatch]);
 
   const handleSeatClick = (seat: Seat) => {
     setSelectedSeat(seat);
+    setModalError('');
+    if (isAdmin) setEditingFeatures(seat.features);
+    else setRequestedNeeds([]); // Reset needs on each click
     setIsModalOpen(true);
   };
   
-  const handleStatusChange = async (newStatus: SeatStatus) => {
-    if (!selectedSeat || !isAdmin) return;
-
-    setMarkingSeat(true);
-
+  const handleFindAndClaim = async () => {
+    if (!roomId || isAdmin) return;
+    setIsSubmitting(true);
+    setModalError('');
     try {
-      // API call to update the backend
-      const updatedSeat = await api.updateSeatStatus(selectedSeat.id, newStatus, selectedSeat.version);
-
-      // Update local state immediately for instant UI feedback
-      dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
-
-      // Close modal after success
-      setIsModalOpen(false);
-
-    } catch(err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update seat.';
-      if (errorMessage.includes('Conflict')) {
-          alert(errorMessage); // Give user specific feedback
-          // Refetch data to get the latest state
-          const seatsData = await api.getSeatsByRoom(roomId!);
-          const otherSeats = allSeats.filter(s => s.roomId !== roomId);
-          dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
-      }
-      dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
+        const claimedSeat = await api.findAndClaimSeat(roomId, requestedNeeds);
+        alert(`Success! You have been assigned seat ${claimedSeat.label}.`);
+        setIsModalOpen(false);
+    } catch (err) {
+        setModalError((err as Error).message);
     } finally {
-      setMarkingSeat(false);
-      setSelectedSeat(null);
+        setIsSubmitting(false);
     }
   };
 
-  const handleClaimSeat = async () => {
-    if (!selectedSeat || isAdmin || selectedSeat.status !== SeatStatus.Available) return;
-
-    setClaimingSeat(true);
-
+  const handleSaveFeatures = async () => {
+    if (!selectedSeat || !isAdmin) return;
+    setIsSubmitting(true);
+    setModalError('');
     try {
-        const updatedSeat = await api.claimSeat(selectedSeat.id, selectedSeat.version);
-        dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
-        setIsModalOpen(false); // Close modal on success
+        await api.updateSeatFeatures(selectedSeat.id, editingFeatures, selectedSeat.version);
+        setIsModalOpen(false);
     } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to claim seat.';
-        alert(errorMessage); // Show specific error to user
-        if (errorMessage.includes('Conflict') || errorMessage.includes('no longer available')) {
-            // Refetch data to get the latest state
-            const seatsData = await api.getSeatsByRoom(roomId!);
-            const otherSeats = allSeats.filter(s => s.roomId !== roomId);
-            dispatch({ type: 'GET_SEATS_SUCCESS', payload: [...otherSeats, ...seatsData] });
-        } else {
-            dispatch({ type: 'API_REQUEST_FAIL', payload: errorMessage });
-        }
+        setModalError((err as Error).message);
     } finally {
-        setClaimingSeat(false);
-        setSelectedSeat(null);
+        setIsSubmitting(false);
     }
   };
 
@@ -205,7 +175,8 @@ const SeatMapPage: React.FC = () => {
       <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 text-sm text-gray-600">
         <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
         <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
-        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken/Unavailable</span>
+        <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
+        <span className="flex items-center"><FeatureIcon /> <span className="ml-1">= Special Feature</span></span>
       </div>
 
       <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto">
@@ -219,77 +190,61 @@ const SeatMapPage: React.FC = () => {
                     seat={seat}
                     student={students.find(s => s.id === seat.studentId)}
                     onClick={() => handleSeatClick(seat)}
-                    isClickable={true}
+                    isClickable={!isAdmin ? seat.status === 'Available' && !currentUserHasSeatInRoom : true}
                   />
-                ) : (
-                  <div key={`empty-${rowIndex}-${colIndex}`} className="w-16 h-16" />
-                )
+                ) : <div key={`empty-${rowIndex}-${colIndex}`} className="w-16 h-16" />
               ))
             )}
           </div>
-        ) : (
-          <p className="text-center text-gray-500 py-8">No seats have been configured for this room, or the room capacity is zero.</p>
-        )}
+        ) : <p className="text-center text-gray-500 py-8">No seats found.</p>}
       </div>
 
-      <Modal isOpen={isModalOpen || markingSeat} onClose={() => setIsModalOpen(false)} title={`Seat Details: ${selectedSeat?.label}`} hideCloseButton={claimingSeat || markingSeat}>
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isAdmin ? `Edit Seat: ${selectedSeat?.label}` : `Request a Seat`}>
         {selectedSeat && (
           <div>
-            <p><strong>Status:</strong> <span className="capitalize font-semibold">{selectedSeat.status}</span></p>
-            {selectedSeat.status === SeatStatus.Allocated && selectedSeatStudent && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-md border">
-                <p><strong>Allocated to:</strong> {selectedSeatStudent.name}</p>
-                <p><strong>Email:</strong> {selectedSeatStudent.email}</p>
-              </div>
-            )}
-             {state.error && <p className="text-sm text-danger mt-2">{state.error}</p>}
-            
-            {isAdmin && selectedSeat.status !== SeatStatus.Allocated && (
-              <div className="mt-6">
-                  <h3 className="font-semibold text-dark mb-2">Change Status</h3>
-                  <div className="flex flex-col space-y-2">
-                      {selectedSeat.status === SeatStatus.Available && (
-                        <>
-                          <Button variant="primary" onClick={() => handleStatusChange(SeatStatus.Allocated)} disabled={markingSeat}>
-                            {markingSeat ? <Spinner /> : 'Mark as Filled'}
-                          </Button>
-                          <Button variant="danger" onClick={() => handleStatusChange(SeatStatus.Broken)} disabled={markingSeat}>
-                            {markingSeat ? <Spinner /> : 'Mark as Broken'}
-                          </Button>
-                        </>
-                      )}
-                      {selectedSeat.status === SeatStatus.Broken && (
-                        <>
-                          <Button variant="secondary" onClick={() => handleStatusChange(SeatStatus.Available)} disabled={markingSeat}>
-                            {markingSeat ? <Spinner /> : 'Mark as Available'}
-                          </Button>
-                          <Button variant="primary" onClick={() => handleStatusChange(SeatStatus.Allocated)} disabled={markingSeat}>
-                            {markingSeat ? <Spinner /> : 'Mark as Filled'}
-                          </Button>
-                        </>
-                      )}
-                  </div>
-              </div>
-            )}
-             {isAdmin && selectedSeat.status === SeatStatus.Allocated && (
-                <p className="text-sm text-gray-600 mt-4">This seat is allocated. To make it available, run a new allocation plan or manually reassign the student.</p>
-             )}
-            {!isAdmin && (
-                <div className="mt-4">
-                    {selectedSeat.status === SeatStatus.Available && !currentUserHasSeatInRoom && (
-                        <Button onClick={handleClaimSeat} disabled={claimingSeat}>
-                            {claimingSeat ? 'Claiming...' : 'Claim This Seat'}
-                        </Button>
-                    )}
-                    {selectedSeat.status === SeatStatus.Available && currentUserHasSeatInRoom && (
-                        <p className="text-sm text-gray-600">You already have a seat in this room.</p>
-                    )}
-                    {selectedSeat.status === SeatStatus.Allocated && selectedSeat.studentId === studentForCurrentUser?.id && (
-                         <p className="text-sm font-semibold text-green-700 p-2 bg-green-50 rounded-md">This is your currently assigned seat.</p>
-                    )}
-                    {selectedSeat.status === SeatStatus.Broken && (
-                         <p className="text-sm text-yellow-700">This seat is currently unavailable.</p>
-                    )}
+            {!isAdmin ? (
+                // STUDENT VIEW
+                <div>
+                    <p className="text-sm text-gray-600 mb-4">Select any accessibility needs you have. The system will find the best available seat for you.</p>
+                    <div className="space-y-2">
+                        {POSSIBLE_FEATURES.map(need => (
+                            <label key={need.id} className="flex items-center">
+                                <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    checked={requestedNeeds.includes(need.id)}
+                                    onChange={() => setRequestedNeeds(prev => prev.includes(need.id) ? prev.filter(n => n !== need.id) : [...prev, need.id])}
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{need.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                    {modalError && <p className="text-red-600 text-sm mt-4">{modalError}</p>}
+                    <div className="mt-6 flex justify-end">
+                        <Button onClick={handleFindAndClaim} disabled={isSubmitting}>{isSubmitting ? 'Searching...' : 'Find and Claim Seat'}</Button>
+                    </div>
+                </div>
+            ) : (
+                // ADMIN VIEW
+                <div>
+                    <p><strong>Status:</strong> {selectedSeat.status}</p>
+                    {selectedSeatStudent && <p><strong>Allocated To:</strong> {selectedSeatStudent.name}</p>}
+                    <div className="mt-4 border-t pt-4">
+                        <h3 className="font-semibold text-dark mb-2">Manage Features</h3>
+                        <div className="space-y-2">
+                           {POSSIBLE_FEATURES.map(feature => (
+                               <label key={feature.id} className="flex items-center">
+                                   <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                       checked={editingFeatures.includes(feature.id)}
+                                       onChange={() => setEditingFeatures(prev => prev.includes(feature.id) ? prev.filter(f => f !== feature.id) : [...prev, feature.id])}
+                                   />
+                                   <span className="ml-2 text-sm text-gray-700">{feature.label}</span>
+                               </label>
+                           ))}
+                        </div>
+                        {modalError && <p className="text-red-600 text-sm mt-4">{modalError}</p>}
+                        <div className="mt-4 flex justify-end">
+                            <Button onClick={handleSaveFeatures} disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save Features'}</Button>
+                        </div>
+                    </div>
                 </div>
             )}
           </div>

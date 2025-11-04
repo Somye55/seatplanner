@@ -77,18 +77,24 @@ export const api = {
   getRoomById: (roomId: string): Promise<Room> => fetchApi(`/rooms/${roomId}`),
 
   getSeatsByRoom: (roomId: string): Promise<Seat[]> => fetchApi(`/rooms/${roomId}/seats`),
+  
+  findAndClaimSeat: (roomId: string, accessibilityNeeds: string[]): Promise<Seat> =>
+    fetchApi(`/rooms/${roomId}/find-and-claim`, {
+      method: 'POST',
+      body: JSON.stringify({ accessibilityNeeds }),
+    }),
 
   // Seats
-  claimSeat: (seatId: string, version: number): Promise<Seat> =>
-    fetchApi(`/seats/${seatId}/claim`, {
-        method: 'POST',
-        body: JSON.stringify({ version }),
-    }),
-  
   updateSeatStatus: (seatId: string, status: SeatStatus, version: number): Promise<Seat> =>
     fetchApi(`/seats/${seatId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status, version }),
+    }),
+
+  updateSeatFeatures: (seatId: string, features: string[], version: number): Promise<Seat> =>
+    fetchApi(`/seats/${seatId}/features`, {
+        method: 'PATCH',
+        body: JSON.stringify({ features, version }),
     }),
 
   // Students

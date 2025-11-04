@@ -1,16 +1,28 @@
-
 import React, { useEffect, useState } from 'react';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { Card, Spinner, Button, Modal } from '../components/ui';
 import { Student } from '../types';
 
+// A centralized list of possible needs. In a more advanced app, this could be fetched from the API.
+const POSSIBLE_NEEDS = [
+    { id: 'front_row', label: 'Front Row' },
+    { id: 'wheelchair_access', label: 'Wheelchair Access' },
+    { id: 'near_exit', label: 'Near Exit' },
+];
+
 const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student, 'id'> | Student) => void, onCancel: () => void }> = ({ student, onSave, onCancel }) => {
     const [name, setName] = useState(student?.name || '');
     const [email, setEmail] = useState(student?.email || '');
     const [tags, setTags] = useState(student?.tags?.join(', ') || '');
-    const [needs, setNeeds] = useState(student?.accessibilityNeeds?.join(', ') || '');
+    const [needs, setNeeds] = useState<string[]>(student?.accessibilityNeeds || []);
     const [errors, setErrors] = useState<{name?: string; email?: string}>({});
+
+    const handleNeedsChange = (needId: string) => {
+        setNeeds(prev => 
+            prev.includes(needId) ? prev.filter(n => n !== needId) : [...prev, needId]
+        );
+    };
 
     const validate = () => {
         const newErrors: {name?: string; email?: string} = {};
@@ -31,7 +43,7 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
             name,
             email,
             tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-            accessibilityNeeds: needs.split(',').map(t => t.trim()).filter(Boolean),
+            accessibilityNeeds: needs,
         };
 
         if(student) {
@@ -59,8 +71,20 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
                     <input type="text" value={tags} onChange={e => setTags(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Accessibility Needs (comma separated)</label>
-                    <input type="text" value={needs} onChange={e => setNeeds(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
+                    <label className="block text-sm font-medium text-gray-700">Accessibility Needs</label>
+                    <div className="mt-2 space-y-2">
+                        {POSSIBLE_NEEDS.map(need => (
+                            <label key={need.id} className="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    checked={needs.includes(need.id)}
+                                    onChange={() => handleNeedsChange(need.id)}
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{need.label}</span>
+                            </label>
+                        ))}
+                    </div>
                 </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
