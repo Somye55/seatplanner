@@ -42,13 +42,14 @@ router.patch('/:id/status', [
       }
 
       const oldStatus = seat.status;
+      const hadStudent = !!seat.studentId;
 
       const updatedSeat = await tx.seat.update({
         where: { id: seatId },
         data: {
           status: status,
           // If a seat is being marked as available or broken, unassign any student.
-          studentId: null,
+          studentId: status === SeatStatus.Allocated ? seat.studentId : null,
           version: { increment: 1 }
         },
         include: { student: true } // Include student for the response
@@ -56,12 +57,12 @@ router.patch('/:id/status', [
 
       // Update room's claimed count based on status change
       let claimedIncrement = 0;
-      if (status === SeatStatus.Broken && oldStatus === SeatStatus.Available) {
-        claimedIncrement = 1; // Becoming unavailable
-      } else if (status === SeatStatus.Available && oldStatus !== SeatStatus.Available) {
-        claimedIncrement = -1; // Becoming available
-      } else if (status === SeatStatus.Allocated && oldStatus === SeatStatus.Available) {
-        claimedIncrement = 1; // Becoming unavailable
+      if (hadStudent && status !== SeatStatus.Allocated) {
+          // A student was unassigned (e.g., seat became broken or available)
+          claimedIncrement = -1;
+      } else if (!hadStudent && status === SeatStatus.Allocated) {
+          // A student was newly assigned
+          claimedIncrement = 1;
       }
 
       if (claimedIncrement !== 0) {
@@ -80,6 +81,9 @@ router.patch('/:id/status', [
     // Emit real-time update with the FULL updated seat object
     const io: Server = req.app.get('io');
     io.emit('seatUpdated', result);
+    // Also emit a general update for rooms page
+    io.emit('roomUpdated');
+
 
     res.json(result);
 
@@ -94,6 +98,68 @@ router.patch('/:id/status', [
     res.status(500).json({ error: 'Failed to update seat status' });
   }
 });
+
+
+// NEW ENDPOINT for updating features
+router.patch('/:id/features', [
+    authenticateToken,
+    requireAdmin,
+    param('id').isString().notEmpty(),
+    body('features').isArray().withMessage('Features must be an array of strings.'),
+    body('version').isInt({ min: 0 }).withMessage('Version is required for updates.')
+], async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { features, version } = req.body;
+    const seatId = req.params.id;
+
+    try {
+        const seat = await prisma.seat.findUnique({ where: { id: seatId } });
+
+        if (!seat) {
+            return res.status(404).json({ message: 'Seat not found' });
+        }
+
+        if (seat.version !== version) {
+            return res.status(409).json({ message: 'Seat has been modified. Please refresh and try again.' });
+        }
+
+        // Preserve positional features while updating custom ones
+        const positionalFeatures = seat.features.filter(f => 
+            ['front_row', 'back_row', 'middle_row', 'aisle_seat', 'middle_column_seat'].includes(f)
+        );
+        
+        const newCustomFeatures = features.filter((f: string) => 
+            !['front_row', 'back_row', 'middle_row', 'aisle_seat', 'middle_column_seat'].includes(f)
+        );
+
+        const finalFeatures = [...new Set([...positionalFeatures, ...newCustomFeatures])];
+
+        const updatedSeat = await prisma.seat.update({
+            where: { id: seatId },
+            data: {
+                features: finalFeatures,
+                version: { increment: 1 }
+            },
+            include: { student: true }
+        });
+
+        await invalidateCache(`room-seats:/api/rooms/${updatedSeat.roomId}/seats`);
+        
+        const io: Server = req.app.get('io');
+        io.emit('seatUpdated', updatedSeat);
+
+        res.json(updatedSeat);
+
+    } catch (error) {
+        console.error('Failed to update seat features:', error);
+        res.status(500).json({ error: 'Failed to update seat features' });
+    }
+});
+
 
 // POST /api/seats/:id/claim
 router.post('/:id/claim', [
@@ -206,76 +272,4 @@ router.post('/:id/claim', [
     }
   });
 
-// POST /api/seats -> create seats (bulk supported)
-router.post('/', [
-  authenticateToken,
-  requireAdmin,
-  body('seats').isArray({ min: 1 }).withMessage('Seats array is required'),
-  body('seats.*.roomId').isString().notEmpty().withMessage('roomId is required for each seat'),
-  body('seats.*.label').isString().notEmpty().withMessage('label is required for each seat'),
-  body('seats.*.row').isInt({ min: 0 }).withMessage('row must be a non-negative integer'),
-  body('seats.*.col').isInt({ min: 0 }).withMessage('col must be a non-negative integer'),
-  body('seats.*.features').optional().isArray().withMessage('features must be an array'),
-  body('seats.*.status').optional().isIn(Object.values(SeatStatus)).withMessage(`status must be one of: ${Object.values(SeatStatus).join(', ')}`)
-], async (req: Request, res: Response) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  try {
-    const { seats } = req.body;
-
-    // Validate that all seats belong to the same room
-    const roomIds = [...new Set(seats.map((s: any) => s.roomId))];
-    if (roomIds.length !== 1) {
-      return res.status(400).json({ error: 'All seats must belong to the same room' });
-    }
-
-    const roomId = roomIds[0] as string;
-
-    // Check if room exists
-    const room = await prisma.room.findUnique({
-      where: { id: roomId }
-    });
-
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' });
-    }
-
-    // Check for duplicate labels in the same room
-    const existingLabels = await prisma.seat.findMany({
-      where: { roomId },
-      select: { label: true }
-    });
-    const existingLabelSet = new Set(existingLabels.map(s => s.label));
-
-    const duplicateLabels = seats.filter((s: any) => existingLabelSet.has(s.label));
-    if (duplicateLabels.length > 0) {
-      return res.status(400).json({
-        error: `Duplicate seat labels in room: ${duplicateLabels.map((s: any) => s.label).join(', ')}`
-      });
-    }
-
-    // Create seats in bulk
-    const createdSeats = await prisma.seat.createMany({
-      data: seats.map((s: any) => ({
-        roomId: s.roomId,
-        label: s.label,
-        row: s.row,
-        col: s.col,
-        features: s.features || [],
-        status: s.status || SeatStatus.Available
-      }))
-    });
-
-    // Invalidate cache for the room's seats
-    await invalidateCache(`room-seats:/api/rooms/${roomId}/seats`);
-
-    res.status(201).json({ message: `${createdSeats.count} seats created successfully` });
-  } catch (error) {
-    console.error('Failed to create seats:', error);
-    res.status(500).json({ error: 'Failed to create seats' });
-  }
-});
 export default router;

@@ -59,13 +59,13 @@ export const api = {
   getRoomsByBuilding: (buildingId: string): Promise<Room[]> => fetchApi(`/buildings/${buildingId}/rooms`),
 
   // Rooms
-  createRoom: (roomData: { buildingId: string; name: string; capacity: number }): Promise<Room> =>
+  createRoom: (roomData: { buildingId: string; name: string; capacity: number; rows: number; cols: number; }): Promise<Room> =>
     fetchApi('/rooms', {
       method: 'POST',
       body: JSON.stringify(roomData),
     }),
 
-  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number }): Promise<Room> =>
+  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number; rows?: number; cols?: number; }): Promise<Room> =>
     fetchApi(`/rooms/${roomId}`, {
       method: 'PUT',
       body: JSON.stringify(roomData),

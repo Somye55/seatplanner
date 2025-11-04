@@ -16,7 +16,9 @@ import planRouter from './routes/plan';
 import allocationsRouter from './routes/allocations';
 
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+});
 
 const app = express();
 const server = createServer(app);
@@ -87,7 +89,8 @@ server.listen(port, () => {
 });
 
 // Graceful shutdown for nodemon restarts
-process.on('SIGUSR2', () => {
+process.on('SIGUSR2', async () => {
+  await prisma.$disconnect();
   server.close(() => {
     process.kill(process.pid, 'SIGUSR2');
   });

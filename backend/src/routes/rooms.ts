@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { param, body, validationResult } from 'express-validator';
-import { PrismaClient, SeatStatus } from '../../generated/prisma/client';
+import { PrismaClient, SeatStatus, Seat } from '../../generated/prisma/client';
 import { cacheMiddleware, invalidateCache } from '../middleware/cache';
 import { authenticateToken, requireAdmin, AuthRequest } from './auth';
 import { SeatGenerationService } from '../services/seatGenerationService';
@@ -9,7 +9,7 @@ import { Server } from 'socket.io';
 const router = Router();
 const prisma = new PrismaClient();
 
-// NEW ENDPOINT: POST /api/rooms/:id/find-and-claim
+// POST /api/rooms/:id/find-and-claim
 router.post('/:id/find-and-claim', [
     authenticateToken,
     param('id').isString().notEmpty(),
@@ -41,25 +41,58 @@ router.post('/:id/find-and-claim', [
                 where: { studentId: student.id, roomId: roomId }
             });
             if (existingSeat) {
-                throw new Error('StudentAlreadyHasSeatInRoom');
+                throw new Error('You already have a seat allocated in this room.');
             }
 
             // 3. Find all available seats in the room
             const availableSeats = await tx.seat.findMany({
                 where: { roomId: roomId, status: SeatStatus.Available },
-                orderBy: [{ row: 'asc' }, { col: 'asc' }] // Prioritize front seats
+                orderBy: [{ row: 'asc' }, { col: 'asc' }]
             });
 
-            // 4. Find the best seat that matches ALL needs
-            const bestSeat = availableSeats.find(seat => 
-                accessibilityNeeds.every((need: string) => seat.features.includes(need))
-            );
-            
-            if (!bestSeat) {
-                throw new Error('NoSuitableSeatsFound');
+            if (availableSeats.length === 0) {
+                throw new Error('No seats are currently available in this room.');
             }
 
-            // 5. Claim the best seat
+            let bestSeat: Seat;
+
+            // 4. If no specific needs requested, assign the first available seat
+            if (!accessibilityNeeds || accessibilityNeeds.length === 0) {
+                bestSeat = availableSeats[0];
+            } else {
+                // 5. If needs are requested, score and rank all available seats
+                const rankedSeats = availableSeats.map(seat => {
+                    const score = (accessibilityNeeds as string[]).reduce((currentScore, need) => {
+                        if (seat.features.includes(need)) {
+                            return currentScore + 1;
+                        }
+                        return currentScore;
+                    }, 0);
+                    return { seat, score };
+                })
+                .sort((a, b) => {
+                    // Sort by score descending (higher score is better)
+                    if (a.score !== b.score) {
+                        return b.score - a.score;
+                    }
+                    // Tie-break by row ascending (lower row is better)
+                    if (a.seat.row !== b.seat.row) {
+                        return a.seat.row - b.seat.row;
+                    }
+                    // Tie-break by col ascending (lower col is better)
+                    return a.seat.col - b.seat.col;
+                });
+
+                // The best seat is the first one in the sorted list
+                if (rankedSeats.length > 0) {
+                    bestSeat = rankedSeats[0].seat;
+                } else {
+                    // This case should not be reachable due to the initial check, but as a safeguard:
+                    throw new Error('No suitable seats found.');
+                }
+            }
+
+            // 6. Claim the best seat
             const updatedSeat = await tx.seat.update({
                 where: { id: bestSeat.id },
                 data: {
@@ -70,7 +103,7 @@ router.post('/:id/find-and-claim', [
                 include: { student: true }
             });
 
-            // 6. Update the room's claimed count
+            // 7. Update the room's claimed count
             await tx.room.update({
                 where: { id: roomId },
                 data: { claimed: { increment: 1 } }
@@ -90,11 +123,14 @@ router.post('/:id/find-and-claim', [
         if (error.message === 'StudentProfileNotFound') {
             return res.status(404).json({ message: 'No student profile found for this user.' });
         }
-        if (error.message === 'StudentAlreadyHasSeatInRoom') {
-            return res.status(400).json({ message: 'You already have a seat allocated in this room.' });
+        if (error.message === 'You already have a seat allocated in this room.') {
+            return res.status(400).json({ message: error.message });
         }
-        if (error.message === 'NoSuitableSeatsFound') {
-            return res.status(404).json({ message: 'Sorry, no available seats match your selected accessibility needs.' });
+        if (error.message === 'No seats are currently available in this room.') {
+             return res.status(404).json({ message: error.message });
+        }
+        if (error.message === 'No suitable seats found.') {
+            return res.status(404).json({ message: 'Sorry, no available seats could be found that meet your needs.' });
         }
         console.error('Failed to find and claim seat:', error);
         res.status(500).json({ error: 'Failed to claim seat.' });
@@ -130,7 +166,9 @@ router.post('/', [
   requireAdmin,
   body('buildingId').isString().notEmpty(),
   body('name').isLength({ min: 1 }),
-  body('capacity').isInt({ min: 1 })
+  body('capacity').isInt({ min: 1 }),
+  body('rows').isInt({ min: 1 }),
+  body('cols').isInt({ min: 1 })
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -138,7 +176,11 @@ router.post('/', [
   }
 
   try {
-    const { buildingId, name, capacity } = req.body;
+    const { buildingId, name, capacity, rows, cols } = req.body;
+
+    if (capacity > rows * cols) {
+      return res.status(400).json({ error: 'Capacity cannot exceed the total seats from dimensions (rows * cols)' });
+    }
 
     const building = await prisma.building.findUnique({
       where: { id: buildingId }
@@ -149,18 +191,18 @@ router.post('/', [
     }
 
     const room = await prisma.room.create({
-      data: { buildingId, name, capacity }
+      data: { buildingId, name, capacity, rows, cols }
     });
 
     // Automatically generate seats for the new room
-    await SeatGenerationService.generateSeatsForRoom(room.id, room.capacity, prisma);
+    await SeatGenerationService.generateSeatsForRoom(room.id, room.capacity, room.rows, room.cols, prisma);
 
     await invalidateCache('buildings');
-    // Invalidate cache for the new room's seats
     await invalidateCache(`room-seats:/api/rooms/${room.id}/seats`);
 
     res.status(201).json(room);
   } catch (error) {
+    console.error('Failed to create room:', error);
     res.status(500).json({ error: 'Failed to create room' });
   }
 });
@@ -171,7 +213,9 @@ router.put('/:id', [
   requireAdmin,
   param('id').isString().notEmpty(),
   body('name').optional().isLength({ min: 1 }),
-  body('capacity').optional().isInt({ min: 1 })
+  body('capacity').optional().isInt({ min: 1 }),
+  body('rows').optional().isInt({ min: 1 }),
+  body('cols').optional().isInt({ min: 1 })
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -180,7 +224,7 @@ router.put('/:id', [
 
   try {
     const { id } = req.params;
-    const { name, capacity } = req.body;
+    const { name, capacity, rows, cols } = req.body;
 
     const existingRoom = await prisma.room.findUnique({
       where: { id }
@@ -190,12 +234,38 @@ router.put('/:id', [
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // Note: Complex capacity changes (adjusting seats) are not handled here for simplicity.
-    // A more robust implementation would check for allocated seats before changing capacity.
+    const updatedData = {
+      name: name || existingRoom.name,
+      capacity: capacity || existingRoom.capacity,
+      rows: rows || existingRoom.rows,
+      cols: cols || existingRoom.cols,
+    };
+
+    if (updatedData.capacity > updatedData.rows * updatedData.cols) {
+      return res.status(400).json({ error: 'Capacity cannot exceed the total seats from dimensions (rows * cols)' });
+    }
+
     const updatedRoom = await prisma.room.update({
       where: { id },
-      data: { name, capacity }
+      data: updatedData,
     });
+    
+    // If dimensions or capacity changed, regenerate seats
+    const dimensionsChanged = rows && rows !== existingRoom.rows;
+    const colsChanged = cols && cols !== existingRoom.cols;
+    const capacityChanged = capacity && capacity !== existingRoom.capacity;
+    
+    if (dimensionsChanged || colsChanged || capacityChanged) {
+        await SeatGenerationService.generateSeatsForRoom(
+            updatedRoom.id, 
+            updatedRoom.capacity, 
+            updatedRoom.rows, 
+            updatedRoom.cols, 
+            prisma
+        );
+        await invalidateCache(`room-seats:/api/rooms/${id}/seats`);
+    }
+
 
     await invalidateCache('buildings');
 
@@ -218,28 +288,25 @@ router.delete('/:id', [
 
   try {
     const { id } = req.params;
-
-    const room = await prisma.room.findUnique({
-      where: { id },
-      include: { seats: true }
-    });
-
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' });
-    }
-
-    if (room.seats.length > 0) {
-      return res.status(400).json({ error: 'Cannot delete room with existing seats' });
-    }
-
-    await prisma.room.delete({
-      where: { id }
+    
+    // Use a transaction to delete seats and then the room
+    await prisma.$transaction(async (tx) => {
+        await tx.seat.deleteMany({
+            where: { roomId: id }
+        });
+        await tx.room.delete({
+            where: { id }
+        });
     });
 
     await invalidateCache('buildings');
+    await invalidateCache(`room-seats:/api/rooms/${id}/seats`);
 
     res.status(204).send();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'P2025') { // Prisma's record not found error
+        return res.status(404).json({ error: 'Room not found' });
+    }
     res.status(500).json({ error: 'Failed to delete room' });
   }
 });

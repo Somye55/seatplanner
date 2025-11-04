@@ -850,6 +850,8 @@ export const RoomScalarFieldEnum = {
   buildingId: 'buildingId',
   name: 'name',
   capacity: 'capacity',
+  rows: 'rows',
+  cols: 'cols',
   claimed: 'claimed',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
