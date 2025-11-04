@@ -79,7 +79,7 @@ router.patch('/:id/status', [
 
     // Emit real-time update with the FULL updated seat object
     const io: Server = req.app.get('io');
-    io.emit('seatStatusChanged', result);
+    io.emit('seatUpdated', result);
 
     res.json(result);
 
@@ -181,7 +181,7 @@ router.post('/:id/claim', [
       // Invalidate cache and emit real-time update
       await invalidateCache(`room-seats:/api/rooms/${result.roomId}/seats`);
       const io: Server = req.app.get('io');
-      io.emit('seatStatusChanged', result);
+      io.emit('seatUpdated', result);
   
       res.json(result);
   

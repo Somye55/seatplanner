@@ -107,11 +107,22 @@ const SeatMapPage: React.FC = () => {
     fetchData();
 
     // Socket.io for real-time updates
-    const socket = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api');
-    socket.on('seatStatusChanged', (updatedSeat: Seat) => {
+    const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
+    const socket = io(socketUrl);
+
+    // Listen for single seat updates (e.g., claim, status change)
+    socket.on('seatUpdated', (updatedSeat: Seat) => {
+      // Only update if it's for the room we are currently viewing
       if (updatedSeat.roomId === roomId) {
         dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
       }
+    });
+
+    // Listen for bulk seat updates (e.g., after a plan allocation)
+    socket.on('seatsUpdated', (allUpdatedSeats: Seat[]) => {
+      // The payload is the complete list of all seats.
+      // We can replace our entire seat state in the context.
+      dispatch({ type: 'GET_SEATS_SUCCESS', payload: allUpdatedSeats });
     });
 
     return () => {
