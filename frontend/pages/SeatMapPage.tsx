@@ -29,7 +29,8 @@ const OTHER_FEATURES = [
     { id: 'near_exit', label: 'Near Exit' },
 ];
 
-const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => { const isAdmin = authService.isAdmin();
+const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
+  const isAdmin = authService.isAdmin();
   const getStatusClasses = (status: SeatStatus) => {
     switch (status) {
       case SeatStatus.Available: return 'bg-green-100 border-green-400 hover:bg-green-200 text-green-800';
@@ -52,7 +53,7 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
   return (
     <div
       onClick={isClickable ? onClick : undefined}
-      className={`w-16 h-16 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
+      className={`w-12 h-12 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
       title={title}
     >
       <span className="text-sm font-bold">{seat.label}</span>
@@ -282,20 +283,29 @@ const SeatMapPage: React.FC = () => {
               <Button onClick={() => setIsAllocationModalOpen(true)}>Allocate Branch to Building</Button>
           )}
         </div>
-  
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-x-auto">
-          {seatColumns.length > 0 ? (
-            <div className="flex gap-2">
-              {seatColumns.map((column, colIndex) => (
-                  <div key={colIndex} className={`flex flex-col gap-2 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-6' : ''}`}>
-                      {column.map((rowIndex, seatIndex) => (
-                          column[seatIndex] ? ( <SeatComponent key={column[seatIndex]!.id} seat={column[seatIndex]!} student={students.find(s => s.id === column[seatIndex]!.studentId)} onClick={() => handleSeatClick(column[seatIndex]!)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${seatIndex}`} className="w-16 h-16" />
-                      ))}
+
+        {seatColumns.length > 0 ? (
+          (() => {
+            const totalColumns = seatColumns.length;
+            const containerWidth = Math.min(100, totalColumns * 8); // Approximate width based on seat size + gaps
+            const containerHeight = Math.min(100, seatColumns[0]?.length * 8 || 50); // Approximate height based on rows
+            return (
+              <div className="flex justify-center">
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-hidden" style={{ width: `${containerWidth}%`, height: `${containerHeight}vh` }}>
+                  <div className="flex w-full h-full">
+                    {seatColumns.map((column, colIndex) => (
+                        <div key={colIndex} className={`flex-1 flex flex-col gap-1 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-3' : ''}`}>
+                            {column.map((rowIndex, seatIndex) => (
+                                column[seatIndex] ? ( <SeatComponent key={column[seatIndex]!.id} seat={column[seatIndex]!} student={students.find(s => s.id === column[seatIndex]!.studentId)} onClick={() => handleSeatClick(column[seatIndex]!)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${seatIndex}`} className="w-12 h-12" />
+                            ))}
+                        </div>
+                    ))}
                   </div>
-              ))}
-          </div>
-          ) : <p className="text-center text-gray-500 py-8">No seats found for this room.</p>}
-        </div>
+                </div>
+              </div>
+            );
+          })()
+        ) : <p className="text-center text-gray-500 py-8">No seats found for this room.</p>}
   
         <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Seat: ${selectedSeat?.label}`}>
             {selectedSeat && (  <div>
