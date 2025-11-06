@@ -85,4 +85,7 @@ export interface AllocationSummary {
   unallocatedStudents: { student: Student; reason:string }[];
   utilization?: number;
   affectedRoomIds?: string[];
+  branchAllocated?: string;
+  availableSeatsAfterAllocation?: number;
+  roomsAllocated?: number;
 }

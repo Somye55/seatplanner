@@ -63,7 +63,7 @@ const AllocationModal: React.FC<{
         try {
             const response = await api.allocateBranchToRoom(selectedBranch, roomId);
             setResult(response.summary);
-            onAllocationComplete();
+            // Don't call onAllocationComplete here - let user see the summary first
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -75,6 +75,10 @@ const AllocationModal: React.FC<{
         setResult(null);
         setError('');
         onClose();
+        // Trigger data refresh when closing after successful allocation
+        if (result) {
+            onAllocationComplete();
+        }
     };
 
     return (
@@ -116,6 +120,18 @@ const AllocationModal: React.FC<{
                             <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
                             <p className="text-sm text-gray-600 mt-1">Students Unallocated</p>
                         </div>
+                        {result.availableSeatsAfterAllocation !== undefined && (
+                            <div className="bg-white p-3 rounded-md shadow-sm">
+                                <p className="text-3xl font-bold text-secondary">{result.availableSeatsAfterAllocation}</p>
+                                <p className="text-sm text-gray-600 mt-1">Available Seats</p>
+                            </div>
+                        )}
+                        {result.branchAllocated && (
+                            <div className="bg-white p-3 rounded-md shadow-sm">
+                                <p className="text-lg font-bold text-primary mt-2">{BRANCH_OPTIONS.find(b => b.id === result.branchAllocated)?.label || result.branchAllocated}</p>
+                                <p className="text-sm text-gray-600 mt-1">Branch Allocated</p>
+                            </div>
+                        )}
                     </div>
                 </div>
                  {result.unallocatedCount > 0 && (
@@ -286,11 +302,17 @@ const RoomsPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rows</label>
-                <input type="number" required min="1" value={newRoom.rows} onChange={(e) => setNewRoom({ ...newRoom, rows: Math.max(1, parseInt(e.target.value)) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input type="number" required min="1" value={newRoom.rows} onChange={(e) => {
+                  const rows = Math.max(1, parseInt(e.target.value));
+                  setNewRoom({ ...newRoom, rows, capacity: rows * newRoom.cols });
+                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Columns per Row</label>
-                <input type="number" required min="1" value={newRoom.cols} onChange={(e) => setNewRoom({ ...newRoom, cols: Math.max(1, parseInt(e.target.value)) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input type="number" required min="1" value={newRoom.cols} onChange={(e) => {
+                  const cols = Math.max(1, parseInt(e.target.value));
+                  setNewRoom({ ...newRoom, cols, capacity: newRoom.rows * cols });
+                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity (Max: {newRoom.rows * newRoom.cols})</label>
@@ -316,11 +338,17 @@ const RoomsPage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rows</label>
-                <input type="number" required min="1" value={editRoom.rows} onChange={(e) => setEditRoom({ ...editRoom, rows: Math.max(1, parseInt(e.target.value)) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input type="number" required min="1" value={editRoom.rows} onChange={(e) => {
+                  const rows = Math.max(1, parseInt(e.target.value));
+                  setEditRoom({ ...editRoom, rows, capacity: rows * editRoom.cols });
+                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Columns per Row</label>
-                <input type="number" required min="1" value={editRoom.cols} onChange={(e) => setEditRoom({ ...editRoom, cols: Math.max(1, parseInt(e.target.value)) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input type="number" required min="1" value={editRoom.cols} onChange={(e) => {
+                  const cols = Math.max(1, parseInt(e.target.value));
+                  setEditRoom({ ...editRoom, cols, capacity: editRoom.rows * cols });
+                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
                <div className="lg:col-span-2">
                  <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity (Max: {editRoom.rows * editRoom.cols})</label>
@@ -386,11 +414,12 @@ const RoomsPage: React.FC = () => {
       {allocatingRoomId && (
         <AllocationModal 
           isOpen={true} 
-          onClose={() => setAllocatingRoomId(null)} 
+          onClose={() => {
+            setAllocatingRoomId(null);
+          }} 
           buildingId={buildingId} 
           roomId={allocatingRoomId}
           onAllocationComplete={() => {
-            setAllocatingRoomId(null);
             fetchRoomsForBuilding();
           }}
         />

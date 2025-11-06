@@ -175,6 +175,18 @@ const AllocationModal: React.FC<{
                             <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
                             <p className="text-sm text-gray-600 mt-1">Students Unallocated</p>
                         </div>
+                        {result.availableSeatsAfterAllocation !== undefined && (
+                            <div className="bg-white p-3 rounded-md shadow-sm">
+                                <p className="text-3xl font-bold text-secondary">{result.availableSeatsAfterAllocation}</p>
+                                <p className="text-sm text-gray-600 mt-1">Available Seats</p>
+                            </div>
+                        )}
+                        {result.branchAllocated && (
+                            <div className="bg-white p-3 rounded-md shadow-sm">
+                                <p className="text-lg font-bold text-primary mt-2">{BRANCHES.find(b => b.id === result.branchAllocated)?.label || result.branchAllocated}</p>
+                                <p className="text-sm text-gray-600 mt-1">Branch Allocated</p>
+                            </div>
+                        )}
                     </div>
                     {result.affectedRoomIds && result.affectedRoomIds.length > 0 && (
                         <div className="text-center text-sm text-gray-600">

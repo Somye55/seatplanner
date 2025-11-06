@@ -80,7 +80,7 @@ const PlanningPage: React.FC = () => {
                     {!loading && !allocationSummary && <p className="text-gray-500">Run allocation to see the summary.</p>}
                     {allocationSummary && (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div>
                                 <p className="text-2xl font-bold text-accent">{allocationSummary.allocatedCount}</p>
                                 <p className="text-sm text-gray-500">Allocated</p>
@@ -89,10 +89,30 @@ const PlanningPage: React.FC = () => {
                                 <p className="text-2xl font-bold text-danger">{allocationSummary.unallocatedCount}</p>
                                 <p className="text-sm text-gray-500">Unallocated</p>
                             </div>
-                            <div>
-                                <p className="text-2xl font-bold text-secondary">{allocationSummary.utilization.toFixed(1)}%</p>
-                                <p className="text-sm text-gray-500">Utilization</p>
+                            {allocationSummary.availableSeatsAfterAllocation !== undefined && (
+                                <div>
+                                    <p className="text-2xl font-bold text-secondary">{allocationSummary.availableSeatsAfterAllocation}</p>
+                                    <p className="text-sm text-gray-500">Available Seats</p>
+                                </div>
+                            )}
+                            {allocationSummary.utilization !== undefined && (
+                                <div>
+                                    <p className="text-2xl font-bold text-secondary">{allocationSummary.utilization.toFixed(1)}%</p>
+                                    <p className="text-sm text-gray-500">Utilization</p>
+                                </div>
+                            )}
+                        </div>
+                        {allocationSummary.branchAllocated && (
+                            <div className="text-center mt-4 p-3 bg-blue-50 rounded-md">
+                                <p className="text-sm text-gray-600">Branch Allocated:</p>
+                                <p className="text-lg font-bold text-primary">{allocationSummary.branchAllocated}</p>
                             </div>
+                        )}
+                        {allocationSummary.roomsAllocated !== undefined && allocationSummary.roomsAllocated > 0 && (
+                            <div className="text-center text-sm text-gray-600">
+                                <p>Affected {allocationSummary.roomsAllocated} room{allocationSummary.roomsAllocated !== 1 ? 's' : ''}</p>
+                            </div>
+                        )}
                         </div>
                         {allocationSummary.unallocatedCount > 0 && (
                             <div>
