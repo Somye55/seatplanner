@@ -1,11 +1,29 @@
 import React, { useEffect, useState } from 'react';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableColumn,
+  TableRow,
+  TableCell,
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Select,
+  SelectItem,
+  Checkbox,
+  Chip,
+  Spinner
+} from '@heroui/react';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
-import { Card, Spinner, Button, Modal } from '../components/ui';
 import { Student, BRANCH_OPTIONS, Branch } from '../types';
 import { ACCESSIBILITY_NEEDS } from '../constants';
 
-// Only use accessibility needs for student selection (not seat features like wheelchair_access)
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
 const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student, 'id'> | Student) => void, onCancel: () => void }> = ({ student, onSave, onCancel }) => {
@@ -58,68 +76,85 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.name ? 'border-red-500' : 'border-gray-300'}`} />
-                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Name"
+              variant="bordered"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              isInvalid={!!errors.name}
+              errorMessage={errors.name}
+              required
+            />
+            <Input
+              label="Email"
+              type="email"
+              variant="bordered"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              isInvalid={!!errors.email}
+              errorMessage={errors.email}
+              required
+            />
+            <Select
+              label="Branch"
+              variant="bordered"
+              selectedKeys={[branch]}
+              onChange={(e) => setBranch(e.target.value as Branch)}
+              isInvalid={!!errors.branch}
+              errorMessage={errors.branch}
+            >
+              {BRANCH_OPTIONS.map(b => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.label}
+                </SelectItem>
+              ))}
+            </Select>
+            {student && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Current Allocation</label>
+                <div className="bg-default-100 p-3 rounded-lg">
+                  {allocation ? (
+                    <span className="text-sm">
+                      {allocation.room?.building?.code} / {allocation.room?.name} ({allocation.label})
+                    </span>
+                  ) : (
+                    <span className="text-sm text-default-500">Not Allocated</span>
+                  )}
                 </div>
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.email ? 'border-red-500' : 'border-gray-300'}`} />
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Branch</label>
-                    <select value={branch} onChange={e => setBranch(e.target.value as Branch)} className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.branch ? 'border-red-500' : 'border-gray-300'}`}>
-                        {BRANCH_OPTIONS.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                    </select>
-                    {errors.branch && <p className="text-red-500 text-xs mt-1">{errors.branch}</p>}
-                </div>
-                {student && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Current Allocation</label>
-                        <div className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50">
-                            {allocation ? (
-                                <span className="text-sm text-gray-700">
-                                    {allocation.room?.building?.code} / {allocation.room?.name} ({allocation.label})
-                                </span>
-                            ) : (
-                                <span className="text-sm text-gray-500">Not Allocated</span>
-                            )}
-                        </div>
-                    </div>
-                )}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
-                    <input type="text" value={tags} onChange={e => setTags(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Accessibility Needs</label>
-                    <div className="mt-2 space-y-2">
-                        {POSSIBLE_NEEDS.map(need => (
-                            <label key={need.id} className="flex items-center">
-                                <input 
-                                    type="checkbox" 
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                    checked={needs.includes(need.id)}
-                                    onChange={() => handleNeedsChange(need.id)}
-                                />
-                                <span className="ml-2 text-sm text-gray-700">{need.label}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
+              </div>
+            )}
+            <Input
+              label="Tags (comma separated)"
+              variant="bordered"
+              value={tags}
+              onChange={e => setTags(e.target.value)}
+            />
+            <div>
+              <label className="block text-sm font-medium mb-2">Accessibility Needs</label>
+              <div className="space-y-2">
+                {POSSIBLE_NEEDS.map(need => (
+                  <Checkbox
+                    key={need.id}
+                    isSelected={needs.includes(need.id)}
+                    onValueChange={() => handleNeedsChange(need.id)}
+                  >
+                    {need.label}
+                  </Checkbox>
+                ))}
+              </div>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-                <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
-                <Button type="submit">{student ? 'Save Changes' : 'Add Student'}</Button>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button color="default" variant="light" onPress={onCancel}>
+                Cancel
+              </Button>
+              <Button color="primary" type="submit">
+                {student ? 'Save Changes' : 'Add Student'}
+              </Button>
             </div>
         </form>
     )
 }
-
 
 const StudentsPage: React.FC = () => {
   const { state, dispatch } = useSeatPlanner();
@@ -184,57 +219,105 @@ const StudentsPage: React.FC = () => {
     setIsModalOpen(true);
   }
 
-  if (loading && students.length === 0) return <Spinner />;
+  if (loading && students.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  
   if (error) return <p className="text-danger text-center">{error}</p>;
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-dark">Students</h1>
-        <Button onClick={openAddModal}>Add Student</Button>
+        <h1 className="text-3xl font-bold">Students</h1>
+        <Button color="primary" onPress={openAddModal}>
+          Add Student
+        </Button>
       </div>
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allocation</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Needs</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tags</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {students.map((student) => {
-                const allocation = student.seats && student.seats.length > 0 ? student.seats[0] : null;
-                return (
-                    <tr key={student.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {BRANCH_OPTIONS.find(b => b.id === student.branch)?.label || student.branch}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {allocation ? `${allocation.room?.building?.code} / ${allocation.room?.name} (${allocation.label})` : 'Not Allocated'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.accessibilityNeeds.join(', ')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.tags.join(', ')}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <Button variant="secondary" onClick={() => openEditModal(student)}>Edit</Button>
-                            <Button variant="danger" onClick={() => handleDeleteStudent(student.id)}>Delete</Button>
-                        </td>
-                    </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingStudent ? "Edit Student" : "Add Student"}>
-        <StudentForm student={editingStudent} onSave={handleSaveStudent} onCancel={() => setIsModalOpen(false)} />
+      
+      <Table aria-label="Students table" className="min-w-full">
+        <TableHeader>
+          <TableColumn>NAME</TableColumn>
+          <TableColumn>EMAIL</TableColumn>
+          <TableColumn>BRANCH</TableColumn>
+          <TableColumn>ALLOCATION</TableColumn>
+          <TableColumn>NEEDS</TableColumn>
+          <TableColumn>TAGS</TableColumn>
+          <TableColumn align="end">ACTIONS</TableColumn>
+        </TableHeader>
+        <TableBody>
+          {students.map((student) => {
+            const allocation = student.seats && student.seats.length > 0 ? student.seats[0] : null;
+            return (
+              <TableRow key={student.id}>
+                <TableCell className="font-medium">{student.name}</TableCell>
+                <TableCell>{student.email}</TableCell>
+                <TableCell>
+                  {BRANCH_OPTIONS.find(b => b.id === student.branch)?.label || student.branch}
+                </TableCell>
+                <TableCell>
+                  {allocation ? (
+                    <span className="text-sm">
+                      {allocation.room?.building?.code} / {allocation.room?.name} ({allocation.label})
+                    </span>
+                  ) : (
+                    <span className="text-default-500">Not Allocated</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {student.accessibilityNeeds.map(need => (
+                      <Chip key={need} size="sm" variant="flat" color="primary">
+                        {POSSIBLE_NEEDS.find(n => n.id === need)?.label || need}
+                      </Chip>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {student.tags.map(tag => (
+                      <Chip key={tag} size="sm" variant="flat">
+                        {tag}
+                      </Chip>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" color="primary" variant="flat" onPress={() => openEditModal(student)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" color="danger" variant="flat" onPress={() => handleDeleteStudent(student.id)}>
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} size="2xl" scrollBehavior="inside">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>
+                {editingStudent ? "Edit Student" : "Add Student"}
+              </ModalHeader>
+              <ModalBody>
+                <StudentForm 
+                  student={editingStudent} 
+                  onSave={handleSaveStudent} 
+                  onCancel={() => setIsModalOpen(false)} 
+                />
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
       </Modal>
     </div>
   );

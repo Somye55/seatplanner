@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  CardFooter,
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Skeleton
+} from '@heroui/react';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { authService } from '../services/authService';
-import { Card, Spinner } from '../components/ui';
 import { Building } from '../types';
 
 const BuildingIcon: React.FC = () => (
@@ -12,11 +25,33 @@ const BuildingIcon: React.FC = () => (
     </svg>
 );
 
+const BuildingSkeleton: React.FC = () => (
+  <Card className="w-full">
+    <CardBody className="gap-4">
+      <div className="flex items-center gap-6">
+        <Skeleton className="rounded-lg">
+          <div className="h-16 w-16 rounded-lg bg-default-300"></div>
+        </Skeleton>
+        <div className="flex-1 space-y-2">
+          <Skeleton className="w-3/5 rounded-lg">
+            <div className="h-6 w-3/5 rounded-lg bg-default-200"></div>
+          </Skeleton>
+          <Skeleton className="w-2/5 rounded-lg">
+            <div className="h-4 w-2/5 rounded-lg bg-default-200"></div>
+          </Skeleton>
+          <Skeleton className="w-1/5 rounded-lg">
+            <div className="h-4 w-1/5 rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+      </div>
+    </CardBody>
+  </Card>
+);
 
 const BuildingsPage: React.FC = () => {
    const { state, dispatch } = useSeatPlanner();
    const { buildings, loading, error } = state;
-   const [showCreateForm, setShowCreateForm] = useState(false);
+   const [showCreateModal, setShowCreateModal] = useState(false);
    const [newBuilding, setNewBuilding] = useState({ name: '', code: '' });
    const [createLoading, setCreateLoading] = useState(false);
    const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
@@ -39,17 +74,13 @@ const BuildingsPage: React.FC = () => {
     fetchData();
   }, [dispatch]);
 
-  if (loading && buildings.length === 0) return <Spinner />;
-  if (error) return <p className="text-danger text-center">{error}</p>;
-
   const handleCreateBuilding = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateLoading(true);
     try {
       await api.createBuilding(newBuilding);
       setNewBuilding({ name: '', code: '' });
-      setShowCreateForm(false);
-      // Refetch buildings
+      setShowCreateModal(false);
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -72,7 +103,6 @@ const BuildingsPage: React.FC = () => {
       await api.updateBuilding(editingBuilding.id, editBuilding);
       setEditingBuilding(null);
       setEditBuilding({ name: '', code: '' });
-      // Refetch buildings
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -87,7 +117,6 @@ const BuildingsPage: React.FC = () => {
     setDeleteLoading(buildingId);
     try {
       await api.deleteBuilding(buildingId);
-      // Refetch buildings
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -97,164 +126,161 @@ const BuildingsPage: React.FC = () => {
     }
   };
 
+  if (loading && buildings.length === 0) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <Skeleton className="w-48 rounded-lg">
+            <div className="h-9 w-48 rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <BuildingSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) return <p className="text-danger text-center">{error}</p>;
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-dark">Buildings</h1>
+        <h1 className="text-3xl font-bold">Buildings</h1>
         {isAdmin && (
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          <Button
+            color="primary"
+            onPress={() => setShowCreateModal(true)}
           >
-            {showCreateForm ? 'Cancel' : 'Add Building'}
-          </button>
+            Add Building
+          </Button>
         )}
       </div>
 
-      {showCreateForm && isAdmin && (
-        <Card className="mb-6">
-          <form onSubmit={handleCreateBuilding} className="p-6">
-            <h2 className="text-xl font-bold mb-4">Create New Building</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Building Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newBuilding.name}
-                  onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Building Code
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newBuilding.code}
-                  onChange={(e) => setNewBuilding({ ...newBuilding, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={createLoading}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                {createLoading ? 'Creating...' : 'Create Building'}
-              </button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {editingBuilding && isAdmin && (
-        <Card className="mb-6">
-          <form onSubmit={handleUpdateBuilding} className="p-6">
-            <h2 className="text-xl font-bold mb-4">Edit Building</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Building Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editBuilding.name}
-                  onChange={(e) => setEditBuilding({ ...editBuilding, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Building Code
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editBuilding.code}
-                  onChange={(e) => setEditBuilding({ ...editBuilding, code: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                type="button"
-                onClick={() => setEditingBuilding(null)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={editLoading}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                {editLoading ? 'Updating...' : 'Update Building'}
-              </button>
-            </div>
-          </form>
-        </Card>
-      )}
-
       {!loading && buildings.length === 0 && !isAdmin && (
-        <p className="text-gray-500 text-center">No buildings found. You may need to seed the database.</p>
+        <p className="text-default-500 text-center">No buildings found. You may need to seed the database.</p>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {buildings.map((building) => (
-          <Card key={building.id} className="hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="p-6">
-              <div className="flex items-center space-x-6 mb-4">
+          <Card key={building.id} className="hover:scale-105 transition-transform duration-300" isPressable>
+            <CardBody className="gap-4">
+              <div className="flex items-center gap-6">
                 <div className="flex-shrink-0">
                   <BuildingIcon/>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-bold text-dark">{building.name}</h2>
-                  <p className="text-gray-500">{building.code}</p>
+                  <h2 className="text-xl font-bold">{building.name}</h2>
+                  <p className="text-default-500">{building.code}</p>
                   <p className="text-secondary font-semibold mt-2">{building.roomCount ?? 0} Rooms</p>
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <Link to={`/buildings/${building.id}/rooms`} className="text-primary hover:underline">
+            </CardBody>
+            <CardFooter className="justify-between border-t border-divider">
+              <Link to={`/buildings/${building.id}/rooms`}>
+                <Button color="primary" variant="light">
                   View Rooms
-                </Link>
-                {isAdmin && (
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditBuilding(building)}
-                      className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBuilding(building.id)}
-                      disabled={deleteLoading === building.id}
-                      className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
-                    >
-                      {deleteLoading === building.id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+                </Button>
+              </Link>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="flat"
+                    onPress={() => handleEditBuilding(building)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    color="danger"
+                    variant="flat"
+                    onPress={() => handleDeleteBuilding(building.id)}
+                    isLoading={deleteLoading === building.id}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </CardFooter>
           </Card>
         ))}
       </div>
+
+      {/* Create Building Modal */}
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} size="2xl">
+        <ModalContent>
+          {(onClose) => (
+            <form onSubmit={handleCreateBuilding}>
+              <ModalHeader>Create New Building</ModalHeader>
+              <ModalBody>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    label="Building Name"
+                    variant="bordered"
+                    value={newBuilding.name}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, name: e.target.value })}
+                    required
+                  />
+                  <Input
+                    label="Building Code"
+                    variant="bordered"
+                    value={newBuilding.code}
+                    onChange={(e) => setNewBuilding({ ...newBuilding, code: e.target.value })}
+                    required
+                  />
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" type="submit" isLoading={createLoading}>
+                  Create Building
+                </Button>
+              </ModalFooter>
+            </form>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Building Modal */}
+      <Modal isOpen={!!editingBuilding} onClose={() => setEditingBuilding(null)} size="2xl">
+        <ModalContent>
+          {(onClose) => (
+            <form onSubmit={handleUpdateBuilding}>
+              <ModalHeader>Edit Building</ModalHeader>
+              <ModalBody>
+                <div className="flex flex-col gap-4">
+                  <Input
+                    label="Building Name"
+                    variant="bordered"
+                    value={editBuilding.name}
+                    onChange={(e) => setEditBuilding({ ...editBuilding, name: e.target.value })}
+                    required
+                  />
+                  <Input
+                    label="Building Code"
+                    variant="bordered"
+                    value={editBuilding.code}
+                    onChange={(e) => setEditBuilding({ ...editBuilding, code: e.target.value })}
+                    required
+                  />
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" type="submit" isLoading={editLoading}>
+                  Update Building
+                </Button>
+              </ModalFooter>
+            </form>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

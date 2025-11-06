@@ -1,20 +1,35 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  Card,
+  CardBody,
+  CardFooter,
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Input,
+  Select,
+  SelectItem,
+  Skeleton,
+  Tooltip,
+  Chip
+} from '@heroui/react';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
-import { Card, Spinner, Button, Modal } from '../components/ui';
 import { Room, Seat, Branch, AllocationSummary, BRANCH_OPTIONS } from '../types';
 import io from 'socket.io-client';
 
 const BookedIcon: React.FC = () => (
-    <div className="absolute top-2 right-2 bg-accent text-white rounded-full p-1.5 shadow-lg" title="You have a seat booked in this room">
+    <div className="absolute top-2 right-2 bg-success text-white rounded-full p-1.5 shadow-lg">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
         </svg>
     </div>
 );
-
 
 const AllocationModal: React.FC<{
     isOpen: boolean,
@@ -65,7 +80,6 @@ const AllocationModal: React.FC<{
         try {
             const response = await api.allocateBranchToRoom(selectedBranch, roomId);
             setResult(response.summary);
-            // Don't call onAllocationComplete here - let user see the summary first
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -77,118 +91,159 @@ const AllocationModal: React.FC<{
         setResult(null);
         setError('');
         onClose();
-        // Trigger data refresh when closing after successful allocation
         if (result) {
             onAllocationComplete();
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={closeModal} title={isReallocation ? "Allocate Seats to Students" : "Allocate Branch to Room"}>
-            {!result ? (
-            <div>
-                <p className="mb-4 text-sm text-gray-600">
-                    {isReallocation 
-                        ? `Allocate seats to unallocated students from ${BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated} in this room.`
-                        : "Select a branch to allocate all of its unallocated students to available seats within this room."
-                    }
-                </p>
-                <div className="space-y-4">
-                    {!isReallocation && (
-                        <div>
-                            <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
-                            <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)} disabled={loading || eligibleBranches.length === 0}>
-                                {loading && <option>Loading branches...</option>}
-                                {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
-                                {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                            </select>
-                            {!loading && eligibleBranches.length === 0 && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                    No eligible branches found. Either all branches have no unallocated students, or this room is already allocated to a branch with no new students.
-                                </p>
+        <Modal isOpen={isOpen} onClose={closeModal} size="2xl">
+            <ModalContent>
+                {(onClose) => (
+                    <>
+                        <ModalHeader>
+                            {isReallocation ? "Allocate Seats to Students" : "Allocate Branch to Room"}
+                        </ModalHeader>
+                        <ModalBody>
+                            {!result ? (
+                                <div className="space-y-4">
+                                    <p className="text-sm text-default-600">
+                                        {isReallocation 
+                                            ? `Allocate seats to unallocated students from ${BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated} in this room.`
+                                            : "Select a branch to allocate all of its unallocated students to available seats within this room."
+                                        }
+                                    </p>
+                                    {!isReallocation && (
+                                        <Select
+                                            label="Club / Branch"
+                                            variant="bordered"
+                                            selectedKeys={selectedBranch ? [selectedBranch] : []}
+                                            onChange={(e) => setSelectedBranch(e.target.value as Branch)}
+                                            isDisabled={loading || eligibleBranches.length === 0}
+                                        >
+                                            {eligibleBranches.map(b => (
+                                                <SelectItem key={b.id} value={b.id}>
+                                                    {b.label}
+                                                </SelectItem>
+                                            ))}
+                                        </Select>
+                                    )}
+                                    {isReallocation && (
+                                        <div className="bg-primary-50 dark:bg-primary-900/20 p-4 rounded-lg">
+                                            <p className="text-sm">
+                                                <span className="font-semibold">Branch:</span> {BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated}
+                                            </p>
+                                            <p className="text-xs text-default-600 mt-2">
+                                                This room is already allocated to this branch. Only unallocated students from this branch will be assigned seats.
+                                            </p>
+                                        </div>
+                                    )}
+                                    {error && <p className="text-danger text-sm">{error}</p>}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg text-success">Allocation Complete!</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Card>
+                                            <CardBody className="text-center">
+                                                <p className="text-3xl font-bold text-success">{result.allocatedCount}</p>
+                                                <p className="text-sm text-default-600 mt-1">Students Allocated</p>
+                                            </CardBody>
+                                        </Card>
+                                        <Card>
+                                            <CardBody className="text-center">
+                                                <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
+                                                <p className="text-sm text-default-600 mt-1">Students Unallocated</p>
+                                            </CardBody>
+                                        </Card>
+                                        {result.availableSeatsAfterAllocation !== undefined && (
+                                            <Card>
+                                                <CardBody className="text-center">
+                                                    <p className="text-3xl font-bold text-secondary">{result.availableSeatsAfterAllocation}</p>
+                                                    <p className="text-sm text-default-600 mt-1">Available Seats</p>
+                                                </CardBody>
+                                            </Card>
+                                        )}
+                                        {result.branchAllocated && (
+                                            <Card>
+                                                <CardBody className="text-center">
+                                                    <p className="text-lg font-bold text-primary mt-2">{BRANCH_OPTIONS.find(b => b.id === result.branchAllocated)?.label || result.branchAllocated}</p>
+                                                    <p className="text-sm text-default-600 mt-1">Branch Allocated</p>
+                                                </CardBody>
+                                            </Card>
+                                        )}
+                                    </div>
+                                    {result.unallocatedCount > 0 && (
+                                        <div>
+                                            <h4 className="font-semibold mb-2">Unallocated Students:</h4>
+                                            <div className="bg-default-100 p-3 rounded-lg max-h-40 overflow-y-auto">
+                                                <ul className="list-disc list-inside text-sm space-y-1">
+                                                    {result.unallocatedStudents.map(({ student, reason }) => (
+                                                        <li key={student.id}>
+                                                            <span className="font-medium">{student.name}</span> - <span className="text-default-600">{reason}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
-                    {isReallocation && (
-                        <div className="bg-blue-50 p-4 rounded-md">
-                            <p className="text-sm text-gray-700">
-                                <span className="font-semibold">Branch:</span> {BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated}
-                            </p>
-                            <p className="text-xs text-gray-600 mt-2">
-                                This room is already allocated to this branch. Only unallocated students from this branch will be assigned seats.
-                            </p>
-                        </div>
-                    )}
-                </div>
-                {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-                <div className="mt-6 flex justify-end space-x-2">
-                    <Button variant="secondary" onClick={closeModal}>Cancel</Button>
-                    <Button onClick={handleAllocate} disabled={loading || !selectedBranch}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
-                </div>
-            </div>
-            ) : (
-            <div>
-                <h3 className="font-bold text-lg text-green-700 mb-4">Allocation Complete!</h3>
-                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                    <div className="grid grid-cols-2 gap-4 text-center mb-4">
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                            <p className="text-3xl font-bold text-accent">{result.allocatedCount}</p>
-                            <p className="text-sm text-gray-600 mt-1">Students Allocated</p>
-                        </div>
-                        <div className="bg-white p-3 rounded-md shadow-sm">
-                            <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
-                            <p className="text-sm text-gray-600 mt-1">Students Unallocated</p>
-                        </div>
-                        {result.availableSeatsAfterAllocation !== undefined && (
-                            <div className="bg-white p-3 rounded-md shadow-sm">
-                                <p className="text-3xl font-bold text-secondary">{result.availableSeatsAfterAllocation}</p>
-                                <p className="text-sm text-gray-600 mt-1">Available Seats</p>
-                            </div>
-                        )}
-                        {result.branchAllocated && (
-                            <div className="bg-white p-3 rounded-md shadow-sm">
-                                <p className="text-lg font-bold text-primary mt-2">{BRANCH_OPTIONS.find(b => b.id === result.branchAllocated)?.label || result.branchAllocated}</p>
-                                <p className="text-sm text-gray-600 mt-1">Branch Allocated</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                 {result.unallocatedCount > 0 && (
-                    <div className="mt-4">
-                        <h4 className="font-semibold text-dark mb-2">Unallocated Students:</h4>
-                        <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto text-sm">
-                            {result.unallocatedStudents.map(({ student, reason }) => (
-                                <li key={student.id} className="mb-1">
-                                    <span className="font-medium">{student.name}</span> - <span className="text-gray-600">{reason}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                        </ModalBody>
+                        <ModalFooter>
+                            {!result ? (
+                                <>
+                                    <Button color="default" variant="light" onPress={closeModal}>
+                                        Cancel
+                                    </Button>
+                                    <Button color="primary" onPress={handleAllocate} isLoading={loading} isDisabled={!selectedBranch}>
+                                        Run Allocation
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button color="primary" onPress={closeModal}>
+                                    Close
+                                </Button>
+                            )}
+                        </ModalFooter>
+                    </>
                 )}
-                <div className="mt-6 flex justify-end">
-                    <Button onClick={closeModal}>Close</Button>
-                </div>
-            </div>
-            )}
+            </ModalContent>
         </Modal>
     );
 };
+
+const RoomSkeleton: React.FC = () => (
+  <Card>
+    <CardBody className="gap-4">
+      <Skeleton className="rounded-lg">
+        <div className="h-6 w-3/4 rounded-lg bg-default-200"></div>
+      </Skeleton>
+      <Skeleton className="rounded-lg">
+        <div className="h-4 w-1/2 rounded-lg bg-default-200"></div>
+      </Skeleton>
+      <Skeleton className="rounded-lg">
+        <div className="h-8 w-full rounded-lg bg-default-200"></div>
+      </Skeleton>
+    </CardBody>
+  </Card>
+);
 
 const RoomsPage: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>();
   const navigate = useNavigate();
   const { state, dispatch } = useSeatPlanner();
   const { rooms, buildings, loading, error } = state;
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: '', capacity: 1, rows: 1, cols: 1 });
   const [createLoading, setCreateLoading] = useState(false);
   
-  // Auto-calculate capacity when showing create form
   useEffect(() => {
-    if (showCreateForm) {
+    if (showCreateModal) {
       setNewRoom(prev => ({ ...prev, capacity: prev.rows * prev.cols }));
     }
-  }, [showCreateForm]);
+  }, [showCreateModal]);
+  
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editRoom, setEditRoom] = useState({ name: '', capacity: 1, rows: 1, cols: 1 });
   const [editLoading, setEditLoading] = useState(false);
@@ -209,7 +264,6 @@ const RoomsPage: React.FC = () => {
         dispatch({ type: 'GET_ROOMS_SUCCESS', payload: [...rooms.filter(r => r.buildingId !== buildingId), ...roomsData] });
         setDataLoaded(true);
         
-        // Check which rooms have eligible branches (allocated branch with unallocated students)
         if (isAdmin) {
           const eligibleRoomIds = new Set<string>();
           for (const room of roomsData) {
@@ -269,7 +323,7 @@ const RoomsPage: React.FC = () => {
     try {
       await api.createRoom({ buildingId, ...newRoom });
       setNewRoom({ name: '', capacity: 1, rows: 1, cols: 1 });
-      setShowCreateForm(false);
+      setShowCreateModal(false);
       fetchRoomsForBuilding();
     } catch (err) {
       alert(`Failed to create room: ${(err as Error).message}`);
@@ -280,7 +334,6 @@ const RoomsPage: React.FC = () => {
 
   const handleEditRoom = (room: Room) => {
     setEditingRoom(room);
-    // Auto-set capacity to max when editing
     const maxCapacity = room.rows * room.cols;
     setEditRoom({ name: room.name, capacity: maxCapacity, rows: room.rows, cols: room.cols, version: room.version });
   };
@@ -323,153 +376,235 @@ const RoomsPage: React.FC = () => {
     }
   };
 
-  if (loading && buildingRooms.length === 0) return <Spinner />;
+  if (loading && buildingRooms.length === 0) {
+    return (
+      <div>
+        <Button variant="light" onPress={() => navigate('/buildings')} className="mb-6">
+          ← Back to Buildings
+        </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <RoomSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
+  
   if (error && buildingRooms.length === 0) return <p className="text-danger text-center">{error}</p>;
 
   return (
     <div>
-      <button onClick={() => navigate('/buildings')} className="mb-6 text-primary hover:underline">&larr; Back to Buildings</button>
+      <Button variant="light" onPress={() => navigate('/buildings')} className="mb-6">
+        ← Back to Buildings
+      </Button>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-dark">Rooms in {building?.name || '...'}</h1>
+        <h1 className="text-3xl font-bold">Rooms in {building?.name || '...'}</h1>
         {isAdmin && (
-          <button onClick={() => setShowCreateForm(!showCreateForm)} className="bg-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-            {showCreateForm ? 'Cancel' : 'Add Room'}
-          </button>
+          <Button color="primary" onPress={() => setShowCreateModal(true)}>
+            Add Room
+          </Button>
         )}
       </div>
 
-      {showCreateForm && isAdmin && (
-        <Card className="mb-6">
-          <form onSubmit={handleCreateRoom} className="p-6">
-            <h2 className="text-xl font-bold mb-4">Create New Room</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
-                <input type="text" required value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rows</label>
-                <input type="number" required min="1" value={newRoom.rows} onChange={(e) => {
-                  const rows = Math.max(1, parseInt(e.target.value));
-                  setNewRoom({ ...newRoom, rows, capacity: rows * newRoom.cols });
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Columns per Row</label>
-                <input type="number" required min="1" value={newRoom.cols} onChange={(e) => {
-                  const cols = Math.max(1, parseInt(e.target.value));
-                  setNewRoom({ ...newRoom, cols, capacity: newRoom.rows * cols });
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity (Max: {newRoom.rows * newRoom.cols})</label>
-                <input type="number" required min="1" max={newRoom.rows * newRoom.cols} value={newRoom.capacity} onChange={(e) => setNewRoom({ ...newRoom, capacity: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button type="button" onClick={() => setShowCreateForm(false)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={createLoading} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-50">{createLoading ? 'Creating...' : 'Create Room'}</button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {editingRoom && isAdmin && (
-        <Card className="mb-6">
-          <form onSubmit={handleUpdateRoom} className="p-6">
-            <h2 className="text-xl font-bold mb-4">Edit Room: {editingRoom.name}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
-                <input type="text" required value={editRoom.name} onChange={(e) => setEditRoom({ ...editRoom, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rows</label>
-                <input type="number" required min="1" value={editRoom.rows} onChange={(e) => {
-                  const rows = Math.max(1, parseInt(e.target.value));
-                  setEditRoom({ ...editRoom, rows, capacity: rows * editRoom.cols });
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Columns per Row</label>
-                <input type="number" required min="1" value={editRoom.cols} onChange={(e) => {
-                  const cols = Math.max(1, parseInt(e.target.value));
-                  setEditRoom({ ...editRoom, cols, capacity: editRoom.rows * cols });
-                }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-               <div className="lg:col-span-2">
-                 <label className="block text-sm font-medium text-gray-700 mb-1">Seat Capacity (Max: {editRoom.rows * editRoom.cols})</label>
-                <input type="number" required min="1" max={editRoom.rows * editRoom.cols} value={editRoom.capacity} onChange={(e) => setEditRoom({ ...editRoom, capacity: parseInt(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" />
-              </div>
-            </div>
-            <p className="text-xs text-amber-600 mt-2 font-semibold">Warning: Changing dimensions or capacity will regenerate all seats in this room, unassigning any students.</p>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button type="button" onClick={() => setEditingRoom(null)} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={editLoading} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-blue-700 disabled:opacity-50">{editLoading ? 'Updating...' : 'Update Room'}</button>
-            </div>
-          </form>
-        </Card>
-      )}
-
       {buildingRooms.length === 0 ? (
-          <p className="text-gray-500 text-center mt-8">No rooms found in this building.</p>
+          <p className="text-default-500 text-center mt-8">No rooms found in this building.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {buildingRooms.map((room) => (
-            <Card key={room.id} className="relative hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              {!isAdmin && studentHasSeatInRoom(room.id) && <BookedIcon />}
-              <div className="p-6">
-                <div className="mb-4">
-                  <h2 className="text-xl font-bold text-dark">{room.name}</h2>
-                  <p className="text-gray-500">Capacity: {room.capacity} ({room.rows} rows x {room.cols} cols)</p>
-                  {room.branchAllocated && (
-                    <p className="text-primary font-semibold text-sm mt-2">
-                      Allocated to: {BRANCH_OPTIONS.find(b => b.id === room.branchAllocated)?.label}
-                    </p>
-                  )}
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-accent font-bold text-lg">{room.capacity - room.claimed} seats available</p>
+            <Card key={room.id} className="relative hover:scale-105 transition-transform duration-300">
+              {!isAdmin && studentHasSeatInRoom(room.id) && (
+                <Tooltip content="You have a seat booked in this room">
+                  <div className="absolute top-2 right-2 z-10">
+                    <BookedIcon />
                   </div>
+                </Tooltip>
+              )}
+              <CardBody className="gap-3">
+                <h2 className="text-xl font-bold">{room.name}</h2>
+                <p className="text-default-500">Capacity: {room.capacity} ({room.rows} rows x {room.cols} cols)</p>
+                {room.branchAllocated && (
+                  <Chip color="primary" variant="flat" size="sm">
+                    {BRANCH_OPTIONS.find(b => b.id === room.branchAllocated)?.label}
+                  </Chip>
+                )}
+                <div className="pt-3 border-t border-divider">
+                  <p className="text-success font-bold text-lg">{room.capacity - room.claimed} seats available</p>
                 </div>
-                <div className="flex justify-between items-center">
-                  <Link to={`/rooms/${room.id}`} className="text-primary hover:underline">
+              </CardBody>
+              <CardFooter className="justify-between border-t border-divider">
+                <Link to={`/rooms/${room.id}`}>
+                  <Button color="primary" variant="light">
                     View Seats
-                  </Link>
-                  {isAdmin && (
-                    <div className="flex flex-col gap-2">
-                      {dataLoaded && (!room.branchAllocated || roomsWithEligibleBranches.has(room.id)) && (
-                        <button 
-                          onClick={() => setAllocatingRoomId(room.id)} 
-                          className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600"
-                        >
-                          {room.branchAllocated ? 'Allocate Seats' : 'Allocate Branch'}
-                        </button>
-                      )}
-                      <div className="flex space-x-2">
-                        <button onClick={() => handleEditRoom(room)} className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600">Edit</button>
-                        <button onClick={() => handleDeleteRoom(room.id)} disabled={deleteLoading === room.id} className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50">{deleteLoading === room.id ? 'Deleting...' : 'Delete'}</button>
-                      </div>
+                  </Button>
+                </Link>
+                {isAdmin && (
+                  <div className="flex flex-col gap-2">
+                    {dataLoaded && (!room.branchAllocated || roomsWithEligibleBranches.has(room.id)) && (
+                      <Button 
+                        size="sm"
+                        color="success"
+                        variant="flat"
+                        onPress={() => setAllocatingRoomId(room.id)}
+                      >
+                        {room.branchAllocated ? 'Allocate Seats' : 'Allocate Branch'}
+                      </Button>
+                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" color="primary" variant="flat" onPress={() => handleEditRoom(room)}>
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        color="danger" 
+                        variant="flat" 
+                        onPress={() => handleDeleteRoom(room.id)} 
+                        isLoading={deleteLoading === room.id}
+                      >
+                        Delete
+                      </Button>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )}
+              </CardFooter>
             </Card>
           ))}
         </div>
       )}
       
+      {/* Create Room Modal */}
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} size="2xl">
+        <ModalContent>
+          {(onClose) => (
+            <form onSubmit={handleCreateRoom}>
+              <ModalHeader>Create New Room</ModalHeader>
+              <ModalBody>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Room Name"
+                    variant="bordered"
+                    value={newRoom.name}
+                    onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                    required
+                    className="md:col-span-2"
+                  />
+                  <Input
+                    label="Rows"
+                    type="number"
+                    variant="bordered"
+                    value={newRoom.rows.toString()}
+                    onChange={(e) => {
+                      const rows = Math.max(1, parseInt(e.target.value) || 1);
+                      setNewRoom({ ...newRoom, rows, capacity: rows * newRoom.cols });
+                    }}
+                    required
+                  />
+                  <Input
+                    label="Columns per Row"
+                    type="number"
+                    variant="bordered"
+                    value={newRoom.cols.toString()}
+                    onChange={(e) => {
+                      const cols = Math.max(1, parseInt(e.target.value) || 1);
+                      setNewRoom({ ...newRoom, cols, capacity: newRoom.rows * cols });
+                    }}
+                    required
+                  />
+                  <Input
+                    label={`Seat Capacity (Max: ${newRoom.rows * newRoom.cols})`}
+                    type="number"
+                    variant="bordered"
+                    value={newRoom.capacity.toString()}
+                    onChange={(e) => setNewRoom({ ...newRoom, capacity: parseInt(e.target.value) || 1 })}
+                    required
+                    className="md:col-span-2"
+                  />
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" type="submit" isLoading={createLoading}>
+                  Create Room
+                </Button>
+              </ModalFooter>
+            </form>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Room Modal */}
+      <Modal isOpen={!!editingRoom} onClose={() => setEditingRoom(null)} size="2xl">
+        <ModalContent>
+          {(onClose) => (
+            <form onSubmit={handleUpdateRoom}>
+              <ModalHeader>Edit Room: {editingRoom?.name}</ModalHeader>
+              <ModalBody>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Room Name"
+                    variant="bordered"
+                    value={editRoom.name}
+                    onChange={(e) => setEditRoom({ ...editRoom, name: e.target.value })}
+                    required
+                    className="md:col-span-2"
+                  />
+                  <Input
+                    label="Rows"
+                    type="number"
+                    variant="bordered"
+                    value={editRoom.rows.toString()}
+                    onChange={(e) => {
+                      const rows = Math.max(1, parseInt(e.target.value) || 1);
+                      setEditRoom({ ...editRoom, rows, capacity: rows * editRoom.cols });
+                    }}
+                    required
+                  />
+                  <Input
+                    label="Columns per Row"
+                    type="number"
+                    variant="bordered"
+                    value={editRoom.cols.toString()}
+                    onChange={(e) => {
+                      const cols = Math.max(1, parseInt(e.target.value) || 1);
+                      setEditRoom({ ...editRoom, cols, capacity: editRoom.rows * cols });
+                    }}
+                    required
+                  />
+                  <Input
+                    label={`Seat Capacity (Max: ${editRoom.rows * editRoom.cols})`}
+                    type="number"
+                    variant="bordered"
+                    value={editRoom.capacity.toString()}
+                    onChange={(e) => setEditRoom({ ...editRoom, capacity: parseInt(e.target.value) || 1 })}
+                    required
+                    className="md:col-span-2"
+                  />
+                </div>
+                <p className="text-warning text-sm font-semibold">
+                  Warning: Changing dimensions or capacity will regenerate all seats in this room, unassigning any students.
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button color="default" variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" type="submit" isLoading={editLoading}>
+                  Update Room
+                </Button>
+              </ModalFooter>
+            </form>
+          )}
+        </ModalContent>
+      </Modal>
+
       {allocatingRoomId && (
         <AllocationModal 
           isOpen={true} 
-          onClose={() => {
-            setAllocatingRoomId(null);
-          }} 
+          onClose={() => setAllocatingRoomId(null)} 
           buildingId={buildingId} 
           roomId={allocatingRoomId}
           roomBranchAllocated={buildingRooms.find(r => r.id === allocatingRoomId)?.branchAllocated || null}
-          onAllocationComplete={() => {
-            fetchRoomsForBuilding();
-          }}
+          onAllocationComplete={fetchRoomsForBuilding}
         />
       )}
     </div>

@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  Card, 
+  CardBody, 
+  CardHeader, 
+  Input, 
+  Button, 
+  Select, 
+  SelectItem, 
+  Checkbox,
+  Tabs,
+  Tab
+} from '@heroui/react';
 import { authService } from '../services/authService';
 import { Branch } from '../types';
 import { ACCESSIBILITY_NEEDS } from '../constants';
 
-// Only use accessibility needs for student selection (not seat features like wheelchair_access)
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
 const BRANCHES = [
@@ -55,73 +66,114 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="flex flex-col gap-3 items-center pb-0 pt-6">
+          <img src="/assets/icon-512x512.png" alt="Logo" className="h-16 w-16" />
+          <h2 className="text-2xl font-bold text-center">
+            {isLogin ? 'Sign in to SeatPlanner' : 'Create your account'}
           </h2>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">Email address</label>
-              <input id="email" name="email" type="email" required className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input id="password" name="password" type="password" required className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-          </div>
-          {!isLogin && (
-            <>
-            <div className="grid grid-cols-1 gap-y-6">
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-                <select id="role" name="role" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={role} onChange={(e) => setRole(e.target.value as 'Admin' | 'Student')}>
-                  <option value="Student">Student</option>
-                  <option value="Admin">Admin</option>
-                </select>
-              </div>
-              {role === 'Student' && (
+        </CardHeader>
+        <CardBody className="gap-4">
+          <Tabs 
+            fullWidth 
+            selectedKey={isLogin ? 'login' : 'signup'}
+            onSelectionChange={(key) => {
+              setIsLogin(key === 'login');
+              setError('');
+            }}
+          >
+            <Tab key="login" title="Sign In" />
+            <Tab key="signup" title="Sign Up" />
+          </Tabs>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Input
+              label="Email"
+              type="email"
+              variant="bordered"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
+            
+            <Input
+              label="Password"
+              type="password"
+              variant="bordered"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
+            />
+
+            {!isLogin && (
+              <>
+                <Select
+                  label="Role"
+                  variant="bordered"
+                  selectedKeys={[role]}
+                  onChange={(e) => setRole(e.target.value as 'Admin' | 'Student')}
+                >
+                  <SelectItem key="Student" value="Student">Student</SelectItem>
+                  <SelectItem key="Admin" value="Admin">Admin</SelectItem>
+                </Select>
+
+                {role === 'Student' && (
                   <>
-                  <div>
-                    <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
-                    <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={branch} onChange={(e) => setBranch(e.target.value as Branch)}>
-                        {BRANCHES.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700">Accessibility Needs (Optional)</label>
-                      <div className="mt-2 space-y-2 border border-gray-200 p-3 rounded-md">
-                          {POSSIBLE_NEEDS.map(need => (
-                              <label key={need.id} className="flex items-center">
-                                  <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary" checked={accessibilityNeeds.includes(need.id)} onChange={() => handleNeedsChange(need.id)} />
-                                  <span className="ml-2 text-sm text-gray-700">{need.label}</span>
-                              </label>
-                          ))}
+                    <Select
+                      label="Club / Branch"
+                      variant="bordered"
+                      selectedKeys={[branch]}
+                      onChange={(e) => setBranch(e.target.value as Branch)}
+                    >
+                      {BRANCHES.map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          {b.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
+
+                    <div className="border border-default-200 rounded-lg p-4">
+                      <label className="block text-sm font-medium mb-3">
+                        Accessibility Needs (Optional)
+                      </label>
+                      <div className="space-y-2">
+                        {POSSIBLE_NEEDS.map(need => (
+                          <Checkbox
+                            key={need.id}
+                            isSelected={accessibilityNeeds.includes(need.id)}
+                            onValueChange={() => handleNeedsChange(need.id)}
+                          >
+                            {need.label}
+                          </Checkbox>
+                        ))}
                       </div>
-                  </div>
+                    </div>
                   </>
-              )}
-            </div>
-            </>
-          )}
+                )}
+              </>
+            )}
 
-          {error && (<div className="text-red-600 text-sm text-center p-2 bg-red-100 rounded-md">{error}</div>)}
+            {error && (
+              <div className="bg-danger-50 dark:bg-danger-900/20 text-danger border border-danger-200 dark:border-danger-800 rounded-lg p-3 text-sm">
+                {error}
+              </div>
+            )}
 
-          <div>
-            <button type="submit" disabled={loading} className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+            <Button
+              type="submit"
+              color="primary"
+              size="lg"
+              isLoading={loading}
+              className="w-full"
+            >
               {loading ? 'Processing...' : (isLogin ? 'Sign in' : 'Sign up')}
-            </button>
-          </div>
-          <div className="text-center">
-            <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }} className="text-indigo-600 hover:text-indigo-500 text-sm">
-              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
-        </form>
-      </div>
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   );
 };
