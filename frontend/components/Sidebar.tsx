@@ -26,7 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/login');
+    navigate('/signin');
   };
 
   return (

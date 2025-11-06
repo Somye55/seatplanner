@@ -170,7 +170,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/login');
+    navigate('/signin');
   };
 
   // Generate breadcrumbs from current path

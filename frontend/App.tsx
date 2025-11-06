@@ -19,7 +19,9 @@ const App: React.FC = () => {
         <SeatPlannerProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/login" element={<Navigate to="/signin" replace />} />
+              <Route path="/signin" element={<LoginPage />} />
+              <Route path="/signup" element={<LoginPage />} />
               <Route path="/*" element={
                 <PrivateRoute>
                   <Layout>

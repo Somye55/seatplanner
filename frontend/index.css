@@ -1,2 +1,34 @@
 @import "tailwindcss";
 @config "./tailwind.config.ts";
+
+/* Card flip animation */
+.flip-card-container {
+  perspective: 1500px;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  position: absolute;
+  top: 0;
+  left: 0;
+}
