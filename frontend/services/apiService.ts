@@ -17,6 +17,13 @@ export class ConflictError extends Error {
 // Helper for fetch requests
 async function fetchApi(url: string, options: RequestInit = {}) {
     const { authService } = await import('./authService');
+    
+    // Check if user is authenticated before making request
+    if (!authService.isAuthenticated() && !url.includes('/auth/')) {
+        authService.handleAuthError();
+        throw new Error('Session expired. Please login again.');
+    }
+    
     const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
         headers: {
@@ -25,6 +32,13 @@ async function fetchApi(url: string, options: RequestInit = {}) {
             ...options.headers,
         },
     });
+    
+    // Handle authentication errors (401 Unauthorized, 403 Forbidden)
+    if (response.status === 401 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({ error: 'Authentication failed' }));
+        authService.handleAuthError();
+        throw new Error(errorData.error || 'Your session has expired. Please login again.');
+    }
     
     // Handle 409 Conflict specially
     if (response.status === 409) {
