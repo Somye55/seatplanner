@@ -42,6 +42,7 @@ model Room {
   rows            Int
   cols            Int
   claimed         Int      @default(0)
+  version         Int      @default(1)
   seats           Seat[]
   branchAllocated Branch?
   createdAt       DateTime @default(now())

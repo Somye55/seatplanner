@@ -84,4 +84,5 @@ export interface AllocationSummary {
   unallocatedCount: number;
   unallocatedStudents: { student: Student; reason:string }[];
   utilization?: number;
+  affectedRoomIds?: string[];
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
-import { api } from '../services/apiService';
+import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Spinner, Modal, Button } from '../components/ui';
 import { Seat, SeatStatus, Student, Room, Branch, AllocationSummary } from '../types';
@@ -53,12 +53,12 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
   return (
     <div
       onClick={isClickable ? onClick : undefined}
-      className={`w-12 h-12 rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
+      className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 rounded-md sm:rounded-lg border-2 flex flex-col justify-center items-center transition-all relative ${getStatusClasses(seat.status)} ${cursorClass}`}
       title={title}
     >
-      <span className="text-sm font-bold">{seat.label}</span>
-      {seat.status === SeatStatus.Allocated && ( <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>)}
-      {seat.status === SeatStatus.Broken && (<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600 mt-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>)}
+      <span className="text-xs sm:text-sm font-bold">{seat.label}</span>
+      {seat.status === SeatStatus.Allocated && ( <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-gray-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>)}
+      {seat.status === SeatStatus.Broken && (<svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-red-600 mt-0.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>)}
          </div>
   );
 };
@@ -66,8 +66,10 @@ const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => vo
 const AllocationModal: React.FC<{
     isOpen: boolean,
     onClose: () => void,
-    buildingId: string | undefined
-}> = ({ isOpen, onClose, buildingId }) => {
+    buildingId: string | undefined,
+    roomId?: string,
+    onAllocationComplete: () => void
+}> = ({ isOpen, onClose, buildingId, roomId, onAllocationComplete }) => {
     const [eligibleBranches, setEligibleBranches] = useState<{id: Branch, label: string}[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<Branch | ''>('');
     const [loading, setLoading] = useState(false);
@@ -78,6 +80,7 @@ const AllocationModal: React.FC<{
         if (isOpen && buildingId) {
             setLoading(true);
             setError('');
+            setResult(null);
             api.getEligibleBranches(buildingId)
                 .then(branches => {
                     const branchOptions = branches.map(branchId => ({
@@ -97,16 +100,24 @@ const AllocationModal: React.FC<{
     }, [isOpen, buildingId]);
 
     const handleAllocate = async () => {
-        if (!buildingId || !selectedBranch) {
-            setError("Cannot determine the building or no branch selected.");
+        if (!selectedBranch) {
+            setError("No branch selected.");
+            return;
+        }
+        if (roomId && !buildingId) {
+            setError("Cannot determine the building for room allocation.");
             return;
         }
         setLoading(true);
         setError('');
         setResult(null);
         try {
-            const response = await api.allocateBranchToBuilding(selectedBranch, buildingId);
+            const response = roomId
+                ? await api.allocateBranchToRoom(selectedBranch, roomId)
+                : await api.allocateBranchToBuilding(selectedBranch, buildingId!);
             setResult(response.summary);
+            // Trigger data refresh
+            onAllocationComplete();
         } catch (err) {
             setError((err as Error).message);
         } finally {
@@ -120,11 +131,16 @@ const AllocationModal: React.FC<{
         onClose();
     };
 
+    const title = roomId ? "Allocate Branch to Room" : "Allocate Branch to Building";
+    const description = roomId
+        ? "Select a branch to allocate all of its unallocated students to available seats within this room."
+        : "Select a branch to allocate all of its unallocated students to available seats within this building.";
+
     return (
-        <Modal isOpen={isOpen} onClose={closeModal} title="Allocate Branch to Building">
+        <Modal isOpen={isOpen} onClose={closeModal} title={title}>
             {!result ? (
             <div>
-                <p className="mb-4 text-sm text-gray-600">Select a branch to allocate all of its students to available seats within this building.</p>
+                <p className="mb-4 text-sm text-gray-600">{description}</p>
                 <div className="space-y-4">
                     <div>
                         <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
@@ -133,32 +149,47 @@ const AllocationModal: React.FC<{
                             {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
                             {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
                         </select>
+                        {!loading && eligibleBranches.length === 0 && (
+                            <p className="text-xs text-gray-500 mt-2">
+                                All branches are either already allocated to other buildings or have no unallocated students.
+                            </p>
+                        )}
                     </div>
                 </div>
                 {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex justify-end space-x-2">
+                    <Button variant="secondary" onClick={closeModal}>Cancel</Button>
                     <Button onClick={handleAllocate} disabled={loading || !selectedBranch}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
                 </div>
             </div>
             ) : (
             <div>
-                <h3 className="font-bold text-lg text-green-700 mb-2">Allocation Complete!</h3>
-                <div className="grid grid-cols-2 gap-4 text-center">
-                    <div>
-                        <p className="text-2xl font-bold text-accent">{result.allocatedCount}</p>
-                        <p className="text-sm text-gray-500">Students Allocated</p>
+                <h3 className="font-bold text-lg text-green-700 mb-4">Allocation Complete!</h3>
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div className="grid grid-cols-2 gap-4 text-center mb-4">
+                        <div className="bg-white p-3 rounded-md shadow-sm">
+                            <p className="text-3xl font-bold text-accent">{result.allocatedCount}</p>
+                            <p className="text-sm text-gray-600 mt-1">Students Allocated</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-md shadow-sm">
+                            <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
+                            <p className="text-sm text-gray-600 mt-1">Students Unallocated</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-2xl font-bold text-danger">{result.unallocatedCount}</p>
-                        <p className="text-sm text-gray-500">Students Unallocated</p>
-                    </div>
+                    {result.affectedRoomIds && result.affectedRoomIds.length > 0 && (
+                        <div className="text-center text-sm text-gray-600">
+                            <p>Affected {result.affectedRoomIds.length} room{result.affectedRoomIds.length !== 1 ? 's' : ''} in this {roomId ? 'room' : 'building'}</p>
+                        </div>
+                    )}
                 </div>
                  {result.unallocatedCount > 0 && (
                     <div className="mt-4">
                         <h4 className="font-semibold text-dark mb-2">Unallocated Students:</h4>
-                        <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto">
+                        <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto text-sm">
                             {result.unallocatedStudents.map(({ student, reason }) => (
-                                <li key={student.id} className="text-sm">{student.name} - <span className="text-gray-600">{reason}</span></li>
+                                <li key={student.id} className="mb-1">
+                                    <span className="font-medium">{student.name}</span> - <span className="text-gray-600">{reason}</span>
+                                </li>
                             ))}
                         </ul>
                     </div>
@@ -185,6 +216,7 @@ const SeatMapPage: React.FC = () => {
     const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
+    const [isRoomAllocationModalOpen, setIsRoomAllocationModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState('');
     const [editingFeatures, setEditingFeatures] = useState<string[]>([]);
@@ -209,27 +241,33 @@ const SeatMapPage: React.FC = () => {
         return columns;
     }, [roomSeats, currentRoom]);
   
+    const fetchData = async () => {
+      if (!roomId) return;
+      dispatch({ type: 'API_REQUEST_START' });
+      try {
+        const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
+        setCurrentRoom(roomData);
+        dispatch({ type: 'GET_SEATS_SUCCESS', payload: seatsData });
+
+        if (roomData.buildingId) {
+          const allRoomsData = await api.getRoomsByBuilding(roomData.buildingId);
+          setRoomsInBuilding(allRoomsData);
+        }
+      } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
+    };
   
     useEffect(() => {
-      const fetchData = async () => {
-        if (!roomId) return;
-        dispatch({ type: 'API_REQUEST_START' });
-        try {
-          const [roomData, seatsData] = await Promise.all([api.getRoomById(roomId), api.getSeatsByRoom(roomId)]);
-          setCurrentRoom(roomData);
-          dispatch({ type: 'GET_SEATS_SUCCESS', payload: seatsData });
-
-          if (roomData.buildingId) {
-            const allRoomsData = await api.getRoomsByBuilding(roomData.buildingId);
-            setRoomsInBuilding(allRoomsData);
-          }
-        } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
-      };
       fetchData();
   
       const socketUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api').replace('/api', '');
       const socket = io(socketUrl);
-      socket.on('seatUpdated', (updatedSeat: Seat) => { if (updatedSeat.roomId === roomId) dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat }); });
+      socket.on('seatUpdated', (updatedSeat: Seat) => { 
+        if (updatedSeat.roomId === roomId) {
+          dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: updatedSeat });
+          // ✅ If this is the currently selected seat, update it too
+          setSelectedSeat(prev => prev?.id === updatedSeat.id ? updatedSeat : prev);
+        }
+      });
       socket.on('allocationsUpdated', fetchData); // Refetch data on broad allocation changes
       return () => socket.disconnect();
     }, [roomId, dispatch]);
@@ -249,7 +287,19 @@ const SeatMapPage: React.FC = () => {
       try {
           await api.updateSeatStatus(selectedSeat.id, status, selectedSeat.version);
           setIsEditModalOpen(false);
-      } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
+      } catch (err) {
+          if (err instanceof ConflictError && err.currentData) {
+              // Update global state with current seat data from 409 response
+              dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: err.currentData });
+              // ✅ CRITICAL: Also update selectedSeat so modal has the new version
+              setSelectedSeat(err.currentData);
+              setModalError('This seat was just modified by another admin. Your view has been updated. Please try again.');
+          } else {
+              setModalError((err as Error).message);
+          }
+      } finally { 
+          setIsSubmitting(false); 
+      }
     };
   
     const handleSaveFeatures = async () => {
@@ -259,7 +309,19 @@ const SeatMapPage: React.FC = () => {
       try {
           await api.updateSeatFeatures(selectedSeat.id, editingFeatures, selectedSeat.version);
           setIsEditModalOpen(false);
-      } catch (err) { setModalError((err as Error).message); } finally { setIsSubmitting(false); }
+      } catch (err) {
+          if (err instanceof ConflictError && err.currentData) {
+              // Update global state with current seat data from 409 response
+              dispatch({ type: 'UPDATE_SEAT_SUCCESS', payload: err.currentData });
+              // ✅ CRITICAL: Also update selectedSeat so modal has the new version
+              setSelectedSeat(err.currentData);
+              setModalError('This seat was just modified by another admin. Your view has been updated. Please try again.');
+          } else {
+              setModalError((err as Error).message);
+          }
+      } finally { 
+          setIsSubmitting(false); 
+      }
     };
   
     const selectedSeatStudent = useMemo(() => students.find(s => s.id === selectedSeat?.studentId), [students, selectedSeat]);
@@ -282,29 +344,35 @@ const SeatMapPage: React.FC = () => {
           {isAdmin && !isBuildingFullyAllocated && (
               <Button onClick={() => setIsAllocationModalOpen(true)}>Allocate Branch to Building</Button>
           )}
+          {isAdmin && currentRoom && !currentRoom.branchAllocated && (
+              <Button onClick={() => setIsRoomAllocationModalOpen(true)}>Allocate Branch to Room</Button>
+          )}
         </div>
 
         {seatColumns.length > 0 ? (
-          (() => {
-            const totalColumns = seatColumns.length;
-            const containerWidth = Math.min(100, totalColumns * 8); // Approximate width based on seat size + gaps
-            const containerHeight = Math.min(100, seatColumns[0]?.length * 8 || 50); // Approximate height based on rows
-            return (
-              <div className="flex justify-center">
-                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg overflow-hidden" style={{ width: `${containerWidth}%`, height: `${containerHeight}vh` }}>
-                  <div className="flex w-full h-full">
-                    {seatColumns.map((column, colIndex) => (
-                        <div key={colIndex} className={`flex-1 flex flex-col gap-1 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-3' : ''}`}>
-                            {column.map((rowIndex, seatIndex) => (
-                                column[seatIndex] ? ( <SeatComponent key={column[seatIndex]!.id} seat={column[seatIndex]!} student={students.find(s => s.id === column[seatIndex]!.studentId)} onClick={() => handleSeatClick(column[seatIndex]!)} isClickable={isAdmin} /> ) : <div key={`empty-${colIndex}-${seatIndex}`} className="w-12 h-12" />
-                            ))}
-                        </div>
+          <div className="flex justify-center w-full">
+            <div className="bg-white p-2 sm:p-4 md:p-6 rounded-lg shadow-lg overflow-auto w-full max-w-full">
+              <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 justify-center min-w-min">
+                {seatColumns.map((column, colIndex) => (
+                  <div key={colIndex} className={`flex flex-col gap-0.5 sm:gap-1 md:gap-1.5 ${colIndex > 0 && colIndex % 3 === 0 ? 'ml-1 sm:ml-2 md:ml-3' : ''}`}>
+                    {column.map((rowIndex, seatIndex) => (
+                      column[seatIndex] ? ( 
+                        <SeatComponent 
+                          key={column[seatIndex]!.id} 
+                          seat={column[seatIndex]!} 
+                          student={students.find(s => s.id === column[seatIndex]!.studentId)} 
+                          onClick={() => handleSeatClick(column[seatIndex]!)} 
+                          isClickable={isAdmin} 
+                        /> 
+                      ) : (
+                        <div key={`empty-${colIndex}-${seatIndex}`} className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14" />
+                      )
                     ))}
                   </div>
-                </div>
+                ))}
               </div>
-            );
-          })()
+            </div>
+          </div>
         ) : <p className="text-center text-gray-500 py-8">No seats found for this room.</p>}
   
         <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title={`Edit Seat: ${selectedSeat?.label}`}>
@@ -340,7 +408,19 @@ const SeatMapPage: React.FC = () => {
           )}
         </Modal>
         
-        <AllocationModal isOpen={isAllocationModalOpen} onClose={() => setIsAllocationModalOpen(false)} buildingId={currentRoom?.buildingId} />
+        <AllocationModal 
+          isOpen={isAllocationModalOpen} 
+          onClose={() => setIsAllocationModalOpen(false)} 
+          buildingId={currentRoom?.buildingId} 
+          onAllocationComplete={fetchData}
+        />
+        <AllocationModal 
+          isOpen={isRoomAllocationModalOpen} 
+          onClose={() => setIsRoomAllocationModalOpen(false)} 
+          buildingId={currentRoom?.buildingId} 
+          roomId={roomId}
+          onAllocationComplete={fetchData}
+        />
       </div>
     );
   };

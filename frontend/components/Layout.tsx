@@ -101,7 +101,7 @@ const Header: React.FC = () => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const navigation = isAdmin 
-    ? [ { name: 'Buildings', href: '/buildings' }, { name: 'Students', href: '/students' }, { name: 'Planning', href: '/planning' } ] 
+    ? [ { name: 'Buildings', href: '/buildings' }, { name: 'Students', href: '/students' } ] 
     : [ { name: 'Buildings', href: '/buildings' } ];
 
   const handleLogout = () => {

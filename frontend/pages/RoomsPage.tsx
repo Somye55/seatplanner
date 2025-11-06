@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
-import { api } from '../services/apiService';
+import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
 import { Card, Spinner } from '../components/ui';
 import { Room, Seat } from '../types';
@@ -92,7 +92,7 @@ const RoomsPage: React.FC = () => {
 
   const handleEditRoom = (room: Room) => {
     setEditingRoom(room);
-    setEditRoom({ name: room.name, capacity: room.capacity, rows: room.rows, cols: room.cols });
+    setEditRoom({ name: room.name, capacity: room.capacity, rows: room.rows, cols: room.cols, version: room.version });
   };
 
   const handleUpdateRoom = async (e: React.FormEvent) => {
@@ -108,7 +108,13 @@ const RoomsPage: React.FC = () => {
       setEditingRoom(null);
       fetchRoomsForBuilding();
     } catch (err) {
-      alert(`Failed to update room: ${(err as Error).message}`);
+      if (err instanceof ConflictError && err.currentData) {
+        alert('This room was just modified by another admin. Please close and try again.');
+        setEditingRoom(null);
+        fetchRoomsForBuilding();
+      } else {
+        alert(`Failed to update room: ${(err as Error).message}`);
+      }
     } finally {
       setEditLoading(false);
     }

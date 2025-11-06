@@ -85,7 +85,8 @@ router.put('/:id', [
   body('name').optional().isLength({ min: 1 }),
   body('capacity').optional().isInt({ min: 1 }),
   body('rows').optional().isInt({ min: 1 }),
-  body('cols').optional().isInt({ min: 1 })
+  body('cols').optional().isInt({ min: 1 }),
+  body('version').isInt({ min: 0 }).withMessage('Version is required for updates.')
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -94,7 +95,7 @@ router.put('/:id', [
 
   try {
     const { id } = req.params;
-    const { name, capacity, rows, cols } = req.body;
+    const { name, capacity, rows, cols, version } = req.body;
 
     const existingRoom = await prisma.room.findUnique({
       where: { id }
@@ -102,6 +103,22 @@ router.put('/:id', [
 
     if (!existingRoom) {
       return res.status(404).json({ error: 'Room not found' });
+    }
+
+    if (existingRoom.version !== version) {
+      return res.status(409).json({ 
+        message: 'Room has been modified by another user. Please refresh and try again.',
+        currentRoom: {
+          id: existingRoom.id,
+          name: existingRoom.name,
+          capacity: existingRoom.capacity,
+          rows: existingRoom.rows,
+          cols: existingRoom.cols,
+          version: existingRoom.version,
+          claimed: existingRoom.claimed,
+          branchAllocated: existingRoom.branchAllocated
+        }
+      });
     }
 
     const updatedData = {
@@ -116,8 +133,14 @@ router.put('/:id', [
     }
 
     const updatedRoom = await prisma.room.update({
-      where: { id },
-      data: updatedData,
+      where: { 
+        id,
+        version: version
+      },
+      data: {
+        ...updatedData,
+        version: { increment: 1 }
+      },
     });
     
     // If dimensions or capacity changed, regenerate seats
@@ -140,7 +163,12 @@ router.put('/:id', [
     await invalidateCache('buildings');
 
     res.json(updatedRoom);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(409).json({ 
+        message: 'Room has been modified by another user. Please refresh and try again.'
+      });
+    }
     res.status(500).json({ error: 'Failed to update room' });
   }
 });

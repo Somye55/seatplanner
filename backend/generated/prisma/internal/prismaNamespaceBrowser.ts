@@ -103,6 +103,7 @@ export const RoomScalarFieldEnum = {
   rows: 'rows',
   cols: 'cols',
   claimed: 'claimed',
+  version: 'version',
   branchAllocated: 'branchAllocated',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

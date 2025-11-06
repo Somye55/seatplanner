@@ -36,15 +36,21 @@ router.patch('/:id/status', [
       }
 
       if (version !== seat.version) {
-        throw new Error('Conflict');
+        const error: any = new Error('Conflict');
+        error.currentSeat = seat;
+        throw error;
       }
 
       const oldStatus = seat.status;
       const studentIdOnSeat = seat.studentId;
       const hadStudent = !!studentIdOnSeat;
 
+      // Use version in where clause for true optimistic locking
       const updatedSeat = await tx.seat.update({
-        where: { id: seatId },
+        where: { 
+          id: seatId,
+          version: version  // This ensures the update only succeeds if version matches
+        },
         data: {
           status: status,
           studentId: status === SeatStatus.Allocated ? seat.studentId : null,
@@ -114,7 +120,27 @@ router.patch('/:id/status', [
       return res.status(404).json({ message: 'Seat not found' });
     }
     if (error.message === 'Conflict') {
-      return res.status(409).json({ message: 'Seat has been modified by another user. Please refresh and try again.' });
+      return res.status(409).json({ 
+        message: 'Seat has been modified by another user. Please refresh and try again.',
+        currentSeat: error.currentSeat ? {
+          id: error.currentSeat.id,
+          status: error.currentSeat.status,
+          version: error.currentSeat.version,
+          studentId: error.currentSeat.studentId
+        } : undefined
+      });
+    }
+    // Prisma error when record not found (version mismatch in where clause)
+    if (error.code === 'P2025') {
+      // Fetch current seat state
+      const currentSeat = await prisma.seat.findUnique({ 
+        where: { id: seatId },
+        select: { id: true, status: true, version: true, studentId: true }
+      });
+      return res.status(409).json({ 
+        message: 'Seat has been modified by another user. Please refresh and try again.',
+        currentSeat
+      });
     }
     console.error('Failed to update seat status:', error);
     res.status(500).json({ error: 'Failed to update seat status' });
@@ -146,7 +172,16 @@ router.patch('/:id/features', [
         }
 
         if (seat.version !== version) {
-            return res.status(409).json({ message: 'Seat has been modified. Please refresh and try again.' });
+            return res.status(409).json({ 
+                message: 'Seat has been modified. Please refresh and try again.',
+                currentSeat: {
+                    id: seat.id,
+                    status: seat.status,
+                    version: seat.version,
+                    features: seat.features,
+                    studentId: seat.studentId
+                }
+            });
         }
 
         const positionalFeatures = seat.features.filter(f => 
@@ -160,7 +195,10 @@ router.patch('/:id/features', [
         const finalFeatures = [...new Set([...positionalFeatures, ...newCustomFeatures])];
 
         const updatedSeat = await prisma.seat.update({
-            where: { id: seatId },
+            where: { 
+                id: seatId,
+                version: version  // Optimistic locking
+            },
             data: {
                 features: finalFeatures,
                 version: { increment: 1 }
@@ -175,7 +213,18 @@ router.patch('/:id/features', [
 
         res.json(updatedSeat);
 
-    } catch (error) {
+    } catch (error: any) {
+        // Prisma error when record not found (version mismatch)
+        if (error.code === 'P2025') {
+            const currentSeat = await prisma.seat.findUnique({ 
+                where: { id: seatId },
+                select: { id: true, status: true, version: true, features: true, studentId: true }
+            });
+            return res.status(409).json({ 
+                message: 'Seat has been modified. Please refresh and try again.',
+                currentSeat
+            });
+        }
         console.error('Failed to update seat features:', error);
         res.status(500).json({ error: 'Failed to update seat features' });
     }

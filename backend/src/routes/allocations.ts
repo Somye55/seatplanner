@@ -34,12 +34,21 @@ router.get('/eligible-branches', [
             .filter((b): b is Branch => b !== null)
     );
 
-    // 2. Find branches that have students
-    const studentCounts = await prisma.student.groupBy({
+    // 2. Find branches that have unallocated students
+    const branchesWithUnallocatedStudents = await prisma.student.groupBy({
         by: ['branch'],
+        where: {
+          seats: {
+            none: {}
+          }
+        },
         _count: { _all: true },
     });
-    const branchesWithStudentsSet = new Set(studentCounts.map(sc => sc.branch));
+    const branchesWithStudentsSet = new Set(
+      branchesWithUnallocatedStudents
+        .filter(sc => sc._count._all > 0)
+        .map(sc => sc.branch)
+    );
 
     // 3. Determine eligible branches
     const allBranches = Object.values(Branch);
@@ -118,7 +127,8 @@ router.get('/', [
 router.delete('/:id', [
   authenticateToken,
   requireAdmin,
-  param('id').isString().notEmpty()
+  param('id').isString().notEmpty(),
+  query('version').optional().isInt({ min: 0 })
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -127,6 +137,7 @@ router.delete('/:id', [
 
   try {
     const allocationId = req.params.id;
+    const version = req.query.version ? parseInt(req.query.version as string) : undefined;
 
     const allocation = await prisma.seat.findUnique({
       where: { id: allocationId },
@@ -141,20 +152,44 @@ router.delete('/:id', [
       return res.status(400).json({ error: 'Seat is not allocated' });
     }
 
-    // Update seat to available and remove student assignment
-    const updatedSeat = await prisma.seat.update({
-      where: { id: allocationId },
-      data: {
-        status: 'Available',
-        studentId: null,
-        version: { increment: 1 }
-      }
-    });
+    if (version !== undefined && allocation.version !== version) {
+      return res.status(409).json({ 
+        message: 'Seat has been modified by another user. Please refresh and try again.',
+        currentSeat: {
+          id: allocation.id,
+          status: allocation.status,
+          version: allocation.version,
+          studentId: allocation.studentId
+        }
+      });
+    }
 
-    // Decrement claimed count on the room
-    await prisma.room.update({
-      where: { id: allocation.roomId },
-      data: { claimed: { decrement: 1 } }
+    // Use transaction to ensure atomicity
+    await prisma.$transaction(async (tx) => {
+      // Update seat to available and remove student assignment
+      await tx.seat.update({
+        where: { 
+          id: allocationId,
+          version: allocation.version
+        },
+        data: {
+          status: 'Available',
+          studentId: null,
+          version: { increment: 1 }
+        }
+      });
+
+      // Decrement claimed count on the room with version check
+      await tx.room.update({
+        where: { 
+          id: allocation.roomId,
+          version: allocation.room.version
+        },
+        data: { 
+          claimed: { decrement: 1 },
+          version: { increment: 1 }
+        }
+      });
     });
 
     // Invalidate cache for the room's seats
@@ -165,11 +200,17 @@ router.delete('/:id', [
     // Emit real-time update
     const io = req.app.get('io');
     if (io) {
-      io.emit('seatUpdated', updatedSeat);
+      io.emit('seatUpdated', { id: allocationId, status: 'Available', studentId: null });
+      io.emit('roomUpdated');
     }
 
     res.status(204).send();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(409).json({ 
+        message: 'Seat or room has been modified by another user. Please refresh and try again.'
+      });
+    }
     console.error('Failed to unassign allocation:', error);
     res.status(500).json({ error: 'Failed to unassign allocation' });
   }

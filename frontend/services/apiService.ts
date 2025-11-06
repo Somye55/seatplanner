@@ -3,6 +3,17 @@ import { Building, Room, Seat, Student, SeatStatus, AllocationSummary, Branch } 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+// Custom error class for conflicts
+export class ConflictError extends Error {
+    currentData: any;
+    
+    constructor(message: string, currentData: any) {
+        super(message);
+        this.name = 'ConflictError';
+        this.currentData = currentData;
+    }
+}
+
 // Helper for fetch requests
 async function fetchApi(url: string, options: RequestInit = {}) {
     const { authService } = await import('./authService');
@@ -14,6 +25,16 @@ async function fetchApi(url: string, options: RequestInit = {}) {
             ...options.headers,
         },
     });
+    
+    // Handle 409 Conflict specially
+    if (response.status === 409) {
+        const errorData = await response.json().catch(() => ({ message: 'Conflict detected' }));
+        throw new ConflictError(
+            errorData.message || 'Resource was modified by another user',
+            errorData.currentSeat || errorData.currentRoom || null
+        );
+    }
+    
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
         throw new Error(errorData.message || errorData.error || 'Network response was not ok');
@@ -35,7 +56,7 @@ export const api = {
 
   // Rooms
   createRoom: (roomData: { buildingId: string; name: string; capacity: number; rows: number; cols: number; }): Promise<Room> => fetchApi('/rooms', { method: 'POST', body: JSON.stringify(roomData) }),
-  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number; rows?: number; cols?: number; }): Promise<Room> => fetchApi(`/rooms/${roomId}`, { method: 'PUT', body: JSON.stringify(roomData) }),
+  updateRoom: (roomId: string, roomData: { name?: string; capacity?: number; rows?: number; cols?: number; version: number; }): Promise<Room> => fetchApi(`/rooms/${roomId}`, { method: 'PUT', body: JSON.stringify(roomData) }),
   deleteRoom: (roomId: string): Promise<void> => fetchApi(`/rooms/${roomId}`, { method: 'DELETE' }),
   getRoomById: (roomId: string): Promise<Room> => fetchApi(`/rooms/${roomId}`),
   getSeatsByRoom: (roomId: string): Promise<Seat[]> => fetchApi(`/rooms/${roomId}/seats`),
@@ -59,10 +80,13 @@ export const api = {
   runRebalance: (): Promise<{ seats: Seat[], rebalanceSummary: any }> =>
     fetchApi('/plan/rebalance', { method: 'POST' }),
 
-  allocateBranchToBuilding: (branch: Branch, buildingId: string): Promise<{ summary: AllocationSummary }> => 
+  allocateBranchToBuilding: (branch: Branch, buildingId: string): Promise<{ summary: AllocationSummary }> =>
     fetchApi('/plan/allocate-branch', { method: 'POST', body: JSON.stringify({ branch, buildingId }) }),
-    
-  getEligibleBranches: (buildingId: string): Promise<Branch[]> => 
+
+  allocateBranchToRoom: (branch: Branch, roomId: string): Promise<{ summary: AllocationSummary }> =>
+    fetchApi('/plan/allocate-branch-to-room', { method: 'POST', body: JSON.stringify({ branch, roomId }) }),
+
+  getEligibleBranches: (buildingId: string): Promise<Branch[]> =>
     fetchApi(`/allocations/eligible-branches?buildingId=${buildingId}`),
 };
 

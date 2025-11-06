@@ -9,7 +9,6 @@ import BuildingsPage from './pages/BuildingsPage';
 import RoomsPage from './pages/RoomsPage';
 import SeatMapPage from './pages/SeatMapPage';
 import StudentsPage from './pages/StudentsPage';
-import PlanningPage from './pages/PlanningPage';
 
 const App: React.FC = () => {
   return (
@@ -26,7 +25,6 @@ const App: React.FC = () => {
                   <Route path="/buildings/:buildingId/rooms" element={<RoomsPage />} />
                   <Route path="/rooms/:roomId" element={<SeatMapPage />} />
                   <Route path="/students" element={<PrivateRoute requireAdmin={true}><StudentsPage /></PrivateRoute>} />
-                  <Route path="/planning" element={<PlanningPage />} />
                   <Route path="*" element={<Navigate to="/buildings" replace />} />
                 </Routes>
               </Layout>
