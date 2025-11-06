@@ -53,7 +53,7 @@ const SeatComponent: React.FC<{
       case SeatStatus.Available:
         return "bg-success-100 border-success-400 hover:bg-success-200 text-success-800 dark:bg-success-900/30 dark:border-success-600";
       case SeatStatus.Allocated:
-        return "bg-default-200 border-default-500 hover:bg-default-300 text-default-800 dark:bg-default-700 dark:border-default-600";
+        return "bg-default-200 border-default-500 hover:bg-default-300 text-default-800 dark:bg-default-700 dark:border-default-600 dark:text-default-400";
       case SeatStatus.Broken:
         return "bg-danger-200 border-danger-500 hover:bg-danger-300 text-danger-800 dark:bg-danger-900/30 dark:border-danger-600";
       default:
@@ -127,6 +127,7 @@ const SeatMapPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const roomSeats = useMemo(
     () => allSeats.filter((s) => s.roomId === roomId),
@@ -174,11 +175,13 @@ const SeatMapPage: React.FC = () => {
       ]);
       setCurrentRoom(roomData);
       dispatch({ type: "GET_SEATS_SUCCESS", payload: seatsData });
+      setInitialLoad(false);
     } catch (err) {
       dispatch({
         type: "API_REQUEST_FAIL",
         payload: "Failed to fetch seat map.",
       });
+      setInitialLoad(false);
     }
   };
 
@@ -237,7 +240,7 @@ const SeatMapPage: React.FC = () => {
     [students, selectedSeat]
   );
 
-  if (loading && roomSeats.length === 0) {
+  if (initialLoad || (loading && roomSeats.length === 0)) {
     return <SeatMapSkeleton />;
   }
 
