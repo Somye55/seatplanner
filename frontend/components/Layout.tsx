@@ -95,10 +95,27 @@ const Header: React.FC = () => {
   const user = authService.getUser();
   const isAdmin = authService.isAdmin();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState(false);
 
   const navigation = isAdmin 
     ? [ { name: 'Buildings', href: '/buildings' }, { name: 'Students', href: '/students' } ] 
     : [ { name: 'Buildings', href: '/buildings' } ];
+
+  // Check for session expiry warning (show warning 30 minutes before expiry)
+  useEffect(() => {
+    const checkExpiry = () => {
+      const expiry = localStorage.getItem('tokenExpiry');
+      if (expiry) {
+        const timeUntilExpiry = parseInt(expiry) - Date.now();
+        const thirtyMinutes = 30 * 60 * 1000;
+        setShowExpiryWarning(timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes);
+      }
+    };
+
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     authService.logout();
@@ -107,6 +124,11 @@ const Header: React.FC = () => {
 
   return (
     <>
+    {showExpiryWarning && (
+      <div className="bg-yellow-500 text-black px-4 py-2 text-center text-sm font-medium">
+        ⚠️ Your session will expire soon. Please save your work and refresh the page to extend your session.
+      </div>
+    )}
     <header className="bg-primary text-white shadow-md">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
