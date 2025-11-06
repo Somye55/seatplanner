@@ -28,15 +28,11 @@ export class SeatGenerationService {
         const features: string[] = [];
 
         // Add positional features based on row
+        // Front seat = first row only
         if (row === 0) {
-          features.push('front_row');
-        } else if (row === rows - 1) {
-          features.push('back_row');
-        } else {
-          features.push('middle_row');
+          features.push('front_seat');
         }
-
-        // --- REVISED LOGIC for aisle and middle seats ---
+        // Note: Last row doesn't get a special tag
 
         // Aisle seat tagging (outer edges of room and inner edges of banks)
         const isOuterAisle = col === 0 || col === cols - 1;
@@ -48,22 +44,17 @@ export class SeatGenerationService {
             features.push('aisle_seat');
         }
 
-        // Middle of row seat tagging (relative to each bank)
-        for (const bank of banks) {
-            if (col >= bank.startCol && col <= bank.endCol) {
-                const bankCols = bank.endCol - bank.startCol + 1;
-                const relativeCol = col - bank.startCol; 
-                
-                // Only odd-sized banks have a single true middle seat
-                if (bankCols % 2 !== 0) {
-                    const middleColInBank = Math.floor(bankCols / 2);
-                    if (relativeCol === middleColInBank) {
-                        features.push('middle_column_seat');
-                    }
-                }
-            }
+        // Middle seat = seats that are NOT on the edges of their bank (not aisle seats within the bank)
+        // Find which bank this column belongs to
+        const currentBank = banks.find(bank => col >= bank.startCol && col <= bank.endCol);
+        if (currentBank) {
+          const bankWidth = currentBank.endCol - currentBank.startCol + 1;
+          const colInBank = col - currentBank.startCol;
+          // A seat is a middle seat if it's not on the edge of its bank and the bank has at least 3 seats
+          if (bankWidth >= 3 && colInBank > 0 && colInBank < bankWidth - 1) {
+            features.push('middle_seat');
+          }
         }
-        // --- END REVISED LOGIC ---
 
         seatsData.push({
           roomId,

@@ -86,8 +86,12 @@ export const api = {
   allocateBranchToRoom: (branch: Branch, roomId: string): Promise<{ summary: AllocationSummary }> =>
     fetchApi('/plan/allocate-branch-to-room', { method: 'POST', body: JSON.stringify({ branch, roomId }) }),
 
-  getEligibleBranches: (buildingId: string): Promise<Branch[]> =>
-    fetchApi(`/allocations/eligible-branches?buildingId=${buildingId}`),
+  getEligibleBranches: (buildingId?: string, roomId?: string): Promise<Branch[]> => {
+    const params = new URLSearchParams();
+    if (buildingId) params.append('buildingId', buildingId);
+    if (roomId) params.append('roomId', roomId);
+    return fetchApi(`/allocations/eligible-branches?${params.toString()}`);
+  },
 };
 
 
@@ -103,7 +107,7 @@ export const geminiService = {
       Total students to seat: ${students.length}.
       
       Key student considerations:
-      - ${students.filter(s => s.accessibilityNeeds.includes('front_row')).length} students require front row seating.
+      - ${students.filter(s => s.accessibilityNeeds.includes('front_seat')).length} students require front row seating.
       - ${students.filter(s => s.accessibilityNeeds.includes('wheelchair_access')).length} students require wheelchair access.
       - ${students.filter(s => s.tags.includes('graduate')).length} are graduate students.
 
@@ -118,7 +122,7 @@ export const geminiService = {
     
     return `**Seating Strategy Suggestion:**
 
-*   **Prioritize Accessibility:** Begin by placing the ${students.filter(s => s.accessibilityNeeds.includes('front_row')).length} students needing front-row seats in the first two rows of 'Lecture Hall 101'. Ensure the seats assigned to students needing wheelchair access are clear of obstructions.
+*   **Prioritize Accessibility:** Begin by placing the ${students.filter(s => s.accessibilityNeeds.includes('front_seat')).length} students needing front-row seats in the first two rows of 'Lecture Hall 101'. Ensure the seats assigned to students needing wheelchair access are clear of obstructions.
 *   **Graduate Student Cohort:** Consider dedicating 'Studio C' for the ${students.filter(s => s.tags.includes('graduate')).length} graduate students to foster a collaborative environment.
 *   **General Allocation:** Fill the remaining seats in 'Lecture Hall 101' and 'Computer Lab 203' with the undergraduate population, starting from the front and moving backwards.
 *   **Contingency:** Keep a few seats in each room open if possible to handle any last-minute changes or unforeseen needs.`;

@@ -3,13 +3,10 @@ import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { Card, Spinner, Button, Modal } from '../components/ui';
 import { Student, BRANCH_OPTIONS, Branch } from '../types';
+import { ACCESSIBILITY_NEEDS } from '../constants';
 
-// A centralized list of possible needs. In a more advanced app, this could be fetched from the API.
-const POSSIBLE_NEEDS = [
-    { id: 'front_row', label: 'Front Row' },
-    { id: 'wheelchair_access', label: 'Wheelchair Access' },
-    { id: 'near_exit', label: 'Near Exit' },
-];
+// Only use accessibility needs for student selection (not seat features like wheelchair_access)
+const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
 const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student, 'id'> | Student) => void, onCancel: () => void }> = ({ student, onSave, onCancel }) => {
     const [name, setName] = useState(student?.name || '');

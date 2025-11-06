@@ -8,6 +8,9 @@ export interface AllocationResult {
   unallocatedStudents: { student: Student; reason: string }[];
   utilization?: number;
   affectedRoomIds: string[];
+  branchAllocated?: string;
+  availableSeatsAfterAllocation?: number;
+  roomsAllocated?: number;
 }
 
 export interface ReallocationResult {
@@ -18,6 +21,58 @@ export interface ReallocationResult {
 }
 
 export class AllocationService {
+
+  /**
+   * Helper function to select the best seat for a student based on their accessibility needs
+   */
+  private static selectBestSeat(
+    student: Student,
+    suitableSeats: any[],
+    availableSeats: any[]
+  ): any | null {
+    if (suitableSeats.length === 0) return null;
+
+    if (student.accessibilityNeeds.includes('aisle_seat')) {
+      // Get room info to determine max columns
+      const sampleSeat = suitableSeats[0];
+      const roomSeats = availableSeats.filter(s => s.roomId === sampleSeat.roomId);
+      const maxCol = Math.max(...roomSeats.map(s => s.col));
+      
+      // Prioritize corner seats: col 0 (leftmost) or maxCol (rightmost)
+      const cornerSeats = suitableSeats.filter(seat => seat.col === 0 || seat.col === maxCol);
+      
+      if (cornerSeats.length > 0) {
+        // Prefer leftmost corner, then rightmost
+        return cornerSeats.find(seat => seat.col === 0) || cornerSeats[0];
+      } else {
+        // If no corner seats available, take any aisle seat
+        return suitableSeats[0];
+      }
+    } else if (student.accessibilityNeeds.includes('middle_seat')) {
+      // For middle seat preference, prioritize seats with occupied neighbors
+      const seatsWithOccupiedNeighbors = suitableSeats.filter(seat => {
+        // Get all seats in the same room and row
+        const allSeatsInRoom = availableSeats.filter(s => s.roomId === seat.roomId);
+        const occupiedSeatsInRow = allSeatsInRoom.filter(s => 
+          s.row === seat.row && s.status === SeatStatus.Allocated
+        );
+        
+        // Check if there are occupied seats adjacent to this seat
+        const hasLeftNeighbor = occupiedSeatsInRow.some(s => s.col === seat.col - 1);
+        const hasRightNeighbor = occupiedSeatsInRow.some(s => s.col === seat.col + 1);
+        
+        return hasLeftNeighbor || hasRightNeighbor;
+      });
+      
+      // Prefer seats with occupied neighbors, otherwise take any middle seat
+      return seatsWithOccupiedNeighbors.length > 0 
+        ? seatsWithOccupiedNeighbors[0] 
+        : suitableSeats[0];
+    } else {
+      // For non-aisle, non-middle students, take the first suitable seat
+      return suitableSeats[0];
+    }
+  }
 
   static async reallocateStudent(studentId: string, buildingId: string, roomId: string): Promise<ReallocationResult> {
     const maxRetries = 3;
@@ -48,10 +103,13 @@ export class AllocationService {
           orderBy: [{ row: 'asc' }, { col: 'asc' }]
         });
 
-        // Find a suitable seat that matches accessibility needs
-        const suitableSeat = availableSeats.find(seat =>
+        // Find all suitable seats that match accessibility needs
+        const suitableSeats = availableSeats.filter(seat =>
           student.accessibilityNeeds.every(need => seat.features.includes(need))
         );
+
+        // Use helper to select the best seat
+        const suitableSeat = this.selectBestSeat(student, suitableSeats, availableSeats);
 
         if (!suitableSeat) {
           return { success: false, student, message: 'No suitable seats available for reallocation in this building.' };
@@ -187,9 +245,15 @@ export class AllocationService {
 
       // 4. Loop through students and assign them to seats.
       for (const student of [...priorityStudents, ...otherStudents]) {
-        const suitableSeatIndex = seatsInUse.findIndex(seat =>
+        // Find all suitable seats that match accessibility needs
+        const suitableSeats = seatsInUse.filter(seat =>
           student.accessibilityNeeds.every(need => seat.features.includes(need))
         );
+
+        // Use helper to select the best seat
+        const selectedSeat = this.selectBestSeat(student, suitableSeats, availableSeats);
+
+        const suitableSeatIndex = selectedSeat ? seatsInUse.findIndex(s => s.id === selectedSeat.id) : -1;
         
         if (suitableSeatIndex > -1) {
           const seatToAllocate = seatsInUse.splice(suitableSeatIndex, 1)[0];
@@ -241,14 +305,20 @@ export class AllocationService {
         }
       }
 
+      // Calculate available seats after allocation in affected rooms
+      const availableSeatsAfterAllocation = seatsInUse.length;
+
       const summary: AllocationResult = {
         allocatedCount,
         unallocatedCount: unallocatedStudents.length,
         unallocatedStudents,
-        affectedRoomIds
+        affectedRoomIds,
+        branchAllocated: branch,
+        availableSeatsAfterAllocation,
+        roomsAllocated: affectedRoomIds.length
       };
 
-      console.log(`Allocation complete: ${allocatedCount} allocated, ${unallocatedStudents.length} unallocated, ${affectedRoomIds.length} rooms affected`);
+      console.log(`Allocation complete: ${allocatedCount} allocated, ${unallocatedStudents.length} unallocated, ${affectedRoomIds.length} rooms affected, ${availableSeatsAfterAllocation} seats available`);
       return { summary };
     }, {
       maxWait: 10000, // Maximum time to wait for a transaction slot
@@ -261,15 +331,16 @@ export class AllocationService {
     console.log(`Starting allocation for branch ${branch} to room ${roomId}`);
     // Use a single transaction for the entire allocation to prevent race conditions
     return await prisma.$transaction(async (tx) => {
-      // 1. Check if the room is already allocated or not with lock
+      // 1. Check if the room exists and validate branch allocation
       const room = await tx.room.findUnique({
         where: { id: roomId }
       });
       if (!room) {
         throw new Error('Room not found');
       }
-      if (room.branchAllocated) {
-        throw new Error('Room is already allocated to a branch');
+      // If room is already allocated, it must be to the same branch
+      if (room.branchAllocated && room.branchAllocated !== branch) {
+        throw new Error(`Room is already allocated to ${room.branchAllocated}. Cannot allocate to ${branch}.`);
       }
 
       // 2. Fetch only students of the specified branch who are currently unallocated.
@@ -312,16 +383,23 @@ export class AllocationService {
       let seatsInUse = [...availableSeats];
       const affectedRoomIds: string[] = [roomId];
       let currentRoomVersion = room.version;
-      let roomAlreadyMarked = false;
+      // Track if we need to set branchAllocated (only if room wasn't already allocated to this branch)
+      let needsInitialBranchAllocation = !room.branchAllocated;
 
       const priorityStudents = studentsToAllocate.filter(s => s.accessibilityNeeds.length > 0);
       const otherStudents = studentsToAllocate.filter(s => s.accessibilityNeeds.length === 0);
 
       // 4. Loop through students and assign them to seats.
       for (const student of [...priorityStudents, ...otherStudents]) {
-        const suitableSeatIndex = seatsInUse.findIndex(seat =>
+        // Find all suitable seats that match accessibility needs
+        const suitableSeats = seatsInUse.filter(seat =>
           student.accessibilityNeeds.every(need => seat.features.includes(need))
         );
+
+        // Use helper to select the best seat
+        const selectedSeat = this.selectBestSeat(student, suitableSeats, availableSeats);
+
+        const suitableSeatIndex = selectedSeat ? seatsInUse.findIndex(s => s.id === selectedSeat.id) : -1;
 
         if (suitableSeatIndex > -1) {
           const seatToAllocate = seatsInUse.splice(suitableSeatIndex, 1)[0];
@@ -340,34 +418,46 @@ export class AllocationService {
           });
 
           // Update room with version check
+          const roomUpdateData: any = {
+            claimed: { increment: 1 },
+            version: { increment: 1 }
+          };
+          
+          // Only set branchAllocated on the first allocation in this transaction
+          if (needsInitialBranchAllocation) {
+            roomUpdateData.branchAllocated = branch;
+            needsInitialBranchAllocation = false;
+          }
+
           await tx.room.update({
             where: { 
               id: roomId,
               version: currentRoomVersion
             },
-            data: { 
-              branchAllocated: roomAlreadyMarked ? undefined : branch,
-              claimed: { increment: 1 },
-              version: { increment: 1 }
-            }
+            data: roomUpdateData
           });
 
           currentRoomVersion++;
-          roomAlreadyMarked = true;
           allocatedCount++;
         } else {
           unallocatedStudents.push({ student, reason: 'No suitable seats available in the room.' });
         }
       }
 
+      // Calculate available seats after allocation in the room
+      const availableSeatsAfterAllocation = seatsInUse.length;
+
       const summary: AllocationResult = {
         allocatedCount,
         unallocatedCount: unallocatedStudents.length,
         unallocatedStudents,
-        affectedRoomIds
+        affectedRoomIds,
+        branchAllocated: branch,
+        availableSeatsAfterAllocation,
+        roomsAllocated: 1
       };
 
-      console.log(`Room allocation complete: ${allocatedCount} allocated, ${unallocatedStudents.length} unallocated`);
+      console.log(`Room allocation complete: ${allocatedCount} allocated, ${unallocatedStudents.length} unallocated, ${availableSeatsAfterAllocation} seats available`);
       return { summary };
     }, {
       maxWait: 10000,

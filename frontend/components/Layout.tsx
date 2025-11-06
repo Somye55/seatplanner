@@ -4,14 +4,10 @@ import { authService } from '../services/authService';
 import { api } from '../services/apiService';
 import { Student, BRANCH_OPTIONS } from '../types';
 import { Modal, Button, Spinner } from './ui';
+import { ACCESSIBILITY_NEEDS } from '../constants';
 
-// This could be moved to a shared constants file
-const POSSIBLE_NEEDS = [
-    { id: 'front_row', label: 'Front Row' },
-    { id: 'wheelchair_access', label: 'Wheelchair Access' },
-    { id: 'near_exit', label: 'Near Exit' },
-    // Add other needs consistent with the backend/rest of frontend
-];
+// Only use accessibility needs for student profile (not seat features like wheelchair_access)
+const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
 const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
     const [student, setStudent] = useState<Student | null>(null);

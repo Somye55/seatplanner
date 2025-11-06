@@ -129,9 +129,19 @@ router.patch('/:id', authenticateToken, requireAdmin, [
     return res.status(400).json({ errors: errors.array() });
   }
     try {
+        // Only extract allowed fields for update
+        const { name, email, branch, tags, accessibilityNeeds } = req.body;
+        const dataToUpdate: any = {};
+        
+        if (name !== undefined) dataToUpdate.name = name;
+        if (email !== undefined) dataToUpdate.email = email;
+        if (branch !== undefined) dataToUpdate.branch = branch;
+        if (tags !== undefined) dataToUpdate.tags = tags;
+        if (accessibilityNeeds !== undefined) dataToUpdate.accessibilityNeeds = accessibilityNeeds;
+        
         const updatedStudent = await prisma.student.update({
             where: { id: req.params.id },
-            data: req.body
+            data: dataToUpdate
         });
         res.json(updatedStudent);
     } catch (error: any) {

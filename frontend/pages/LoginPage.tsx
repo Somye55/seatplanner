@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import { Branch } from '../types';
+import { ACCESSIBILITY_NEEDS } from '../constants';
 
-const POSSIBLE_NEEDS = [
-    { id: 'front_row', label: 'Front Row' },
-    { id: 'wheelchair_access', label: 'Wheelchair Access' },
-    { id: 'near_exit', label: 'Near Exit' },
-];
+// Only use accessibility needs for student selection (not seat features like wheelchair_access)
+const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
 const BRANCHES = [
     { id: Branch.ConsultingClub, label: "Consulting Club" },

@@ -36,12 +36,12 @@ describe('AllocationService', () => {
     it('should allocate students to suitable seats', async () => {
       // Arrange: Mock data
       const mockSeats = [
-        { id: 's1', status: 'Available', row: 1, features: ['front_row'], studentId: null },
+        { id: 's1', status: 'Available', row: 1, features: ['front_seat'], studentId: null },
         { id: 's2', status: 'Available', row: 2, features: [], studentId: null },
         { id: 's3', status: 'Available', row: 3, features: ['wheelchair_access'], studentId: null },
       ];
       const mockStudents = [
-        { id: 'st1', name: 'Student 1', accessibilityNeeds: ['front_row'] },
+        { id: 'st1', name: 'Student 1', accessibilityNeeds: ['front_seat'] },
         { id: 'st2', name: 'Student 2', accessibilityNeeds: [] },
         { id: 'st3', name: 'Student 3', accessibilityNeeds: ['wheelchair_access'] },
       ];
@@ -72,7 +72,7 @@ describe('AllocationService', () => {
         { id: 's1', status: 'Available', row: 1, features: [], studentId: null },
       ];
       const mockStudents = [
-        { id: 'st1', name: 'Student 1', accessibilityNeeds: ['front_row'] },
+        { id: 'st1', name: 'Student 1', accessibilityNeeds: ['front_seat'] },
         { id: 'st2', name: 'Student 2', accessibilityNeeds: [] },
       ];
       

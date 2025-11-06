@@ -21,20 +21,22 @@ const AllocationModal: React.FC<{
     onClose: () => void,
     buildingId: string | undefined,
     roomId: string,
+    roomBranchAllocated: Branch | null,
     onAllocationComplete: () => void
-}> = ({ isOpen, onClose, buildingId, roomId, onAllocationComplete }) => {
+}> = ({ isOpen, onClose, buildingId, roomId, roomBranchAllocated, onAllocationComplete }) => {
     const [eligibleBranches, setEligibleBranches] = useState<{id: Branch, label: string}[]>([]);
     const [selectedBranch, setSelectedBranch] = useState<Branch | ''>('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState<AllocationSummary | null>(null);
+    const isReallocation = !!roomBranchAllocated;
 
     useEffect(() => {
-        if (isOpen && buildingId) {
+        if (isOpen && roomId) {
             setLoading(true);
             setError('');
             setResult(null);
-            api.getEligibleBranches(buildingId)
+            api.getEligibleBranches(undefined, roomId)
                 .then(branches => {
                     const branchOptions = branches.map(branchId => ({
                         id: branchId,
@@ -50,7 +52,7 @@ const AllocationModal: React.FC<{
                 .catch(() => setError("Failed to load eligible branches."))
                 .finally(() => setLoading(false));
         }
-    }, [isOpen, buildingId]);
+    }, [isOpen, roomId]);
 
     const handleAllocate = async () => {
         if (!selectedBranch) {
@@ -82,24 +84,41 @@ const AllocationModal: React.FC<{
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={closeModal} title="Allocate Branch to Room">
+        <Modal isOpen={isOpen} onClose={closeModal} title={isReallocation ? "Allocate Seats to Students" : "Allocate Branch to Room"}>
             {!result ? (
             <div>
-                <p className="mb-4 text-sm text-gray-600">Select a branch to allocate all of its unallocated students to available seats within this room.</p>
+                <p className="mb-4 text-sm text-gray-600">
+                    {isReallocation 
+                        ? `Allocate seats to unallocated students from ${BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated} in this room.`
+                        : "Select a branch to allocate all of its unallocated students to available seats within this room."
+                    }
+                </p>
                 <div className="space-y-4">
-                    <div>
-                        <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
-                        <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)} disabled={loading || eligibleBranches.length === 0}>
-                            {loading && <option>Loading branches...</option>}
-                            {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
-                            {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                        </select>
-                        {!loading && eligibleBranches.length === 0 && (
-                            <p className="text-xs text-gray-500 mt-2">
-                                All branches are either already allocated to other buildings or have no unallocated students.
+                    {!isReallocation && (
+                        <div>
+                            <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
+                            <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)} disabled={loading || eligibleBranches.length === 0}>
+                                {loading && <option>Loading branches...</option>}
+                                {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
+                                {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                            </select>
+                            {!loading && eligibleBranches.length === 0 && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                    No eligible branches found. Either all branches have no unallocated students, or this room is already allocated to a branch with no new students.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    {isReallocation && (
+                        <div className="bg-blue-50 p-4 rounded-md">
+                            <p className="text-sm text-gray-700">
+                                <span className="font-semibold">Branch:</span> {BRANCH_OPTIONS.find(b => b.id === roomBranchAllocated)?.label || roomBranchAllocated}
                             </p>
-                        )}
-                    </div>
+                            <p className="text-xs text-gray-600 mt-2">
+                                This room is already allocated to this branch. Only unallocated students from this branch will be assigned seats.
+                            </p>
+                        </div>
+                    )}
                 </div>
                 {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
                 <div className="mt-6 flex justify-end space-x-2">
@@ -163,6 +182,13 @@ const RoomsPage: React.FC = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: '', capacity: 1, rows: 1, cols: 1 });
   const [createLoading, setCreateLoading] = useState(false);
+  
+  // Auto-calculate capacity when showing create form
+  useEffect(() => {
+    if (showCreateForm) {
+      setNewRoom(prev => ({ ...prev, capacity: prev.rows * prev.cols }));
+    }
+  }, [showCreateForm]);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [editRoom, setEditRoom] = useState({ name: '', capacity: 1, rows: 1, cols: 1 });
   const [editLoading, setEditLoading] = useState(false);
@@ -170,6 +196,7 @@ const RoomsPage: React.FC = () => {
   const [myAllocations, setMyAllocations] = useState<Seat[]>([]);
   const [allocatingRoomId, setAllocatingRoomId] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [roomsWithEligibleBranches, setRoomsWithEligibleBranches] = useState<Set<string>>(new Set());
   const isAdmin = authService.isAdmin();
 
   const building = useMemo(() => buildings.find(b => b.id === buildingId), [buildings, buildingId]);
@@ -181,6 +208,24 @@ const RoomsPage: React.FC = () => {
         const roomsData = await api.getRoomsByBuilding(buildingId);
         dispatch({ type: 'GET_ROOMS_SUCCESS', payload: [...rooms.filter(r => r.buildingId !== buildingId), ...roomsData] });
         setDataLoaded(true);
+        
+        // Check which rooms have eligible branches (allocated branch with unallocated students)
+        if (isAdmin) {
+          const eligibleRoomIds = new Set<string>();
+          for (const room of roomsData) {
+            if (room.branchAllocated) {
+              try {
+                const eligibleBranches = await api.getEligibleBranches(undefined, room.id);
+                if (eligibleBranches.length > 0) {
+                  eligibleRoomIds.add(room.id);
+                }
+              } catch (err) {
+                console.error(`Failed to check eligibility for room ${room.id}:`, err);
+              }
+            }
+          }
+          setRoomsWithEligibleBranches(eligibleRoomIds);
+        }
       } catch (err) {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch rooms.' });
         setDataLoaded(true);
@@ -235,7 +280,9 @@ const RoomsPage: React.FC = () => {
 
   const handleEditRoom = (room: Room) => {
     setEditingRoom(room);
-    setEditRoom({ name: room.name, capacity: room.capacity, rows: room.rows, cols: room.cols, version: room.version });
+    // Auto-set capacity to max when editing
+    const maxCapacity = room.rows * room.cols;
+    setEditRoom({ name: room.name, capacity: maxCapacity, rows: room.rows, cols: room.cols, version: room.version });
   };
 
   const handleUpdateRoom = async (e: React.FormEvent) => {
@@ -390,12 +437,12 @@ const RoomsPage: React.FC = () => {
                   </Link>
                   {isAdmin && (
                     <div className="flex flex-col gap-2">
-                      {dataLoaded && !room.branchAllocated && (
+                      {dataLoaded && (!room.branchAllocated || roomsWithEligibleBranches.has(room.id)) && (
                         <button 
                           onClick={() => setAllocatingRoomId(room.id)} 
                           className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600"
                         >
-                          Allocate Branch
+                          {room.branchAllocated ? 'Allocate Seats' : 'Allocate Branch'}
                         </button>
                       )}
                       <div className="flex space-x-2">
@@ -419,6 +466,7 @@ const RoomsPage: React.FC = () => {
           }} 
           buildingId={buildingId} 
           roomId={allocatingRoomId}
+          roomBranchAllocated={buildingRooms.find(r => r.id === allocatingRoomId)?.branchAllocated || null}
           onAllocationComplete={() => {
             fetchRoomsForBuilding();
           }}

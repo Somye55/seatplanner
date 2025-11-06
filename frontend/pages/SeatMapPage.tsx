@@ -6,6 +6,7 @@ import { authService } from '../services/authService';
 import { Spinner, Modal, Button } from '../components/ui';
 import { Seat, SeatStatus, Student, Room, Branch, AllocationSummary } from '../types';
 import io from 'socket.io-client';
+import { ACCESSIBILITY_NEEDS, SEAT_FEATURES } from '../constants';
 
 const BRANCHES = [
     { id: Branch.ConsultingClub, label: "Consulting Club" },
@@ -18,16 +19,10 @@ const BRANCHES = [
     { id: Branch.RealEstateClub, label: "Real Estate Club" },
 ];
 
-const STUDENT_ACCESSIBILITY_NEEDS = [
-    { id: 'front_row', label: 'Front Row' },
-    { id: 'back_row', label: 'Back Row' },
-    { id: 'aisle_seat', label: 'Aisle Seat' },
-    { id: 'middle_column_seat', label: 'Middle of a Row' },
-];
-const OTHER_FEATURES = [
-    { id: 'wheelchair_access', label: 'Wheelchair Access' },
-    { id: 'near_exit', label: 'Near Exit' },
-];
+// Student accessibility needs are positional and auto-assigned
+const STUDENT_ACCESSIBILITY_NEEDS = ACCESSIBILITY_NEEDS;
+// Other features can be manually assigned by admins
+const OTHER_FEATURES = SEAT_FEATURES;
 
 const SeatComponent: React.FC<{ seat: Seat; student?: Student; onClick: () => void; isClickable: boolean; }> = ({ seat, student, onClick, isClickable }) => {
   const isAdmin = authService.isAdmin();

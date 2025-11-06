@@ -51,7 +51,7 @@
 
 // export let students: Student[] = [
 //   { id: 'st1', name: 'Alice Johnson', email: 'alice@example.com', tags: ['graduate'], accessibilityNeeds: [] },
-//   { id: 'st2', name: 'Bob Williams', email: 'bob@example.com', tags: ['undergraduate'], accessibilityNeeds: ['front_row'] },
+//   { id: 'st2', name: 'Bob Williams', email: 'bob@example.com', tags: ['undergraduate'], accessibilityNeeds: ['front_seat'] },
 //   { id: 'st3', name: 'Charlie Brown', email: 'charlie@example.com', tags: ['undergraduate'], accessibilityNeeds: [] },
 //   { id: 'st4', name: 'Diana Miller', email: 'diana@example.com', tags: ['exchange'], accessibilityNeeds: ['wheelchair_access'] },
 //   ...Array.from({length: 40}, (_, i) => ({

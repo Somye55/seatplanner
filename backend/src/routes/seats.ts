@@ -184,12 +184,14 @@ router.patch('/:id/features', [
             });
         }
 
+        // Positional features are auto-assigned and cannot be manually changed
         const positionalFeatures = seat.features.filter(f => 
-            ['front_row', 'back_row', 'middle_row', 'aisle_seat', 'middle_column_seat'].includes(f)
+            ['front_seat', 'middle_seat', 'aisle_seat'].includes(f)
         );
         
+        // Only allow custom features (wheelchair_access, near_exit, etc.)
         const newCustomFeatures = features.filter((f: string) => 
-            !['front_row', 'back_row', 'middle_row', 'aisle_seat', 'middle_column_seat'].includes(f)
+            !['front_seat', 'middle_seat', 'aisle_seat'].includes(f)
         );
 
         const finalFeatures = [...new Set([...positionalFeatures, ...newCustomFeatures])];

@@ -10,31 +10,22 @@ const prisma = new PrismaClient();
 router.get('/eligible-branches', [
   authenticateToken,
   requireAdmin,
-  query('buildingId').isString().notEmpty()
+  query('buildingId').optional().isString().notEmpty(),
+  query('roomId').optional().isString().notEmpty()
 ], async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-  const { buildingId } = req.query;
+  const { buildingId, roomId } = req.query;
+
+  // Must provide either buildingId or roomId
+  if (!buildingId && !roomId) {
+    return res.status(400).json({ error: 'Either buildingId or roomId must be provided' });
+  }
 
   try {
-    // 1. Find branches already allocated to OTHER buildings
-    const allocatedRoomsInOtherBuildings = await prisma.room.findMany({
-      where: {
-        buildingId: { not: buildingId as string },
-        branchAllocated: { not: null }
-      },
-      select: { branchAllocated: true },
-      distinct: ['branchAllocated']
-    });
-    const allocatedBranchesSet = new Set(
-        allocatedRoomsInOtherBuildings
-            .map(r => r.branchAllocated)
-            .filter((b): b is Branch => b !== null)
-    );
-
-    // 2. Find branches that have unallocated students
+    // Find branches that have unallocated students
     const branchesWithUnallocatedStudents = await prisma.student.groupBy({
         by: ['branch'],
         where: {
@@ -50,11 +41,52 @@ router.get('/eligible-branches', [
         .map(sc => sc.branch)
     );
 
-    // 3. Determine eligible branches
-    const allBranches = Object.values(Branch);
-    const eligibleBranches = allBranches.filter(branch => 
-        !allocatedBranchesSet.has(branch) && branchesWithStudentsSet.has(branch)
-    );
+    let eligibleBranches: Branch[];
+
+    if (roomId) {
+      // Room-level allocation
+      const room = await prisma.room.findUnique({
+        where: { id: roomId as string }
+      });
+
+      if (!room) {
+        return res.status(404).json({ error: 'Room not found' });
+      }
+
+      if (room.branchAllocated) {
+        // Room is already allocated - only that branch is eligible if it has unallocated students
+        eligibleBranches = branchesWithStudentsSet.has(room.branchAllocated) 
+          ? [room.branchAllocated] 
+          : [];
+      } else {
+        // Room is unallocated - any branch with unallocated students is eligible
+        eligibleBranches = Array.from(branchesWithStudentsSet);
+      }
+    } else {
+      // Building-level allocation
+      // Find branches already allocated to OTHER buildings (not the current one)
+      const allocatedRoomsInOtherBuildings = await prisma.room.findMany({
+        where: {
+          buildingId: { not: buildingId as string },
+          branchAllocated: { not: null }
+        },
+        select: { branchAllocated: true },
+        distinct: ['branchAllocated']
+      });
+      const allocatedBranchesInOtherBuildings = new Set(
+          allocatedRoomsInOtherBuildings
+              .map(r => r.branchAllocated)
+              .filter((b): b is Branch => b !== null)
+      );
+
+      // A branch is eligible if:
+      // - It has unallocated students AND
+      // - It's NOT allocated to other buildings (but can be allocated to the current building)
+      const allBranches = Object.values(Branch);
+      eligibleBranches = allBranches.filter(branch => 
+          branchesWithStudentsSet.has(branch) && !allocatedBranchesInOtherBuildings.has(branch)
+      );
+    }
 
     res.json(eligibleBranches);
 
