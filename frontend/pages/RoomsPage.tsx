@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
-import { Card, Spinner } from '../components/ui';
-import { Room, Seat } from '../types';
+import { Card, Spinner, Button, Modal } from '../components/ui';
+import { Room, Seat, Branch, AllocationSummary, BRANCH_OPTIONS } from '../types';
 import io from 'socket.io-client';
 
 const BookedIcon: React.FC = () => (
@@ -15,6 +15,129 @@ const BookedIcon: React.FC = () => (
     </div>
 );
 
+
+const AllocationModal: React.FC<{
+    isOpen: boolean,
+    onClose: () => void,
+    buildingId: string | undefined,
+    roomId: string,
+    onAllocationComplete: () => void
+}> = ({ isOpen, onClose, buildingId, roomId, onAllocationComplete }) => {
+    const [eligibleBranches, setEligibleBranches] = useState<{id: Branch, label: string}[]>([]);
+    const [selectedBranch, setSelectedBranch] = useState<Branch | ''>('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [result, setResult] = useState<AllocationSummary | null>(null);
+
+    useEffect(() => {
+        if (isOpen && buildingId) {
+            setLoading(true);
+            setError('');
+            setResult(null);
+            api.getEligibleBranches(buildingId)
+                .then(branches => {
+                    const branchOptions = branches.map(branchId => ({
+                        id: branchId,
+                        label: BRANCH_OPTIONS.find(b => b.id === branchId)?.label || branchId
+                    }));
+                    setEligibleBranches(branchOptions);
+                    if (branchOptions.length > 0) {
+                        setSelectedBranch(branchOptions[0].id);
+                    } else {
+                        setSelectedBranch('');
+                    }
+                })
+                .catch(() => setError("Failed to load eligible branches."))
+                .finally(() => setLoading(false));
+        }
+    }, [isOpen, buildingId]);
+
+    const handleAllocate = async () => {
+        if (!selectedBranch) {
+            setError("No branch selected.");
+            return;
+        }
+        setLoading(true);
+        setError('');
+        setResult(null);
+        try {
+            const response = await api.allocateBranchToRoom(selectedBranch, roomId);
+            setResult(response.summary);
+            onAllocationComplete();
+        } catch (err) {
+            setError((err as Error).message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const closeModal = () => {
+        setResult(null);
+        setError('');
+        onClose();
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={closeModal} title="Allocate Branch to Room">
+            {!result ? (
+            <div>
+                <p className="mb-4 text-sm text-gray-600">Select a branch to allocate all of its unallocated students to available seats within this room.</p>
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="branch" className="block text-sm font-medium text-gray-700">Club / Branch</label>
+                        <select id="branch" name="branch" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value={selectedBranch} onChange={(e) => setSelectedBranch(e.target.value as Branch)} disabled={loading || eligibleBranches.length === 0}>
+                            {loading && <option>Loading branches...</option>}
+                            {!loading && eligibleBranches.length === 0 && <option>No eligible branches found</option>}
+                            {eligibleBranches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
+                        </select>
+                        {!loading && eligibleBranches.length === 0 && (
+                            <p className="text-xs text-gray-500 mt-2">
+                                All branches are either already allocated to other buildings or have no unallocated students.
+                            </p>
+                        )}
+                    </div>
+                </div>
+                {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+                <div className="mt-6 flex justify-end space-x-2">
+                    <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+                    <Button onClick={handleAllocate} disabled={loading || !selectedBranch}>{loading ? 'Allocating...' : 'Run Allocation'}</Button>
+                </div>
+            </div>
+            ) : (
+            <div>
+                <h3 className="font-bold text-lg text-green-700 mb-4">Allocation Complete!</h3>
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <div className="grid grid-cols-2 gap-4 text-center mb-4">
+                        <div className="bg-white p-3 rounded-md shadow-sm">
+                            <p className="text-3xl font-bold text-accent">{result.allocatedCount}</p>
+                            <p className="text-sm text-gray-600 mt-1">Students Allocated</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-md shadow-sm">
+                            <p className="text-3xl font-bold text-danger">{result.unallocatedCount}</p>
+                            <p className="text-sm text-gray-600 mt-1">Students Unallocated</p>
+                        </div>
+                    </div>
+                </div>
+                 {result.unallocatedCount > 0 && (
+                    <div className="mt-4">
+                        <h4 className="font-semibold text-dark mb-2">Unallocated Students:</h4>
+                        <ul className="list-disc list-inside bg-gray-50 p-3 rounded-md max-h-40 overflow-y-auto text-sm">
+                            {result.unallocatedStudents.map(({ student, reason }) => (
+                                <li key={student.id} className="mb-1">
+                                    <span className="font-medium">{student.name}</span> - <span className="text-gray-600">{reason}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                <div className="mt-6 flex justify-end">
+                    <Button onClick={closeModal}>Close</Button>
+                </div>
+            </div>
+            )}
+        </Modal>
+    );
+};
 
 const RoomsPage: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>();
@@ -29,6 +152,8 @@ const RoomsPage: React.FC = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [myAllocations, setMyAllocations] = useState<Seat[]>([]);
+  const [allocatingRoomId, setAllocatingRoomId] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const isAdmin = authService.isAdmin();
 
   const building = useMemo(() => buildings.find(b => b.id === buildingId), [buildings, buildingId]);
@@ -39,8 +164,10 @@ const RoomsPage: React.FC = () => {
       try {
         const roomsData = await api.getRoomsByBuilding(buildingId);
         dispatch({ type: 'GET_ROOMS_SUCCESS', payload: [...rooms.filter(r => r.buildingId !== buildingId), ...roomsData] });
+        setDataLoaded(true);
       } catch (err) {
         dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch rooms.' });
+        setDataLoaded(true);
       }
   };
 
@@ -220,6 +347,11 @@ const RoomsPage: React.FC = () => {
                 <div className="mb-4">
                   <h2 className="text-xl font-bold text-dark">{room.name}</h2>
                   <p className="text-gray-500">Capacity: {room.capacity} ({room.rows} rows x {room.cols} cols)</p>
+                  {room.branchAllocated && (
+                    <p className="text-primary font-semibold text-sm mt-2">
+                      Allocated to: {BRANCH_OPTIONS.find(b => b.id === room.branchAllocated)?.label}
+                    </p>
+                  )}
                   <div className="mt-4 pt-4 border-t">
                     <p className="text-accent font-bold text-lg">{room.capacity - room.claimed} seats available</p>
                   </div>
@@ -229,9 +361,19 @@ const RoomsPage: React.FC = () => {
                     View Seats
                   </Link>
                   {isAdmin && (
-                    <div className="flex space-x-2">
-                      <button onClick={() => handleEditRoom(room)} className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600">Edit</button>
-                      <button onClick={() => handleDeleteRoom(room.id)} disabled={deleteLoading === room.id} className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50">{deleteLoading === room.id ? 'Deleting...' : 'Delete'}</button>
+                    <div className="flex flex-col gap-2">
+                      {dataLoaded && !room.branchAllocated && (
+                        <button 
+                          onClick={() => setAllocatingRoomId(room.id)} 
+                          className="px-3 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600"
+                        >
+                          Allocate Branch
+                        </button>
+                      )}
+                      <div className="flex space-x-2">
+                        <button onClick={() => handleEditRoom(room)} className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600">Edit</button>
+                        <button onClick={() => handleDeleteRoom(room.id)} disabled={deleteLoading === room.id} className="px-3 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50">{deleteLoading === room.id ? 'Deleting...' : 'Delete'}</button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -239,6 +381,19 @@ const RoomsPage: React.FC = () => {
             </Card>
           ))}
         </div>
+      )}
+      
+      {allocatingRoomId && (
+        <AllocationModal 
+          isOpen={true} 
+          onClose={() => setAllocatingRoomId(null)} 
+          buildingId={buildingId} 
+          roomId={allocatingRoomId}
+          onAllocationComplete={() => {
+            setAllocatingRoomId(null);
+            fetchRoomsForBuilding();
+          }}
+        />
       )}
     </div>
   );

@@ -18,6 +18,8 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
     const [tags, setTags] = useState(student?.tags?.join(', ') || '');
     const [needs, setNeeds] = useState<string[]>(student?.accessibilityNeeds || []);
     const [errors, setErrors] = useState<{name?: string; email?: string; branch?: string}>({});
+    
+    const allocation = student?.seats && student.seats.length > 0 ? student.seats[0] : null;
 
     const handleNeedsChange = (needId: string) => {
         setNeeds(prev => 
@@ -78,6 +80,20 @@ const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student,
                     </select>
                     {errors.branch && <p className="text-red-500 text-xs mt-1">{errors.branch}</p>}
                 </div>
+                {student && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Current Allocation</label>
+                        <div className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 bg-gray-50">
+                            {allocation ? (
+                                <span className="text-sm text-gray-700">
+                                    {allocation.room?.building?.code} / {allocation.room?.name} ({allocation.label})
+                                </span>
+                            ) : (
+                                <span className="text-sm text-gray-500">Not Allocated</span>
+                            )}
+                        </div>
+                    </div>
+                )}
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Tags (comma separated)</label>
                     <input type="text" value={tags} onChange={e => setTags(e.target.value)} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" />

@@ -220,8 +220,17 @@ const SeatMapPage: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [modalError, setModalError] = useState('');
     const [editingFeatures, setEditingFeatures] = useState<string[]>([]);
+    const [dataLoaded, setDataLoaded] = useState(false);
   
     const roomSeats = useMemo(() => allSeats.filter(s => s.roomId === roomId), [allSeats, roomId]);
+    
+    const seatStats = useMemo(() => {
+        const total = roomSeats.length;
+        const filled = roomSeats.filter(s => s.status === SeatStatus.Allocated).length;
+        const broken = roomSeats.filter(s => s.status === SeatStatus.Broken).length;
+        const available = roomSeats.filter(s => s.status === SeatStatus.Available).length;
+        return { total, filled, broken, available };
+    }, [roomSeats]);
     
     const isBuildingFullyAllocated = useMemo(() => {
         if (roomsInBuilding.length === 0) return false;
@@ -253,7 +262,11 @@ const SeatMapPage: React.FC = () => {
           const allRoomsData = await api.getRoomsByBuilding(roomData.buildingId);
           setRoomsInBuilding(allRoomsData);
         }
-      } catch (err) { dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); }
+        setDataLoaded(true);
+      } catch (err) { 
+        dispatch({ type: 'API_REQUEST_FAIL', payload: 'Failed to fetch seat map.' }); 
+        setDataLoaded(true);
+      }
     };
   
     useEffect(() => {
@@ -334,17 +347,23 @@ const SeatMapPage: React.FC = () => {
         <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
           <div>
               <h1 className="text-3xl font-bold text-dark mb-2">Seat Map: {currentRoom?.name}</h1>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600 mb-3">
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-green-100 mr-2 border-2 border-green-400"></div> Available</span>
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-gray-200 mr-2 border-2 border-gray-500"></div> Filled</span>
                   <span className="flex items-center"><div className="w-4 h-4 rounded-full bg-red-200 mr-2 border-2 border-red-500"></div> Broken</span>
                   {currentRoom?.branchAllocated && <span className="font-semibold text-primary">Allocated to: {BRANCHES.find(b => b.id === currentRoom.branchAllocated)?.label}</span>}
               </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
+                  <span className="text-gray-700">Total Seats: {seatStats.total}</span>
+                  <span className="text-gray-600">Filled: {seatStats.filled}</span>
+                  <span className="text-red-600">Broken: {seatStats.broken}</span>
+                  <span className="text-green-600">Available: {seatStats.available}</span>
+              </div>
           </div>
           {isAdmin && !isBuildingFullyAllocated && (
               <Button onClick={() => setIsAllocationModalOpen(true)}>Allocate Branch to Building</Button>
           )}
-          {isAdmin && currentRoom && !currentRoom.branchAllocated && (
+          {isAdmin && dataLoaded && currentRoom && !currentRoom.branchAllocated && (
               <Button onClick={() => setIsRoomAllocationModalOpen(true)}>Allocate Branch to Room</Button>
           )}
         </div>
