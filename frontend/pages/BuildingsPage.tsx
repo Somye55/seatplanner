@@ -26,26 +26,39 @@ const BuildingIcon: React.FC = () => (
 );
 
 const BuildingSkeleton: React.FC = () => (
-  <Card className="w-full">
-    <CardBody className="gap-4">
-      <div className="flex items-center gap-6">
-        <Skeleton className="rounded-lg">
-          <div className="h-16 w-16 rounded-lg bg-default-300"></div>
-        </Skeleton>
-        <div className="flex-1 space-y-2">
-          <Skeleton className="w-3/5 rounded-lg">
-            <div className="h-6 w-3/5 rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-2/5 rounded-lg">
-            <div className="h-4 w-2/5 rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-1/5 rounded-lg">
-            <div className="h-4 w-1/5 rounded-lg bg-default-200"></div>
-          </Skeleton>
-        </div>
-      </div>
-    </CardBody>
-  </Card>
+    <Card className="w-full">
+        <CardBody className="gap-4">
+            <div className="flex items-center gap-6">
+                <Skeleton className="rounded-lg">
+                    <div className="h-16 w-16 rounded-lg bg-default-300"></div>
+                </Skeleton>
+                <div className="flex-1 space-y-3">
+                    <Skeleton className="w-4/5 rounded-lg">
+                        <div className="h-6 w-full rounded-lg bg-default-200"></div>
+                    </Skeleton>
+                    <Skeleton className="w-2/5 rounded-lg">
+                        <div className="h-4 w-full rounded-lg bg-default-200"></div>
+                    </Skeleton>
+                    <Skeleton className="w-1/4 rounded-lg">
+                        <div className="h-4 w-full rounded-lg bg-default-300"></div>
+                    </Skeleton>
+                </div>
+            </div>
+        </CardBody>
+        <CardFooter className="justify-between border-t border-divider">
+            <Skeleton className="w-24 rounded-lg">
+                <div className="h-8 w-full rounded-lg bg-default-200"></div>
+            </Skeleton>
+            <div className="flex gap-2">
+                <Skeleton className="w-12 rounded-lg">
+                    <div className="h-8 w-full rounded-lg bg-default-200"></div>
+                </Skeleton>
+                <Skeleton className="w-16 rounded-lg">
+                    <div className="h-8 w-full rounded-lg bg-default-200"></div>
+                </Skeleton>
+            </div>
+        </CardFooter>
+    </Card>
 );
 
 const BuildingsPage: React.FC = () => {

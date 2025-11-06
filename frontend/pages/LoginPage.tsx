@@ -5,6 +5,8 @@ import { Branch } from '../types';
 import AuthCard from '../components/auth/AuthCard';
 import SignInForm from '../components/auth/SignInForm';
 import SignUpForm from '../components/auth/SignUpForm';
+import { useTheme } from '../providers/ThemeProvider';
+import { Switch } from '@heroui/react';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +18,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   
   const isLogin = location.pathname === '/signin' || location.pathname === '/login';
 
@@ -41,7 +44,14 @@ const LoginPage: React.FC = () => {
   const handleErrorClear = () => setError('');
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
+      <div className="absolute top-6 right-6 z-20">
+          <div className="flex items-center gap-2 bg-content1/70 dark:bg-content1/70 backdrop-blur-md p-2 rounded-full shadow-lg border border-default-200 dark:border-default-100">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              <Switch isSelected={theme === 'dark'} onValueChange={toggleTheme} size="sm" />
+          </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
         {/* Left Side - Branding */}
         <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-primary-100 via-secondary-50 to-white dark:from-gray-950 dark:via-gray-900 dark:to-black p-12 text-center relative overflow-hidden">
@@ -64,7 +74,7 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Right Side - Auth Forms */}
-        <div className="flex items-start justify-center p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-950">
+        <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-950">
             <div className="flip-card-container">
                 <div className={`flip-card-inner ${!isLogin ? 'flipped' : ''}`}>
                     {/* Sign In Card (Front) */}
