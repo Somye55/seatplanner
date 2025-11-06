@@ -17,14 +17,17 @@ import {
   SelectItem,
   Checkbox,
   Chip,
-  Spinner
+  Skeleton
 } from '@heroui/react';
+import { SkeletonTable } from '../components/ui';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api } from '../services/apiService';
 import { Student, BRANCH_OPTIONS, Branch } from '../types';
 import { ACCESSIBILITY_NEEDS } from '../constants';
 
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
+
+
 
 const StudentForm: React.FC<{ student?: Student, onSave: (student: Omit<Student, 'id'> | Student) => void, onCancel: () => void }> = ({ student, onSave, onCancel }) => {
     const [name, setName] = useState(student?.name || '');
@@ -221,8 +224,20 @@ const StudentsPage: React.FC = () => {
 
   if (loading && students.length === 0) {
     return (
-      <div className="flex justify-center items-center h-96">
-        <Spinner size="lg" />
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <Skeleton className="rounded-lg">
+            <div className="h-10 w-32 rounded-lg bg-default-200"></div>
+          </Skeleton>
+          <Skeleton className="rounded-lg">
+            <div className="h-10 w-28 rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+        <SkeletonTable 
+          columns={['NAME', 'EMAIL', 'BRANCH', 'ALLOCATION', 'NEEDS', 'TAGS', 'ACTIONS']}
+          columnWidths={['w-32', 'w-40', 'w-28', 'w-36', 'w-24', 'w-20', 'w-24']}
+          rows={5}
+        />
       </div>
     );
   }

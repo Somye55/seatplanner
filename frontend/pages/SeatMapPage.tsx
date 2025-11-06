@@ -15,6 +15,7 @@ import {
   Chip,
   Skeleton
 } from '@heroui/react';
+import { SeatMapSkeleton } from '../components/ui';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
@@ -194,11 +195,7 @@ const SeatMapPage: React.FC = () => {
     const selectedSeatStudent = useMemo(() => students.find(s => s.id === selectedSeat?.studentId), [students, selectedSeat]);
   
     if (loading && roomSeats.length === 0) {
-      return (
-        <div className="flex justify-center items-center h-96">
-          <Spinner size="lg" />
-        </div>
-      );
+      return <SeatMapSkeleton />;
     }
   
     return (

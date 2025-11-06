@@ -17,6 +17,7 @@ import {
   Tooltip,
   Chip
 } from '@heroui/react';
+import { SkeletonCard } from '../components/ui';
 import { useSeatPlanner } from '../context/SeatPlannerContext';
 import { api, ConflictError } from '../services/apiService';
 import { authService } from '../services/authService';
@@ -213,21 +214,7 @@ const AllocationModal: React.FC<{
     );
 };
 
-const RoomSkeleton: React.FC = () => (
-  <Card>
-    <CardBody className="gap-4">
-      <Skeleton className="rounded-lg">
-        <div className="h-6 w-3/4 rounded-lg bg-default-200"></div>
-      </Skeleton>
-      <Skeleton className="rounded-lg">
-        <div className="h-4 w-1/2 rounded-lg bg-default-200"></div>
-      </Skeleton>
-      <Skeleton className="rounded-lg">
-        <div className="h-8 w-full rounded-lg bg-default-200"></div>
-      </Skeleton>
-    </CardBody>
-  </Card>
-);
+
 
 const RoomsPage: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>();
@@ -288,6 +275,20 @@ const RoomsPage: React.FC = () => {
 
   useEffect(() => {
     dispatch({ type: 'API_REQUEST_START' });
+    
+    // Load building data if not already loaded
+    const loadBuildingData = async () => {
+      if (buildingId && buildings.length === 0) {
+        try {
+          const buildingsData = await api.getBuildings();
+          dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
+        } catch (err) {
+          console.error('Failed to fetch buildings:', err);
+        }
+      }
+    };
+    
+    loadBuildingData();
     fetchRoomsForBuilding();
 
     if (!isAdmin) {
@@ -324,6 +325,8 @@ const RoomsPage: React.FC = () => {
       await api.createRoom({ buildingId, ...newRoom });
       setNewRoom({ name: '', capacity: 1, rows: 1, cols: 1 });
       setShowCreateModal(false);
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       fetchRoomsForBuilding();
     } catch (err) {
       alert(`Failed to create room: ${(err as Error).message}`);
@@ -349,11 +352,15 @@ const RoomsPage: React.FC = () => {
     try {
       await api.updateRoom(editingRoom.id, editRoom);
       setEditingRoom(null);
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       fetchRoomsForBuilding();
     } catch (err) {
       if (err instanceof ConflictError && err.currentData) {
         alert('This room was just modified by another admin. Please close and try again.');
         setEditingRoom(null);
+        // Small delay to ensure cache invalidation completes
+        await new Promise(resolve => setTimeout(resolve, 100));
         fetchRoomsForBuilding();
       } else {
         alert(`Failed to update room: ${(err as Error).message}`);
@@ -368,6 +375,8 @@ const RoomsPage: React.FC = () => {
     setDeleteLoading(roomId);
     try {
       await api.deleteRoom(roomId);
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       fetchRoomsForBuilding();
     } catch (err) {
       alert(`Failed to delete room: ${(err as Error).message}`);
@@ -382,8 +391,18 @@ const RoomsPage: React.FC = () => {
         <Button variant="light" onPress={() => navigate('/buildings')} className="mb-6">
           ← Back to Buildings
         </Button>
+        <div className="flex justify-between items-center mb-6">
+          <Skeleton className="rounded-lg">
+            <div className="h-10 w-64 rounded-lg bg-default-200"></div>
+          </Skeleton>
+          {isAdmin && (
+            <Button color="primary" onPress={() => setShowCreateModal(true)}>
+              Add Room
+            </Button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <RoomSkeleton key={i} />)}
+          {[1, 2, 3].map(i => <SkeletonCard key={i} variant="room" />)}
         </div>
       </div>
     );

@@ -56,7 +56,7 @@ router.post('/', [
       data: { name, code }
     });
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
 
     res.status(201).json(building);
   } catch (error) {
@@ -103,7 +103,7 @@ router.put('/:id', [
       data: { name, code }
     });
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
 
     res.json(updatedBuilding);
   } catch (error) {
@@ -142,7 +142,7 @@ router.delete('/:id', [
       where: { id }
     });
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
 
     res.status(204).send();
   } catch (error) {

@@ -22,7 +22,7 @@ import {
   TableCell,
   Breadcrumbs as HeroBreadcrumbs,
   BreadcrumbItem
-} from '@heroui/system';
+} from '@heroui/react';
 
 // Re-export HeroUI components with custom wrappers where needed
 export { HeroTooltip as Tooltip, HeroChip as Chip, HeroSkeleton as Skeleton };
@@ -133,21 +133,116 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 // Skeleton Card for loading states
-export const SkeletonCard: React.FC = () => (
-  <HeroCard className="w-full space-y-5 p-4">
-    <HeroSkeleton className="rounded-lg">
-      <div className="h-24 rounded-lg bg-default-300"></div>
-    </HeroSkeleton>
-    <div className="space-y-3">
-      <HeroSkeleton className="w-3/5 rounded-lg">
-        <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
-      </HeroSkeleton>
-      <HeroSkeleton className="w-4/5 rounded-lg">
-        <div className="h-3 w-4/5 rounded-lg bg-default-200"></div>
-      </HeroSkeleton>
-      <HeroSkeleton className="w-2/5 rounded-lg">
-        <div className="h-3 w-2/5 rounded-lg bg-default-300"></div>
-      </HeroSkeleton>
-    </div>
-  </HeroCard>
+export const SkeletonCard: React.FC<{ variant?: 'default' | 'compact' | 'room' }> = ({ variant = 'default' }) => {
+  if (variant === 'room') {
+    return (
+      <HeroCard className="w-full hover:scale-105 transition-transform duration-300">
+        <CardBody className="gap-3">
+          {/* Title skeleton */}
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-7 w-3/4 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+          {/* Subtitle/description skeleton */}
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-5 w-2/3 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+          {/* Optional chip/tag skeleton */}
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-6 w-1/3 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+          {/* Status section with border */}
+          <div className="pt-3 border-t border-divider">
+            <HeroSkeleton className="rounded-lg">
+              <div className="h-7 w-1/2 rounded-lg bg-default-200"></div>
+            </HeroSkeleton>
+          </div>
+        </CardBody>
+        <CardFooter className="justify-between border-t border-divider">
+          {/* Primary action button */}
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-9 w-24 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+          {/* Admin actions */}
+          <div className="flex flex-col gap-2">
+            <HeroSkeleton className="rounded-lg">
+              <div className="h-8 w-28 rounded-lg bg-default-200"></div>
+            </HeroSkeleton>
+            <div className="flex gap-2">
+              <HeroSkeleton className="rounded-lg">
+                <div className="h-8 w-12 rounded-lg bg-default-200"></div>
+              </HeroSkeleton>
+              <HeroSkeleton className="rounded-lg">
+                <div className="h-8 w-16 rounded-lg bg-default-200"></div>
+              </HeroSkeleton>
+            </div>
+          </div>
+        </CardFooter>
+      </HeroCard>
+    );
+  }
+
+  return (
+    <HeroCard className="w-full">
+      <CardBody className={variant === 'compact' ? 'gap-3' : 'gap-4'}>
+        {/* Title skeleton */}
+        <HeroSkeleton className="rounded-lg">
+          <div className={`${variant === 'compact' ? 'h-6' : 'h-7'} w-3/4 rounded-lg bg-default-200`}></div>
+        </HeroSkeleton>
+        {/* Subtitle/description skeleton */}
+        <HeroSkeleton className="rounded-lg">
+          <div className={`${variant === 'compact' ? 'h-4' : 'h-5'} w-1/2 rounded-lg bg-default-200`}></div>
+        </HeroSkeleton>
+        {/* Additional content skeleton */}
+        <HeroSkeleton className="rounded-lg">
+          <div className={`${variant === 'compact' ? 'h-4' : 'h-5'} w-2/3 rounded-lg bg-default-300`}></div>
+        </HeroSkeleton>
+      </CardBody>
+      <CardFooter className="justify-between border-t border-divider">
+        {/* Primary action button */}
+        <HeroSkeleton className="rounded-lg">
+          <div className="h-9 w-24 rounded-lg bg-default-200"></div>
+        </HeroSkeleton>
+        {/* Secondary actions */}
+        <div className="flex gap-2">
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-8 w-12 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+          <HeroSkeleton className="rounded-lg">
+            <div className="h-8 w-16 rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+        </div>
+      </CardFooter>
+    </HeroCard>
+  );
+};
+
+// Generic Table Skeleton for loading states
+export const SkeletonTable: React.FC<{ 
+  columns: string[], 
+  rows?: number,
+  columnWidths?: string[]
+}> = ({ columns, rows = 5, columnWidths }) => (
+  <Table aria-label="Loading table" className="min-w-full">
+    <TableHeader>
+      {columns.map((column, index) => (
+        <TableColumn key={index}>{column}</TableColumn>
+      ))}
+    </TableHeader>
+    <TableBody>
+      {Array.from({ length: rows }, (_, i) => (
+        <TableRow key={i}>
+          {columns.map((_, colIndex) => (
+            <TableCell key={colIndex}>
+              <HeroSkeleton className="rounded-lg">
+                <div className={`h-5 ${columnWidths?.[colIndex] || 'w-24'} rounded-lg bg-default-200`}></div>
+              </HeroSkeleton>
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
 );
+
+// Export the SeatMapSkeleton component
+export { default as SeatMapSkeleton } from './SeatMapSkeleton';

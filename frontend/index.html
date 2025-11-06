@@ -20,7 +20,17 @@
 </script>
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons8-room-color-glass-32.png">
 </head>
-  <body class="bg-light">
+  <body>
+    <script>
+      // Initialize theme before React loads to prevent flash
+      (function() {
+        const theme = localStorage.getItem('theme') || 'light';
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+        document.body.className = theme === 'dark' ? 'bg-background dark' : 'bg-background';
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

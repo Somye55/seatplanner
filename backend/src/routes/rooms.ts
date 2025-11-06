@@ -67,7 +67,7 @@ router.post('/', [
     // Automatically generate seats for the new room
     await SeatGenerationService.generateSeatsForRoom(room.id, room.capacity, room.rows, room.cols, prisma);
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
     await invalidateCache(`room-seats:/api/rooms/${room.id}/seats`);
 
     res.status(201).json(room);
@@ -160,7 +160,7 @@ router.put('/:id', [
     }
 
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
 
     res.json(updatedRoom);
   } catch (error: any) {
@@ -197,7 +197,7 @@ router.delete('/:id', [
         });
     });
 
-    await invalidateCache('buildings');
+    await invalidateCache('buildings:*');
     await invalidateCache(`room-seats:/api/rooms/${id}/seats`);
 
     res.status(204).send();

@@ -29,26 +29,34 @@ const BuildingSkeleton: React.FC = () => (
     <Card className="w-full">
         <CardBody className="gap-4">
             <div className="flex items-center gap-6">
-                <Skeleton className="rounded-lg">
-                    <div className="h-16 w-16 rounded-lg bg-default-300"></div>
-                </Skeleton>
-                <div className="flex-1 space-y-3">
+                {/* Building icon - matches BuildingIcon h-16 w-16 */}
+                <div className="flex-shrink-0">
+                    <Skeleton className="rounded-lg">
+                        <div className="h-16 w-16 rounded-lg bg-default-300"></div>
+                    </Skeleton>
+                </div>
+                <div className="flex-1 space-y-2">
+                    {/* Building name - matches h2 text-xl font-bold */}
                     <Skeleton className="w-4/5 rounded-lg">
-                        <div className="h-6 w-full rounded-lg bg-default-200"></div>
+                        <div className="h-7 w-full rounded-lg bg-default-200"></div>
                     </Skeleton>
+                    {/* Building code - matches p text-default-500 */}
                     <Skeleton className="w-2/5 rounded-lg">
-                        <div className="h-4 w-full rounded-lg bg-default-200"></div>
+                        <div className="h-5 w-full rounded-lg bg-default-200"></div>
                     </Skeleton>
-                    <Skeleton className="w-1/4 rounded-lg">
-                        <div className="h-4 w-full rounded-lg bg-default-300"></div>
+                    {/* Room count - matches p text-secondary font-semibold mt-2 */}
+                    <Skeleton className="w-1/3 rounded-lg">
+                        <div className="h-5 w-full rounded-lg bg-default-300"></div>
                     </Skeleton>
                 </div>
             </div>
         </CardBody>
         <CardFooter className="justify-between border-t border-divider">
+            {/* View Rooms button */}
             <Skeleton className="w-24 rounded-lg">
-                <div className="h-8 w-full rounded-lg bg-default-200"></div>
+                <div className="h-9 w-full rounded-lg bg-default-200"></div>
             </Skeleton>
+            {/* Admin buttons */}
             <div className="flex gap-2">
                 <Skeleton className="w-12 rounded-lg">
                     <div className="h-8 w-full rounded-lg bg-default-200"></div>
@@ -94,6 +102,8 @@ const BuildingsPage: React.FC = () => {
       await api.createBuilding(newBuilding);
       setNewBuilding({ name: '', code: '' });
       setShowCreateModal(false);
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -116,6 +126,8 @@ const BuildingsPage: React.FC = () => {
       await api.updateBuilding(editingBuilding.id, editBuilding);
       setEditingBuilding(null);
       setEditBuilding({ name: '', code: '' });
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -130,6 +142,8 @@ const BuildingsPage: React.FC = () => {
     setDeleteLoading(buildingId);
     try {
       await api.deleteBuilding(buildingId);
+      // Small delay to ensure cache invalidation completes
+      await new Promise(resolve => setTimeout(resolve, 100));
       const buildingsData = await api.getBuildings();
       dispatch({ type: 'GET_BUILDINGS_SUCCESS', payload: buildingsData });
     } catch (err) {
@@ -144,7 +158,7 @@ const BuildingsPage: React.FC = () => {
       <div>
         <div className="flex justify-between items-center mb-6">
           <Skeleton className="w-48 rounded-lg">
-            <div className="h-9 w-48 rounded-lg bg-default-200"></div>
+            <div className="h-10 w-48 rounded-lg bg-default-200"></div>
           </Skeleton>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
