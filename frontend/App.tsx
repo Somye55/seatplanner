@@ -92,7 +92,7 @@ const App: React.FC = () => {
           </BrowserRouter>
         </SeatPlannerProvider>
       </ThemeProvider>
-      <ToastProvider placement="top-right" />
+      <ToastProvider placement="bottom-right" />
     </HeroUIProvider>
   );
 };
