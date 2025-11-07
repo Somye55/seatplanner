@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Button, 
-  Avatar, 
-  Dropdown, 
-  DropdownTrigger, 
-  DropdownMenu, 
+import React, { useState, useEffect } from "react";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import {
+  Button,
+  Avatar,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
   DropdownItem,
   Switch,
   Divider,
@@ -16,118 +16,154 @@ import {
   ModalFooter,
   Input,
   Checkbox,
+  CheckboxGroup,
   Spinner,
   Breadcrumbs,
-  BreadcrumbItem
-} from '@heroui/react';
-import { authService } from '../services/authService';
-import { api } from '../services/apiService';
-import { useTheme } from '../providers/ThemeProvider';
-import { Student, BRANCH_OPTIONS } from '../types';
-import { ACCESSIBILITY_NEEDS } from '../constants';
+  BreadcrumbItem,
+} from "@heroui/react";
+import { authService } from "../services/authService";
+import { api } from "../services/apiService";
+import { useTheme } from "../providers/ThemeProvider";
+import { Student, BRANCH_OPTIONS } from "../types";
+import { ACCESSIBILITY_NEEDS } from "../constants";
 
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
-const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void; }> = ({ isOpen, onClose }) => {
-    const [student, setStudent] = useState<Student | null>(null);
-    const [name, setName] = useState('');
-    const [needs, setNeeds] = useState<string[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
+  isOpen,
+  onClose,
+}) => {
+  const [student, setStudent] = useState<Student | null>(null);
+  const [name, setName] = useState("");
+  const [needs, setNeeds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [originalName, setOriginalName] = useState("");
+  const [originalNeeds, setOriginalNeeds] = useState<string[]>([]);
 
-    useEffect(() => {
-        if (isOpen) {
-            setLoading(true);
-            setError('');
-            api.getStudentProfile()
-                .then(profile => {
-                    setStudent(profile);
-                    setName(profile.name);
-                    setNeeds(profile.accessibilityNeeds);
-                })
-                .catch(() => setError("Failed to load profile."))
-                .finally(() => setLoading(false));
-        }
-    }, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      setError("");
+      api
+        .getStudentProfile()
+        .then((profile) => {
+          setStudent(profile);
+          setName(profile.name);
+          setNeeds(profile.accessibilityNeeds);
+          setOriginalName(profile.name);
+          setOriginalNeeds(profile.accessibilityNeeds);
+        })
+        .catch(() => setError("Failed to load profile."))
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen]);
 
-    const handleSave = async () => {
-        if (!student) return;
-        setLoading(true);
-        setError('');
-        try {
-            await api.updateStudentProfile({ name, accessibilityNeeds: needs });
-            onClose();
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    const handleNeedsChange = (needId: string) => {
-        setNeeds(prev => 
-            prev.includes(needId) ? prev.filter(n => n !== needId) : [...prev, needId]
-        );
-    };
+  const handleSave = async () => {
+    if (!student) return;
+    setLoading(true);
+    setError("");
+    try {
+      await api.updateStudentProfile({ name, accessibilityNeeds: needs });
+      onClose();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-            <ModalContent>
-                {(onClose) => (
-                    <>
-                        <ModalHeader>My Profile</ModalHeader>
-                        <ModalBody>
-                            {loading && !student ? (
-                                <div className="flex justify-center py-8">
-                                    <Spinner size="lg" />
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {student && (
-                                        <div>
-                                            <label className="block text-sm font-medium mb-2">Club / Branch</label>
-                                            <p className="text-sm bg-default-100 p-3 rounded-lg">
-                                                {BRANCH_OPTIONS.find(b => b.id === student.branch)?.label || student.branch}
-                                            </p>
-                                        </div>
-                                    )}
-                                    <Input
-                                        label="Name"
-                                        value={name}
-                                        onChange={e => setName(e.target.value)}
-                                        variant="bordered"
-                                    />
-                                    <div>
-                                        <label className="block text-sm font-medium mb-2">Accessibility Needs</label>
-                                        <div className="space-y-2">
-                                            {POSSIBLE_NEEDS.map(need => (
-                                                <Checkbox
-                                                    key={need.id}
-                                                    isSelected={needs.includes(need.id)}
-                                                    onValueChange={() => handleNeedsChange(need.id)}
-                                                >
-                                                    {need.label}
-                                                </Checkbox>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    {error && <p className="text-danger text-sm">{error}</p>}
-                                </div>
-                            )}
-                        </ModalBody>
-                        <ModalFooter>
-                            <Button color="default" variant="light" onPress={onClose}>
-                                Cancel
-                            </Button>
-                            <Button color="primary" onPress={handleSave} isLoading={loading}>
-                                Save Changes
-                            </Button>
-                        </ModalFooter>
-                    </>
-                )}
-            </ModalContent>
-        </Modal>
+  const handleNeedsChange = (selectedNeeds: string[]) => {
+    setNeeds(selectedNeeds);
+  };
+
+  // Check if any data has changed
+  const hasChanges = () => {
+    if (name !== originalName) return true;
+    if (needs.length !== originalNeeds.length) return true;
+    const sortedNeeds = [...needs].sort();
+    const sortedOriginalNeeds = [...originalNeeds].sort();
+    return !sortedNeeds.every(
+      (need, index) => need === sortedOriginalNeeds[index]
     );
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
+      <ModalContent>
+        {(onClose) => (
+          <>
+            <ModalHeader>My Profile</ModalHeader>
+            <ModalBody>
+              {loading && !student ? (
+                <div className="flex justify-center py-8">
+                  <Spinner size="lg" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {student && (
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Club / Branch
+                      </label>
+                      <p className="text-sm bg-default-100 p-3 rounded-lg">
+                        {BRANCH_OPTIONS.find((b) => b.id === student.branch)
+                          ?.label || student.branch}
+                      </p>
+                    </div>
+                  )}
+                  <Input
+                    label="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    variant="bordered"
+                  />
+                  <div className="border-2 border-dashed border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">
+                    <label className="text-sm font-semibold text-default-700">
+                      Accessibility Needs (Optional)
+                    </label>
+                    <p className="text-xs text-default-500 mt-1 mb-3">
+                      Select any requirements to help us provide better seating.
+                    </p>
+                    <CheckboxGroup
+                      value={needs}
+                      onValueChange={handleNeedsChange}
+                      classNames={{ wrapper: "gap-3" }}
+                    >
+                      {POSSIBLE_NEEDS.map((need) => (
+                        <Checkbox
+                          key={need.id}
+                          value={need.id}
+                          classNames={{ label: "text-sm" }}
+                        >
+                          {need.label}
+                        </Checkbox>
+                      ))}
+                    </CheckboxGroup>
+                  </div>
+                  {error && <p className="text-danger text-sm">{error}</p>}
+                </div>
+              )}
+            </ModalBody>
+            <ModalFooter>
+              <Button color="default" variant="light" onPress={onClose}>
+                Cancel
+              </Button>
+              {hasChanges() && (
+                <Button
+                  color="primary"
+                  onPress={handleSave}
+                  isLoading={loading}
+                >
+                  Save Changes
+                </Button>
+              )}
+            </ModalFooter>
+          </>
+        )}
+      </ModalContent>
+    </Modal>
+  );
 };
 
 interface LayoutProps {
@@ -140,26 +176,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const user = authService.getUser();
   const isAdmin = authService.isAdmin();
   const { theme, toggleTheme } = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebarCollapsed");
+    return saved ? JSON.parse(saved) : false;
+  });
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showExpiryWarning, setShowExpiryWarning] = useState(false);
 
-  const navigation = isAdmin 
-    ? [ 
-        { name: 'Buildings', href: '/buildings', icon: '🏢' }, 
-        { name: 'Students', href: '/students', icon: '👥' } 
-      ] 
-    : [ 
-        { name: 'Buildings', href: '/buildings', icon: '🏢' } 
-      ];
+  const navigation = isAdmin
+    ? [
+        { name: "Buildings", href: "/buildings", icon: "🏢" },
+        { name: "Students", href: "/students", icon: "👥" },
+      ]
+    : [{ name: "Buildings", href: "/buildings", icon: "🏢" }];
 
   useEffect(() => {
     const checkExpiry = () => {
-      const expiry = localStorage.getItem('tokenExpiry');
+      const expiry = localStorage.getItem("tokenExpiry");
       if (expiry) {
         const timeUntilExpiry = parseInt(expiry) - Date.now();
         const thirtyMinutes = 30 * 60 * 1000;
-        setShowExpiryWarning(timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes);
+        setShowExpiryWarning(
+          timeUntilExpiry > 0 && timeUntilExpiry < thirtyMinutes
+        );
       }
     };
 
@@ -170,47 +209,62 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/signin');
+    navigate("/signin");
+  };
+
+  const toggleSidebar = () => {
+    const newCollapsed = !isCollapsed;
+    setIsCollapsed(newCollapsed);
+    localStorage.setItem("sidebarCollapsed", JSON.stringify(newCollapsed));
   };
 
   // Generate breadcrumbs from current path
   const getBreadcrumbs = () => {
-    const paths = location.pathname.split('/').filter(Boolean);
-    const crumbs = [{ name: 'Home', href: '/buildings' }];
-    
-    if (paths.includes('buildings') && paths.length > 1) {
-      crumbs.push({ name: 'Buildings', href: '/buildings' });
-      if (paths.includes('rooms')) {
-        crumbs.push({ name: 'Rooms', href: location.pathname });
+    const paths = location.pathname.split("/").filter(Boolean);
+    const crumbs = [{ name: "Home", href: "/buildings" }];
+
+    if (paths.includes("buildings") && paths.length > 1) {
+      crumbs.push({ name: "Buildings", href: "/buildings" });
+      if (paths.includes("rooms")) {
+        crumbs.push({ name: "Rooms", href: location.pathname });
       }
-    } else if (paths.includes('rooms')) {
-      crumbs.push({ name: 'Seat Map', href: location.pathname });
-    } else if (paths.includes('students')) {
-      crumbs.push({ name: 'Students', href: '/students' });
+    } else if (paths.includes("rooms")) {
+      crumbs.push({ name: "Seat Map", href: location.pathname });
+    } else if (paths.includes("students")) {
+      crumbs.push({ name: "Students", href: "/students" });
     }
-    
+
     return crumbs;
   };
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside 
+      <aside
         className={`${
-          isCollapsed ? 'w-20' : 'w-64'
-        } bg-content1 border-r border-divider transition-all duration-300 flex flex-col`}
+          isCollapsed ? "w-20" : "w-64"
+        } bg-content1 border-r border-divider transition-all duration-300 ease-in-out flex flex-col overflow-hidden`}
       >
         {/* Logo */}
-        <div className="p-4 flex items-center justify-between border-b border-divider">
-          {!isCollapsed && (
-            <div className="flex items-center gap-3">
-              <img src="/assets/icon-512x512.png" alt="Logo" className="h-8 w-8" />
-              <span className="text-xl font-bold">SeatPlanner</span>
+        <div className="p-4 border-b border-divider">
+          <div
+            className={`flex items-center ${
+              isCollapsed ? "justify-center px-2" : "px-4"
+            } py-3 transition-all duration-300`}
+          >
+            <div className="flex items-center justify-center w-8 h-8 flex-shrink-0">
+              <img
+                src="/assets/icon-512x512.png"
+                alt="Logo"
+                className="h-8 w-8"
+              />
             </div>
-          )}
-          {isCollapsed && (
-            <img src="/assets/icon-512x512.png" alt="Logo" className="h-8 w-8 mx-auto" />
-          )}
+            {!isCollapsed && (
+              <span className="font-medium ml-3 transition-opacity duration-300 text-xl font-bold whitespace-nowrap">
+                SeatPlanner
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}
@@ -220,16 +274,24 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               key={item.name}
               to={item.href}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                `flex items-center ${
+                  isCollapsed ? "justify-center px-2" : "px-4"
+                } py-3 rounded-lg transition-all duration-300 ${
                   isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-default-100'
-                } ${isCollapsed ? 'justify-center' : ''}`
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-default-100"
+                }`
               }
               title={isCollapsed ? item.name : undefined}
             >
-              <span className="text-xl">{item.icon}</span>
-              {!isCollapsed && <span className="font-medium">{item.name}</span>}
+              <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
+                <span className="text-xl leading-none">{item.icon}</span>
+              </div>
+              {!isCollapsed && (
+                <span className="font-medium ml-3 transition-opacity duration-300 whitespace-nowrap">
+                  {item.name}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -238,31 +300,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* User Section */}
         <div className="p-4 space-y-3">
-          {/* Dark Mode Toggle */}
-          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
-            {!isCollapsed && <span className="text-sm">Dark Mode</span>}
-            <Switch
-              isSelected={theme === 'dark'}
-              onValueChange={toggleTheme}
-              size="sm"
-              title={isCollapsed ? 'Toggle Dark Mode' : undefined}
-            />
-          </div>
-
-          <Divider />
-
           {/* User Profile */}
           <Dropdown placement="top">
             <DropdownTrigger>
-              <div className={`flex items-center gap-3 cursor-pointer hover:bg-default-100 p-2 rounded-lg ${isCollapsed ? 'justify-center' : ''}`}>
-                <Avatar
-                  name={user?.email?.charAt(0).toUpperCase()}
-                  size="sm"
-                  className="flex-shrink-0"
-                />
+              <div
+                className={`flex items-center cursor-pointer hover:bg-default-100 p-2 rounded-lg transition-all duration-300 ${
+                  isCollapsed ? "justify-center" : ""
+                }`}
+              >
+                <div className="flex items-center justify-center w-6 h-6 flex-shrink-0">
+                  <Avatar
+                    name={user?.email?.charAt(0).toUpperCase()}
+                    size="sm"
+                    className="w-6 h-6"
+                  />
+                </div>
                 {!isCollapsed && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user?.email}</p>
+                  <div className="flex-1 min-w-0 ml-3 transition-opacity duration-300">
+                    <p className="text-sm font-medium truncate">
+                      {user?.email}
+                    </p>
                     <p className="text-xs text-default-500">{user?.role}</p>
                   </div>
                 )}
@@ -270,7 +327,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu">
               {!isAdmin && (
-                <DropdownItem key="profile" onPress={() => setIsProfileModalOpen(true)}>
+                <DropdownItem
+                  key="profile"
+                  onPress={() => setIsProfileModalOpen(true)}
+                >
                   My Profile
                 </DropdownItem>
               )}
@@ -279,16 +339,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </DropdownItem>
             </DropdownMenu>
           </Dropdown>
-
-          {/* Collapse Toggle */}
-          <Button
-            isIconOnly={isCollapsed}
-            variant="light"
-            onPress={() => setIsCollapsed(!isCollapsed)}
-            className="w-full"
-          >
-            {isCollapsed ? '→' : '← Collapse'}
-          </Button>
         </div>
       </aside>
 
@@ -297,12 +347,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Session Warning */}
         {showExpiryWarning && (
           <div className="bg-warning text-warning-foreground px-4 py-2 text-center text-sm font-medium">
-            ⚠️ Your session will expire soon. Please save your work and refresh the page to extend your session.
+            ⚠️ Your session will expire soon. Please save your work and refresh
+            the page to extend your session.
           </div>
         )}
 
         {/* Breadcrumbs */}
-        <div className="bg-content1 border-b border-divider px-6 py-3">
+        <div className="bg-content1 border-b border-divider px-6 py-3 flex items-center justify-between">
           <Breadcrumbs>
             {getBreadcrumbs().map((crumb, index) => (
               <BreadcrumbItem key={index} onPress={() => navigate(crumb.href)}>
@@ -310,6 +361,51 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </BreadcrumbItem>
             ))}
           </Breadcrumbs>
+
+          <div className="flex items-center gap-2">
+            {/* Collapse Button */}
+            <Button
+              isIconOnly
+              variant="light"
+              onPress={toggleSidebar}
+              size="sm"
+              title="Toggle Sidebar"
+            >
+              <div className="flex items-center justify-center w-6 h-6">
+                <img
+                  src={
+                    isCollapsed
+                      ? "/assets/show-sidebar.svg"
+                      : "/assets/hide-sidebar.svg"
+                  }
+                  alt={isCollapsed ? "Show sidebar" : "Hide sidebar"}
+                  className="w-5 h-5"
+                />
+              </div>
+            </Button>
+
+            {/* Dark Mode Toggle */}
+            <div className="flex items-center gap-2 bg-content1/70 dark:bg-content1/70 backdrop-blur-md p-2 rounded-full shadow-lg border border-default-200 dark:border-default-100">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+              </svg>
+              <Switch
+                isSelected={theme === "dark"}
+                onValueChange={toggleTheme}
+                size="sm"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Page Content */}
@@ -321,7 +417,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Profile Modal */}
-      {!isAdmin && <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />}
+      {!isAdmin && (
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+      )}
     </div>
   );
 };

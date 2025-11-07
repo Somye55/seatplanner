@@ -47,6 +47,16 @@ const StudentForm: React.FC<{
     branch?: string;
   }>({});
 
+  // Track if any changes have been made
+  const hasChanges = student
+    ? name !== student.name ||
+      email !== student.email ||
+      branch !== student.branch ||
+      tags !== (student.tags?.join(", ") || "") ||
+      JSON.stringify(needs.sort()) !==
+        JSON.stringify((student.accessibilityNeeds || []).sort())
+    : false;
+
   const allocation =
     student?.seats && student.seats.length > 0 ? student.seats[0] : null;
 
@@ -170,9 +180,11 @@ const StudentForm: React.FC<{
         <Button color="default" variant="light" onPress={onCancel}>
           Cancel
         </Button>
-        <Button color="primary" type="submit">
-          {student ? "Save Changes" : "Add Student"}
-        </Button>
+        {(!student || hasChanges) && (
+          <Button color="primary" type="submit">
+            {student ? "Save Changes" : "Add Student"}
+          </Button>
+        )}
       </div>
     </form>
   );

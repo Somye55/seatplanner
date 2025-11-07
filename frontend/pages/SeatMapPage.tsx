@@ -7,24 +7,18 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Spinner,
   Tooltip,
   Card,
   CardBody,
   Chip,
+  Badge,
+  Divider,
 } from "@heroui/react";
 import { SeatMapSkeleton } from "../components/ui";
 import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api, ConflictError } from "../services/apiService";
 import { authService } from "../services/authService";
-import {
-  Seat,
-  SeatStatus,
-  Student,
-  Room,
-  Branch,
-  AllocationSummary,
-} from "../types";
+import { Seat, SeatStatus, Student, Room, Branch } from "../types";
 import io from "socket.io-client";
 import { ACCESSIBILITY_NEEDS } from "../constants";
 
@@ -39,8 +33,6 @@ const BRANCHES = [
   { id: Branch.RealEstateClub, label: "Real Estate Club" },
 ];
 
-const STUDENT_ACCESSIBILITY_NEEDS = ACCESSIBILITY_NEEDS;
-
 const SeatComponent: React.FC<{
   seat: Seat;
   student?: Student;
@@ -51,13 +43,13 @@ const SeatComponent: React.FC<{
   const getStatusClasses = (status: SeatStatus) => {
     switch (status) {
       case SeatStatus.Available:
-        return "bg-success-100 border-success-400 hover:bg-success-200 text-success-800 dark:bg-success-900/30 dark:border-success-600";
+        return "bg-success-100 border-success-400 hover:bg-success-200 text-success-800 dark:bg-success-900/50 dark:border-success-500 dark:text-success-300 dark:hover:bg-success-900/70";
       case SeatStatus.Allocated:
-        return "bg-default-200 border-default-500 hover:bg-default-300 text-default-800 dark:bg-default-700 dark:border-default-600 dark:text-default-400";
+        return "bg-default-200 border-default-500 hover:bg-default-300 text-default-800 dark:bg-default-700/80 dark:border-default-500 dark:text-default-300 dark:hover:bg-default-700";
       case SeatStatus.Broken:
-        return "bg-danger-200 border-danger-500 hover:bg-danger-300 text-danger-800 dark:bg-danger-900/30 dark:border-danger-600";
+        return "bg-danger-200 border-danger-500 hover:bg-danger-300 text-danger-800 dark:bg-danger-900/50 dark:border-danger-500 dark:text-danger-300 dark:hover:bg-danger-900/70";
       default:
-        return "bg-warning-100 border-warning-400 text-warning-800";
+        return "bg-warning-100 border-warning-400 text-warning-800 dark:bg-warning-900/50 dark:border-warning-500 dark:text-warning-300";
     }
   };
   const cursorClass = isClickable ? "cursor-pointer" : "cursor-default";
@@ -245,7 +237,8 @@ const SeatMapPage: React.FC = () => {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-default-50/30 dark:from-background dark:via-background dark:to-default-100/10">
+      {/* Navigation Header */}
       <Button
         variant="light"
         onPress={() => navigate(`/buildings/${currentRoom?.buildingId}/rooms`)}
@@ -253,153 +246,405 @@ const SeatMapPage: React.FC = () => {
       >
         ← Back to Rooms
       </Button>
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">
-            Seat Map: {currentRoom?.name}
-          </h1>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm mb-3">
-            <Chip color="success" variant="flat" size="sm">
-              Available
-            </Chip>
-            <Chip color="default" variant="flat" size="sm">
-              Filled
-            </Chip>
-            <Chip color="danger" variant="flat" size="sm">
-              Broken
-            </Chip>
-            {currentRoom?.branchAllocated && (
-              <Chip color="primary" variant="flat">
-                Allocated to:{" "}
-                {
-                  BRANCHES.find((b) => b.id === currentRoom.branchAllocated)
-                    ?.label
-                }
-              </Chip>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold">
-            <span>Total: {seatStats.total}</span>
-            <span className="text-default-600">Filled: {seatStats.filled}</span>
-            <span className="text-danger">Broken: {seatStats.broken}</span>
-            <span className="text-success">
-              Available: {seatStats.available}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {seatColumns.length > 0 ? (
-        <Card>
-          <CardBody className="overflow-auto">
-            <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 justify-center min-w-min p-4">
-              {seatColumns.map((column, colIndex) => (
-                <div
-                  key={colIndex}
-                  className={`flex flex-col gap-0.5 sm:gap-1 md:gap-1.5 ${
-                    colIndex > 0 && colIndex % 3 === 0
-                      ? "ml-1 sm:ml-2 md:ml-3"
-                      : ""
-                  }`}
-                >
-                  {column.map((rowIndex, seatIndex) =>
-                    column[seatIndex] ? (
-                      <SeatComponent
-                        key={column[seatIndex]!.id}
-                        seat={column[seatIndex]!}
-                        student={students.find(
-                          (s) => s.id === column[seatIndex]!.studentId
-                        )}
-                        onClick={() => handleSeatClick(column[seatIndex]!)}
-                        isClickable={isAdmin}
-                      />
-                    ) : (
-                      <div
-                        key={`empty-${colIndex}-${seatIndex}`}
-                        className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14"
-                      />
-                    )
-                  )}
+      <div className="max-w-7xl mx-auto px-4 pb-8">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+              <svg
+                className="w-8 h-8 text-primary-600 dark:text-primary-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 dark:from-primary-400 dark:to-secondary-400 bg-clip-text text-transparent">
+              {currentRoom?.name}
+            </h1>
+          </div>
+          <p className="text-lg text-default-600 dark:text-default-400 max-w-2xl mx-auto">
+            Interactive seat map showing real-time availability and allocation
+            status
+          </p>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-default-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm hover:shadow-md transition-shadow border border-default-200/50 dark:border-default-800/40">
+            <CardBody className="text-center py-6">
+              <div className="text-2xl font-bold text-default-700 dark:text-default-100 mb-1">
+                {seatStats.total}
+              </div>
+              <div className="text-sm text-default-500 dark:text-default-400 font-medium">
+                Total Seats
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-success-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm hover:shadow-md transition-shadow border border-success-200/50 dark:border-default-800/40">
+            <CardBody className="text-center py-6">
+              <div className="text-2xl font-bold text-success-600 dark:text-success-400 mb-1">
+                {seatStats.available}
+              </div>
+              <div className="text-sm text-success-600 dark:text-success-400 font-medium">
+                Available
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-primary-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm hover:shadow-md transition-shadow border border-primary-200/50 dark:border-default-800/40">
+            <CardBody className="text-center py-6">
+              <div className="text-2xl font-bold text-primary-600 dark:text-primary-400 mb-1">
+                {seatStats.filled}
+              </div>
+              <div className="text-sm text-primary-600 dark:text-primary-400 font-medium">
+                Occupied
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-danger-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm hover:shadow-md transition-shadow border border-danger-200/50 dark:border-default-800/40">
+            <CardBody className="text-center py-6">
+              <div className="text-2xl font-bold text-danger-600 dark:text-danger-400 mb-1">
+                {seatStats.broken}
+              </div>
+              <div className="text-sm text-danger-600 dark:text-danger-400 font-medium">
+                Out of Order
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Legend and Branch Info */}
+        <Card className="mb-8 bg-gradient-to-r from-white to-default-50/50 dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm border border-default-200/50 dark:border-default-800/40">
+          <CardBody className="py-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              {/* Legend */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-default-700 dark:text-default-200">
+                  Legend
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-success-200 dark:bg-success-900/50 border-2 border-success-400 dark:border-success-500 rounded"></div>
+                    <span className="text-sm font-medium text-success-700 dark:text-success-300">
+                      Available
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-default-200 dark:bg-default-700/80 border-2 border-default-500 dark:border-default-500 rounded"></div>
+                    <span className="text-sm font-medium text-default-600 dark:text-default-300">
+                      Occupied
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-danger-200 dark:bg-danger-900/50 border-2 border-danger-500 dark:border-danger-500 rounded"></div>
+                    <span className="text-sm font-medium text-danger-700 dark:text-danger-300">
+                      Out of Order
+                    </span>
+                  </div>
                 </div>
-              ))}
+              </div>
+
+              {/* Branch Allocation */}
+              {currentRoom?.branchAllocated && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-default-700 dark:text-default-200">
+                    Room Assignment
+                  </h3>
+                  <Chip
+                    color="primary"
+                    variant="flat"
+                    size="lg"
+                    startContent={
+                      <svg
+                        className="w-4 h-4"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    }
+                  >
+                    {
+                      BRANCHES.find((b) => b.id === currentRoom.branchAllocated)
+                        ?.label
+                    }
+                  </Chip>
+                </div>
+              )}
             </div>
           </CardBody>
         </Card>
-      ) : (
-        <p className="text-center text-default-500 py-8">
-          No seats found for this room.
-        </p>
-      )}
 
+        {/* Seat Map */}
+        <div className="px-4">
+          {seatColumns.length > 0 ? (
+            <Card className="bg-gradient-to-br from-white via-white to-default-50/30 dark:from-[#1a1a1a] dark:via-[#171717] dark:to-[#0f0f0f] shadow-lg border-0 dark:border dark:border-default-800/40">
+              <CardBody className="p-8">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl font-bold text-default-700 dark:text-default-200 mb-2">
+                    Room Layout
+                  </h2>
+                  <div className="w-24 h-1 bg-gradient-to-r from-primary-400 to-secondary-400 dark:from-primary-600 dark:to-secondary-600 rounded-full mx-auto"></div>
+                </div>
+
+                <div className="overflow-auto bg-gradient-to-br from-default-50/50 to-white dark:from-[#0a0a0a] dark:to-[#050505] rounded-2xl p-6 border border-default-200/50 dark:border-default-800/30">
+                  <div className="flex gap-0.5 sm:gap-1 md:gap-1.5 justify-center min-w-min">
+                    {seatColumns.map((column, colIndex) => (
+                      <div
+                        key={colIndex}
+                        className={`flex flex-col gap-0.5 sm:gap-1 md:gap-1.5 ${
+                          colIndex > 0 && colIndex % 3 === 0
+                            ? "ml-1 sm:ml-2 md:ml-3"
+                            : ""
+                        }`}
+                      >
+                        {column.map((_, seatIndex) =>
+                          column[seatIndex] ? (
+                            <SeatComponent
+                              key={column[seatIndex]!.id}
+                              seat={column[seatIndex]!}
+                              student={students.find(
+                                (s) => s.id === column[seatIndex]!.studentId
+                              )}
+                              onClick={() =>
+                                handleSeatClick(column[seatIndex]!)
+                              }
+                              isClickable={isAdmin}
+                            />
+                          ) : (
+                            <div
+                              key={`empty-${colIndex}-${seatIndex}`}
+                              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14"
+                            />
+                          )
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {isAdmin && (
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-default-500 dark:text-default-400">
+                      💡 Click on any seat to manage its status
+                    </p>
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          ) : (
+            <Card className="bg-gradient-to-br from-default-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm border border-default-200/50 dark:border-default-800/40">
+              <CardBody className="text-center py-16">
+                <div className="mb-4">
+                  <svg
+                    className="w-16 h-16 text-default-300 dark:text-default-600 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-default-600 dark:text-default-400 mb-2">
+                  No Seats Available
+                </h3>
+                <p className="text-default-500 dark:text-default-500">
+                  This room doesn't have any seats configured yet.
+                </p>
+              </CardBody>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Enhanced Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        size="lg"
+        size="2xl"
         backdrop="blur"
+        hideCloseButton={true}
+        classNames={{
+          base: "bg-gradient-to-br from-white to-default-50 dark:from-default-900 dark:to-default-950",
+          backdrop: "bg-black/50 backdrop-blur-sm",
+        }}
       >
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-center">
-                <h2 className="text-2xl font-bold">
-                  Seat {selectedSeat?.label}
-                </h2>
-                <p className="text-sm text-default-500">Manage seat status</p>
+              <ModalHeader className="flex flex-col gap-1 text-center pb-2 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-950/50 dark:to-secondary-950/50 rounded-t-lg">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
+                    <svg
+                      className="w-6 h-6 text-primary-600 dark:text-primary-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-bold text-default-800 dark:text-default-200">
+                    Seat {selectedSeat?.label}
+                  </h2>
+                </div>
+                <p className="text-sm text-default-600 dark:text-default-400">
+                  Manage seat status and allocation
+                </p>
               </ModalHeader>
-              <ModalBody className="py-6">
-                {selectedSeat && (
-                  <div className="space-y-6">
-                    {/* Current Status Card */}
-                    <Card className="bg-default-50">
-                      <CardBody className="text-center py-4">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-default-600">
-                              Current Status:
-                            </span>
-                            <Chip
-                              color={
-                                selectedSeat.status === "Available"
-                                  ? "success"
-                                  : selectedSeat.status === "Allocated"
-                                  ? "default"
-                                  : "danger"
-                              }
-                              variant="flat"
-                              size="sm"
-                            >
-                              {selectedSeat.status}
-                            </Chip>
-                          </div>
-                          {selectedSeatStudent && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4 text-default-500"
-                                viewBox="0 0 20 20"
-                                fill="currentColor"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                              <span className="text-sm text-default-600">
-                                {selectedSeatStudent.name}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </CardBody>
-                    </Card>
 
-                    {/* Status Update Buttons */}
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-center">
+              <ModalBody className="py-8 px-8">
+                {selectedSeat && (
+                  <div className="space-y-8">
+                    {/* Current Status Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-default-700 dark:text-default-300">
+                        Current Status
+                      </h3>
+                      <Card className="bg-gradient-to-r from-default-50 to-white dark:from-default-900/60 dark:to-default-950/50 border border-default-200 dark:border-default-700">
+                        <CardBody className="py-6">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center ${
+                                  selectedSeat.status === "Available"
+                                    ? "bg-success-100 dark:bg-success-900/30 border-success-300 dark:border-success-600 text-success-600 dark:text-success-400"
+                                    : selectedSeat.status === "Allocated"
+                                    ? "bg-primary-100 dark:bg-primary-900/30 border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-400"
+                                    : "bg-danger-100 dark:bg-danger-900/30 border-danger-300 dark:border-danger-600 text-danger-600 dark:text-danger-400"
+                                }`}
+                              >
+                                {selectedSeat.status === "Available" && (
+                                  <svg
+                                    className="w-6 h-6"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                                {selectedSeat.status === "Allocated" && (
+                                  <svg
+                                    className="w-6 h-6"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                                {selectedSeat.status === "Broken" && (
+                                  <svg
+                                    className="w-6 h-6"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <div>
+                                <Chip
+                                  color={
+                                    selectedSeat.status === "Available"
+                                      ? "success"
+                                      : selectedSeat.status === "Allocated"
+                                      ? "primary"
+                                      : "danger"
+                                  }
+                                  variant="flat"
+                                  size="lg"
+                                  className="font-semibold"
+                                >
+                                  {selectedSeat.status}
+                                </Chip>
+                                {selectedSeatStudent && (
+                                  <p className="text-sm text-default-600 dark:text-default-400 mt-2 flex items-center gap-2">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                    {selectedSeatStudent.name}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            {selectedSeat.features.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {selectedSeat.features.map((feature) => (
+                                  <Chip
+                                    key={feature}
+                                    size="sm"
+                                    variant="bordered"
+                                    className="text-xs"
+                                  >
+                                    {feature}
+                                  </Chip>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </div>
+
+                    <Divider />
+
+                    {/* Status Update Section */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 text-default-700 dark:text-default-300">
                         Update Status
                       </h3>
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 gap-4">
                         <Button
                           color="success"
                           variant={
@@ -413,26 +658,35 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Available"
                           }
-                          className="h-12 text-medium"
+                          className="h-14 text-medium justify-start"
                           startContent={
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <div className="w-8 h-8 bg-success-100 dark:bg-success-900/30 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="h-5 w-5 text-success-600 dark:text-success-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
                           }
                         >
-                          Mark as Available
+                          <div className="text-left">
+                            <div className="font-semibold">
+                              Mark as Available
+                            </div>
+                            <div className="text-xs opacity-70">
+                              Ready for new allocation
+                            </div>
+                          </div>
                         </Button>
+
                         <Button
-                          color="default"
+                          color="primary"
                           variant={
                             selectedSeat.status === "Allocated"
                               ? "solid"
@@ -444,24 +698,33 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Allocated"
                           }
-                          className="h-12 text-medium"
+                          className="h-14 text-medium justify-start"
                           startContent={
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="h-5 w-5 text-primary-600 dark:text-primary-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
                           }
                         >
-                          Mark as Filled
+                          <div className="text-left">
+                            <div className="font-semibold">
+                              Mark as Occupied
+                            </div>
+                            <div className="text-xs opacity-70">
+                              Currently in use
+                            </div>
+                          </div>
                         </Button>
+
                         <Button
                           color="danger"
                           variant={
@@ -473,45 +736,84 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Broken"
                           }
-                          className="h-12 text-medium"
+                          className="h-14 text-medium justify-start"
                           startContent={
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <div className="w-8 h-8 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
+                              <svg
+                                className="h-5 w-5 text-danger-600 dark:text-danger-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
                           }
                         >
-                          Mark as Broken
+                          <div className="text-left">
+                            <div className="font-semibold">
+                              Mark as Out of Order
+                            </div>
+                            <div className="text-xs opacity-70">
+                              Needs maintenance
+                            </div>
+                          </div>
                         </Button>
                       </div>
                     </div>
 
                     {modalError && (
-                      <Card className="bg-danger-50 border-danger-200">
-                        <CardBody className="py-3">
-                          <p className="text-danger text-sm text-center">
-                            {modalError}
-                          </p>
+                      <Card className="bg-gradient-to-r from-danger-50 to-danger-100/50 dark:from-danger-950/50 dark:to-danger-950/40 border border-danger-200 dark:border-danger-800">
+                        <CardBody className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-danger-100 dark:bg-danger-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <svg
+                                className="w-5 h-5 text-danger-600 dark:text-danger-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <p className="text-danger-700 dark:text-danger-400 text-sm font-medium">
+                              {modalError}
+                            </p>
+                          </div>
                         </CardBody>
                       </Card>
                     )}
                   </div>
                 )}
               </ModalBody>
-              <ModalFooter className="justify-center">
+
+              <ModalFooter className="justify-center pt-4 pb-6">
                 <Button
                   color="default"
                   variant="light"
                   onPress={onClose}
-                  className="px-8"
+                  className="px-8 h-12"
+                  startContent={
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  }
                 >
                   Close
                 </Button>
