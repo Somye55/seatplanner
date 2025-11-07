@@ -249,7 +249,10 @@ const FloorsPage: React.FC = () => {
             className="max-w-xs"
           >
             {buildings.map((building) => (
-              <SelectItem key={building.id}>
+              <SelectItem
+                key={building.id}
+                textValue={`${building.name} (${building.code})`}
+              >
                 {building.name} ({building.code})
               </SelectItem>
             ))}
@@ -368,7 +371,10 @@ const FloorsPage: React.FC = () => {
                     isRequired
                   >
                     {buildings.map((building) => (
-                      <SelectItem key={building.id}>
+                      <SelectItem
+                        key={building.id}
+                        textValue={`${building.name} (${building.code})`}
+                      >
                         {building.name} ({building.code})
                       </SelectItem>
                     ))}
@@ -453,7 +459,10 @@ const FloorsPage: React.FC = () => {
                     isRequired
                   >
                     {buildings.map((building) => (
-                      <SelectItem key={building.id}>
+                      <SelectItem
+                        key={building.id}
+                        textValue={`${building.name} (${building.code})`}
+                      >
                         {building.name} ({building.code})
                       </SelectItem>
                     ))}

@@ -160,7 +160,9 @@ const AllocationModal: React.FC<{
                       isDisabled={loading || eligibleBranches.length === 0}
                     >
                       {eligibleBranches.map((b) => (
-                        <SelectItem key={b.id}>{b.label}</SelectItem>
+                        <SelectItem key={b.id} textValue={b.label}>
+                          {b.label}
+                        </SelectItem>
                       ))}
                     </Select>
                   )}
@@ -832,7 +834,10 @@ const RoomsPage: React.FC = () => {
                     className="md:col-span-2"
                   >
                     {floors.map((floor) => (
-                      <SelectItem key={floor.id}>
+                      <SelectItem
+                        key={floor.id}
+                        textValue={`${floor.name} (Floor ${floor.number})`}
+                      >
                         {floor.name} (Floor {floor.number})
                       </SelectItem>
                     ))}
@@ -948,7 +953,10 @@ const RoomsPage: React.FC = () => {
                     className="md:col-span-2"
                   >
                     {floors.map((floor) => (
-                      <SelectItem key={floor.id}>
+                      <SelectItem
+                        key={floor.id}
+                        textValue={`${floor.name} (Floor ${floor.number})`}
+                      >
                         {floor.name} (Floor {floor.number})
                       </SelectItem>
                     ))}

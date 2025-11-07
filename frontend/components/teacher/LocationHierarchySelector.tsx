@@ -107,7 +107,9 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
   }, [selectedBuildingId]);
 
   const handleBlockChange = (keys: any) => {
-    const blockId = Array.from(keys)[0] as string;
+    const keysArray = Array.from(keys);
+    const blockId = keysArray.length > 0 ? (keysArray[0] as string) : "";
+
     setSelectedBlockId(blockId);
     setSelectedBuildingId("");
     setSelectedFloorId("");
@@ -120,7 +122,9 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
   };
 
   const handleBuildingChange = (keys: any) => {
-    const buildingId = Array.from(keys)[0] as string;
+    const keysArray = Array.from(keys);
+    const buildingId = keysArray.length > 0 ? (keysArray[0] as string) : "";
+
     setSelectedBuildingId(buildingId);
     setSelectedFloorId("");
 
@@ -132,7 +136,9 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
   };
 
   const handleFloorChange = (keys: any) => {
-    const floorId = Array.from(keys)[0] as string;
+    const keysArray = Array.from(keys);
+    const floorId = keysArray.length > 0 ? (keysArray[0] as string) : "";
+
     setSelectedFloorId(floorId);
 
     onSelect({
@@ -147,14 +153,22 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
       <Select
         label="Preferred Block (Optional)"
         placeholder="Select a block"
-        selectedKeys={selectedBlockId ? new Set([selectedBlockId]) : new Set()}
+        selectionMode="single"
+        selectedKeys={
+          selectedBlockId && selectedBlockId !== ""
+            ? new Set([selectedBlockId])
+            : new Set()
+        }
         onSelectionChange={handleBlockChange}
         isLoading={loadingBlocks}
         variant="bordered"
         disallowEmptySelection={false}
       >
         {blocks.map((block) => (
-          <SelectItem key={block.id}>
+          <SelectItem
+            key={block.id}
+            textValue={`${block.name} (${block.code})`}
+          >
             {block.name} ({block.code})
           </SelectItem>
         ))}
@@ -164,8 +178,11 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
         <Select
           label="Preferred Building (Optional)"
           placeholder="Select a building"
+          selectionMode="single"
           selectedKeys={
-            selectedBuildingId ? new Set([selectedBuildingId]) : new Set()
+            selectedBuildingId && selectedBuildingId !== ""
+              ? new Set([selectedBuildingId])
+              : new Set()
           }
           onSelectionChange={handleBuildingChange}
           isLoading={loadingBuildings}
@@ -174,7 +191,10 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           disallowEmptySelection={false}
         >
           {buildings.map((building) => (
-            <SelectItem key={building.id}>
+            <SelectItem
+              key={building.id}
+              textValue={`${building.name} (${building.code})`}
+            >
               {building.name} ({building.code})
             </SelectItem>
           ))}
@@ -185,8 +205,11 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
         <Select
           label="Preferred Floor (Optional)"
           placeholder="Select a floor"
+          selectionMode="single"
           selectedKeys={
-            selectedFloorId ? new Set([selectedFloorId]) : new Set()
+            selectedFloorId && selectedFloorId !== ""
+              ? new Set([selectedFloorId])
+              : new Set()
           }
           onSelectionChange={handleFloorChange}
           isLoading={loadingFloors}
@@ -195,7 +218,10 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           disallowEmptySelection={false}
         >
           {floors.map((floor) => (
-            <SelectItem key={floor.id}>
+            <SelectItem
+              key={floor.id}
+              textValue={`${floor.name} (Floor ${floor.number})`}
+            >
               {floor.name} (Floor {floor.number})
             </SelectItem>
           ))}

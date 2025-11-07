@@ -344,7 +344,10 @@ const BuildingsPage: React.FC = () => {
                     isRequired
                   >
                     {blocks.map((block) => (
-                      <SelectItem key={block.id}>
+                      <SelectItem
+                        key={block.id}
+                        textValue={`${block.name} (${block.code})`}
+                      >
                         {block.name} ({block.code})
                       </SelectItem>
                     ))}
@@ -425,7 +428,10 @@ const BuildingsPage: React.FC = () => {
                     isRequired
                   >
                     {blocks.map((block) => (
-                      <SelectItem key={block.id}>
+                      <SelectItem
+                        key={block.id}
+                        textValue={`${block.name} (${block.code})`}
+                      >
                         {block.name} ({block.code})
                       </SelectItem>
                     ))}

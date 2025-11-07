@@ -161,7 +161,9 @@ const StudentForm: React.FC<{
         errorMessage={errors.branch}
       >
         {BRANCH_OPTIONS.map((b) => (
-          <SelectItem key={b.id}>{b.label}</SelectItem>
+          <SelectItem key={b.id} textValue={b.label}>
+            {b.label}
+          </SelectItem>
         ))}
       </Select>
       {student && (
