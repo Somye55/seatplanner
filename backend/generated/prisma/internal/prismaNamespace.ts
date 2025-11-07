@@ -1229,6 +1229,7 @@ export const TeacherScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  password: 'password',
   userId: 'userId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

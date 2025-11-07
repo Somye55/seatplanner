@@ -399,7 +399,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       : "/assets/hide-sidebar.svg"
                   }
                   alt={isCollapsed ? "Show sidebar" : "Hide sidebar"}
-                  className="w-5 h-5"
+                  className="w-5 h-5 dark:invert"
                 />
               </div>
             </Button>

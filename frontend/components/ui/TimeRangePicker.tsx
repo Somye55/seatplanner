@@ -126,6 +126,7 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
         variant="bordered"
         min={getMinDateTime()}
         isRequired={isRequired}
+        placeholder="Enter capacity"
       />
 
       <Input
@@ -138,6 +139,7 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
         variant="bordered"
         min={startTime || getMinDateTime()}
         isRequired={isRequired}
+        placeholder="Enter capacity"
       />
     </div>
   );

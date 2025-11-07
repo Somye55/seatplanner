@@ -102,6 +102,7 @@ export interface Teacher {
   id: string;
   name: string;
   email: string;
+  password: string;
   userId?: string;
   createdAt: string;
   updatedAt: string;
@@ -164,8 +165,9 @@ export interface SearchCriteria {
 
 export interface RoomRecommendation {
   room: Room & {
-    building: Building & { block: Block };
-    floor: Floor;
+    floor: Floor & {
+      building: Building & { block: Block };
+    };
   };
   distance: number;
   score: number;

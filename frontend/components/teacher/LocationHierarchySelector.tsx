@@ -38,6 +38,13 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
   const [loadingBuildings, setLoadingBuildings] = useState(false);
   const [loadingFloors, setLoadingFloors] = useState(false);
 
+  // Sync internal state with value prop changes
+  useEffect(() => {
+    setSelectedBlockId(value?.blockId || "");
+    setSelectedBuildingId(value?.buildingId || "");
+    setSelectedFloorId(value?.floorId || "");
+  }, [value?.blockId, value?.buildingId, value?.floorId]);
+
   // Load blocks on mount
   useEffect(() => {
     const loadBlocks = async () => {
@@ -144,6 +151,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
         onSelectionChange={handleBlockChange}
         isLoading={loadingBlocks}
         variant="bordered"
+        disallowEmptySelection={false}
       >
         {blocks.map((block) => (
           <SelectItem key={block.id}>
@@ -152,7 +160,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
         ))}
       </Select>
 
-      {selectedBlockId && (
+      {(selectedBlockId || buildings.length > 0) && (
         <Select
           label="Preferred Building (Optional)"
           placeholder="Select a building"
@@ -163,6 +171,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           isLoading={loadingBuildings}
           isDisabled={!selectedBlockId || buildings.length === 0}
           variant="bordered"
+          disallowEmptySelection={false}
         >
           {buildings.map((building) => (
             <SelectItem key={building.id}>
@@ -172,7 +181,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
         </Select>
       )}
 
-      {selectedBuildingId && (
+      {(selectedBuildingId || floors.length > 0) && (
         <Select
           label="Preferred Floor (Optional)"
           placeholder="Select a floor"
@@ -183,6 +192,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           isLoading={loadingFloors}
           isDisabled={!selectedBuildingId || floors.length === 0}
           variant="bordered"
+          disallowEmptySelection={false}
         >
           {floors.map((floor) => (
             <SelectItem key={floor.id}>

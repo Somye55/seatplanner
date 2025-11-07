@@ -417,9 +417,9 @@ export type FloorSumOrderByAggregateInput = {
   distance?: Prisma.SortOrder
 }
 
-export type FloorNullableScalarRelationFilter = {
-  is?: Prisma.FloorWhereInput | null
-  isNot?: Prisma.FloorWhereInput | null
+export type FloorScalarRelationFilter = {
+  is?: Prisma.FloorWhereInput
+  isNot?: Prisma.FloorWhereInput
 }
 
 export type FloorCreateNestedManyWithoutBuildingInput = {
@@ -478,12 +478,10 @@ export type FloorCreateNestedOneWithoutRoomsInput = {
   connect?: Prisma.FloorWhereUniqueInput
 }
 
-export type FloorUpdateOneWithoutRoomsNestedInput = {
+export type FloorUpdateOneRequiredWithoutRoomsNestedInput = {
   create?: Prisma.XOR<Prisma.FloorCreateWithoutRoomsInput, Prisma.FloorUncheckedCreateWithoutRoomsInput>
   connectOrCreate?: Prisma.FloorCreateOrConnectWithoutRoomsInput
   upsert?: Prisma.FloorUpsertWithoutRoomsInput
-  disconnect?: Prisma.FloorWhereInput | boolean
-  delete?: Prisma.FloorWhereInput | boolean
   connect?: Prisma.FloorWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.FloorUpdateToOneWithWhereWithoutRoomsInput, Prisma.FloorUpdateWithoutRoomsInput>, Prisma.FloorUncheckedUpdateWithoutRoomsInput>
 }

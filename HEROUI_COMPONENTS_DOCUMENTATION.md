@@ -1,11 +1,13 @@
 # HeroUI Components Implementation Documentation
 
 ## Overview
+
 This document tracks all HeroUI components used in the SeatPlanner application UI rework.
 
 ## Components Implemented
 
 ### Core UI Components (Required)
+
 - [x] **Sidebar** - Replaced navbar with collapsible sidebar navigation (Layout.tsx)
 - [x] **Tooltip** - Added tooltips for seats and interactive elements (SeatMapPage, RoomsPage)
 - [x] **Card** - Used for buildings, rooms, and content containers (All pages)
@@ -20,6 +22,7 @@ This document tracks all HeroUI components used in the SeatPlanner application U
 - [x] **Checkbox** - Accessibility needs and feature selections (LoginPage, StudentsPage, SeatMapPage)
 
 ### Additional Components (Added by AI)
+
 - [x] **Switch** - Dark mode toggle in sidebar (Layout.tsx)
 - [x] **Divider** - Visual separation in sidebar layout (Layout.tsx)
 - [x] **Spinner** - Loading indicators for async operations (All pages)
@@ -30,14 +33,17 @@ This document tracks all HeroUI components used in the SeatPlanner application U
 - [x] **TableHeader/TableBody/TableColumn/TableRow/TableCell** - Structured table layouts (StudentsPage)
 - [x] **Tabs/Tab** - Login/Signup toggle (LoginPage)
 - [x] **BreadcrumbItem** - Individual breadcrumb items (Layout.tsx)
+- [x] **Toast/ToastProvider** - Notification system (App.tsx, utils/toast.ts)
 
 ## Theme Configuration
+
 - **Dark Mode**: Implemented with ThemeProvider and Switch toggle in sidebar
 - **Custom Colors**: Maintained original color scheme (primary, secondary, accent, danger)
 - **Responsive Design**: Mobile-first approach with HeroUI's built-in breakpoints
 - **Persistence**: Theme preference saved to localStorage
 
 ## File Structure
+
 ```
 frontend/
 ├── App.tsx (✅ Updated with HeroUIProvider and ThemeProvider)
@@ -60,6 +66,7 @@ frontend/
 ## Key Features Implemented
 
 ### 1. Collapsible Sidebar Navigation
+
 - **Location**: Layout.tsx
 - **Features**:
   - Collapse/expand toggle button
@@ -70,6 +77,7 @@ frontend/
   - Dark mode toggle integrated
 
 ### 2. Dark Mode Support
+
 - **Location**: ThemeProvider.tsx, Layout.tsx
 - **Features**:
   - System-wide theme toggle
@@ -78,6 +86,7 @@ frontend/
   - All components styled for both modes
 
 ### 3. Tooltips
+
 - **Locations**: SeatMapPage (seats), RoomsPage (booked icon)
 - **Features**:
   - Hover information on seats
@@ -86,6 +95,7 @@ frontend/
   - Delay for better UX
 
 ### 4. Breadcrumbs
+
 - **Location**: Layout.tsx
 - **Features**:
   - Dynamic path generation
@@ -93,6 +103,7 @@ frontend/
   - Shows current location hierarchy
 
 ### 5. Chips for Tags
+
 - **Locations**: StudentsPage (accessibility needs, tags), RoomsPage (branch allocation), SeatMapPage (status legend)
 - **Features**:
   - Color-coded by type
@@ -100,6 +111,7 @@ frontend/
   - Variant options (flat, solid)
 
 ### 6. Skeleton Loaders
+
 - **Locations**: BuildingsPage, RoomsPage
 - **Features**:
   - Match component dimensions
@@ -107,6 +119,7 @@ frontend/
   - Multiple skeleton cards for lists
 
 ### 7. Modals
+
 - **Locations**: All pages
 - **Features**:
   - Create/Edit buildings (BuildingsPage)
@@ -118,6 +131,7 @@ frontend/
   - Structured with Header/Body/Footer
 
 ### 8. Table Component
+
 - **Location**: StudentsPage
 - **Features**:
   - Structured layout with Header/Body
@@ -127,6 +141,7 @@ frontend/
   - Responsive design
 
 ### 9. Form Components
+
 - **Locations**: All pages with forms
 - **Components Used**:
   - Input (text, email, number, password)
@@ -139,7 +154,29 @@ frontend/
   - Loading states
   - Bordered variant for consistency
 
+### 10. Toast Notifications
+
+- **Location**: App.tsx (provider), utils/toast.ts (utility functions)
+- **Features**:
+  - Success, error, warning, and info toast types
+  - Auto-dismiss with configurable timeout (4-5 seconds)
+  - Top-right placement
+  - Severity-based styling (success, danger, warning, primary)
+  - Title and description support
+  - Uses HeroUI's built-in toast system (replaced custom implementation)
+- **Usage**:
+
+  ```typescript
+  import { toast } from "../utils/toast";
+
+  toast.success("Success!", "Operation completed");
+  toast.error("Error!", "Something went wrong");
+  toast.warning("Warning!", "Please check this");
+  toast.info("Info", "Here's some information");
+  ```
+
 ## Preserved Functionality
+
 ✅ All conditional rendering logic maintained
 ✅ All data values and component visibility preserved
 ✅ No business logic modified
@@ -149,11 +186,13 @@ frontend/
 ✅ Optimistic concurrency control preserved
 
 ## Responsive Design
+
 - **Mobile**: Sidebar collapses, cards stack vertically, table scrolls horizontally
 - **Tablet**: 2-column grid for cards, sidebar remains visible
 - **Desktop**: 3-column grid for cards, full sidebar with labels
 
 ## Accessibility Features
+
 - ARIA labels on interactive elements
 - Keyboard navigation support
 - Focus states on all interactive components
@@ -161,15 +200,18 @@ frontend/
 - Color contrast compliance
 
 ## Installation
+
 ```bash
 npm install @heroui/react framer-motion
 ```
 
 ## Dependencies Added
+
 - @heroui/react - Main UI component library
 - framer-motion - Animation library (required by HeroUI)
 
 ## Notes
+
 - HeroUI is the successor to NextUI (deprecated packages were uninstalled)
 - All components use HeroUI's built-in dark mode support
 - Tailwind CSS configuration already includes HeroUI plugin

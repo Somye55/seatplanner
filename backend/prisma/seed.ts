@@ -75,7 +75,13 @@ async function main() {
 
   // Create Floors
   console.log("Seeding floors...");
-  const floors = [];
+  const floors: Array<{
+    id: string;
+    buildingId: string;
+    name: string;
+    number: number;
+    distance: number;
+  }> = [];
 
   // SEH - 3 floors
   for (let i = 1; i <= 3; i++) {
@@ -317,6 +323,7 @@ async function main() {
     const createdTeacher = await prisma.teacher.create({
       data: {
         ...teacher,
+        password: "teacher123",
         userId: userId,
       },
     });

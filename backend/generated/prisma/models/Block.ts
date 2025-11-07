@@ -377,9 +377,9 @@ export type BlockSumOrderByAggregateInput = {
   distance?: Prisma.SortOrder
 }
 
-export type BlockNullableScalarRelationFilter = {
-  is?: Prisma.BlockWhereInput | null
-  isNot?: Prisma.BlockWhereInput | null
+export type BlockScalarRelationFilter = {
+  is?: Prisma.BlockWhereInput
+  isNot?: Prisma.BlockWhereInput
 }
 
 export type FloatFieldUpdateOperationsInput = {
@@ -396,12 +396,10 @@ export type BlockCreateNestedOneWithoutBuildingsInput = {
   connect?: Prisma.BlockWhereUniqueInput
 }
 
-export type BlockUpdateOneWithoutBuildingsNestedInput = {
+export type BlockUpdateOneRequiredWithoutBuildingsNestedInput = {
   create?: Prisma.XOR<Prisma.BlockCreateWithoutBuildingsInput, Prisma.BlockUncheckedCreateWithoutBuildingsInput>
   connectOrCreate?: Prisma.BlockCreateOrConnectWithoutBuildingsInput
   upsert?: Prisma.BlockUpsertWithoutBuildingsInput
-  disconnect?: Prisma.BlockWhereInput | boolean
-  delete?: Prisma.BlockWhereInput | boolean
   connect?: Prisma.BlockWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.BlockUpdateToOneWithWhereWithoutBuildingsInput, Prisma.BlockUpdateWithoutBuildingsInput>, Prisma.BlockUncheckedUpdateWithoutBuildingsInput>
 }

@@ -239,12 +239,17 @@ const FloorsPage: React.FC = () => {
           <Select
             label="Filter by Building"
             variant="bordered"
-            selectedKeys={selectedBuildingId ? [selectedBuildingId] : []}
-            onChange={(e) => setSelectedBuildingId(e.target.value)}
+            selectedKeys={
+              selectedBuildingId ? new Set([selectedBuildingId]) : new Set()
+            }
+            onSelectionChange={(keys) => {
+              const selectedKey = Array.from(keys)[0] as string;
+              setSelectedBuildingId(selectedKey || "");
+            }}
             className="max-w-xs"
           >
             {buildings.map((building) => (
-              <SelectItem key={building.id} value={building.id}>
+              <SelectItem key={building.id}>
                 {building.name} ({building.code})
               </SelectItem>
             ))}
@@ -349,15 +354,21 @@ const FloorsPage: React.FC = () => {
                     label="Building"
                     variant="bordered"
                     selectedKeys={
-                      newFloor.buildingId ? [newFloor.buildingId] : []
+                      newFloor.buildingId
+                        ? new Set([newFloor.buildingId])
+                        : new Set()
                     }
-                    onChange={(e) =>
-                      setNewFloor({ ...newFloor, buildingId: e.target.value })
-                    }
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
+                      setNewFloor({
+                        ...newFloor,
+                        buildingId: selectedKey || "",
+                      });
+                    }}
                     isRequired
                   >
                     {buildings.map((building) => (
-                      <SelectItem key={building.id} value={building.id}>
+                      <SelectItem key={building.id}>
                         {building.name} ({building.code})
                       </SelectItem>
                     ))}
@@ -428,15 +439,21 @@ const FloorsPage: React.FC = () => {
                     label="Building"
                     variant="bordered"
                     selectedKeys={
-                      editFloor.buildingId ? [editFloor.buildingId] : []
+                      editFloor.buildingId
+                        ? new Set([editFloor.buildingId])
+                        : new Set()
                     }
-                    onChange={(e) =>
-                      setEditFloor({ ...editFloor, buildingId: e.target.value })
-                    }
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
+                      setEditFloor({
+                        ...editFloor,
+                        buildingId: selectedKey || "",
+                      });
+                    }}
                     isRequired
                   >
                     {buildings.map((building) => (
-                      <SelectItem key={building.id} value={building.id}>
+                      <SelectItem key={building.id}>
                         {building.name} ({building.code})
                       </SelectItem>
                     ))}

@@ -194,7 +194,7 @@ export type BuildingGroupByOutputType = {
   id: string
   name: string
   code: string
-  blockId: string | null
+  blockId: string
   distance: number
   createdAt: Date
   updatedAt: Date
@@ -227,11 +227,11 @@ export type BuildingWhereInput = {
   id?: Prisma.StringFilter<"Building"> | string
   name?: Prisma.StringFilter<"Building"> | string
   code?: Prisma.StringFilter<"Building"> | string
-  blockId?: Prisma.StringNullableFilter<"Building"> | string | null
+  blockId?: Prisma.StringFilter<"Building"> | string
   distance?: Prisma.FloatFilter<"Building"> | number
   createdAt?: Prisma.DateTimeFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Building"> | Date | string
-  block?: Prisma.XOR<Prisma.BlockNullableScalarRelationFilter, Prisma.BlockWhereInput> | null
+  block?: Prisma.XOR<Prisma.BlockScalarRelationFilter, Prisma.BlockWhereInput>
   floors?: Prisma.FloorListRelationFilter
   rooms?: Prisma.RoomListRelationFilter
 }
@@ -240,7 +240,7 @@ export type BuildingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  blockId?: Prisma.SortOrderInput | Prisma.SortOrder
+  blockId?: Prisma.SortOrder
   distance?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -256,11 +256,11 @@ export type BuildingWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.BuildingWhereInput[]
   NOT?: Prisma.BuildingWhereInput | Prisma.BuildingWhereInput[]
   name?: Prisma.StringFilter<"Building"> | string
-  blockId?: Prisma.StringNullableFilter<"Building"> | string | null
+  blockId?: Prisma.StringFilter<"Building"> | string
   distance?: Prisma.FloatFilter<"Building"> | number
   createdAt?: Prisma.DateTimeFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Building"> | Date | string
-  block?: Prisma.XOR<Prisma.BlockNullableScalarRelationFilter, Prisma.BlockWhereInput> | null
+  block?: Prisma.XOR<Prisma.BlockScalarRelationFilter, Prisma.BlockWhereInput>
   floors?: Prisma.FloorListRelationFilter
   rooms?: Prisma.RoomListRelationFilter
 }, "id" | "code">
@@ -269,7 +269,7 @@ export type BuildingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  blockId?: Prisma.SortOrderInput | Prisma.SortOrder
+  blockId?: Prisma.SortOrder
   distance?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -287,7 +287,7 @@ export type BuildingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Building"> | string
   name?: Prisma.StringWithAggregatesFilter<"Building"> | string
   code?: Prisma.StringWithAggregatesFilter<"Building"> | string
-  blockId?: Prisma.StringNullableWithAggregatesFilter<"Building"> | string | null
+  blockId?: Prisma.StringWithAggregatesFilter<"Building"> | string
   distance?: Prisma.FloatWithAggregatesFilter<"Building"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Building"> | Date | string
@@ -300,7 +300,7 @@ export type BuildingCreateInput = {
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  block?: Prisma.BlockCreateNestedOneWithoutBuildingsInput
+  block: Prisma.BlockCreateNestedOneWithoutBuildingsInput
   floors?: Prisma.FloorCreateNestedManyWithoutBuildingInput
   rooms?: Prisma.RoomCreateNestedManyWithoutBuildingInput
 }
@@ -309,7 +309,7 @@ export type BuildingUncheckedCreateInput = {
   id?: string
   name: string
   code: string
-  blockId?: string | null
+  blockId: string
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -324,7 +324,7 @@ export type BuildingUpdateInput = {
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  block?: Prisma.BlockUpdateOneWithoutBuildingsNestedInput
+  block?: Prisma.BlockUpdateOneRequiredWithoutBuildingsNestedInput
   floors?: Prisma.FloorUpdateManyWithoutBuildingNestedInput
   rooms?: Prisma.RoomUpdateManyWithoutBuildingNestedInput
 }
@@ -333,7 +333,7 @@ export type BuildingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  blockId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blockId?: Prisma.StringFieldUpdateOperationsInput | string
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -345,7 +345,7 @@ export type BuildingCreateManyInput = {
   id?: string
   name: string
   code: string
-  blockId?: string | null
+  blockId: string
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -364,7 +364,7 @@ export type BuildingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  blockId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blockId?: Prisma.StringFieldUpdateOperationsInput | string
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -548,7 +548,7 @@ export type BuildingScalarWhereInput = {
   id?: Prisma.StringFilter<"Building"> | string
   name?: Prisma.StringFilter<"Building"> | string
   code?: Prisma.StringFilter<"Building"> | string
-  blockId?: Prisma.StringNullableFilter<"Building"> | string | null
+  blockId?: Prisma.StringFilter<"Building"> | string
   distance?: Prisma.FloatFilter<"Building"> | number
   createdAt?: Prisma.DateTimeFilter<"Building"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Building"> | Date | string
@@ -561,7 +561,7 @@ export type BuildingCreateWithoutFloorsInput = {
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  block?: Prisma.BlockCreateNestedOneWithoutBuildingsInput
+  block: Prisma.BlockCreateNestedOneWithoutBuildingsInput
   rooms?: Prisma.RoomCreateNestedManyWithoutBuildingInput
 }
 
@@ -569,7 +569,7 @@ export type BuildingUncheckedCreateWithoutFloorsInput = {
   id?: string
   name: string
   code: string
-  blockId?: string | null
+  blockId: string
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -599,7 +599,7 @@ export type BuildingUpdateWithoutFloorsInput = {
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  block?: Prisma.BlockUpdateOneWithoutBuildingsNestedInput
+  block?: Prisma.BlockUpdateOneRequiredWithoutBuildingsNestedInput
   rooms?: Prisma.RoomUpdateManyWithoutBuildingNestedInput
 }
 
@@ -607,7 +607,7 @@ export type BuildingUncheckedUpdateWithoutFloorsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  blockId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blockId?: Prisma.StringFieldUpdateOperationsInput | string
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -621,7 +621,7 @@ export type BuildingCreateWithoutRoomsInput = {
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
-  block?: Prisma.BlockCreateNestedOneWithoutBuildingsInput
+  block: Prisma.BlockCreateNestedOneWithoutBuildingsInput
   floors?: Prisma.FloorCreateNestedManyWithoutBuildingInput
 }
 
@@ -629,7 +629,7 @@ export type BuildingUncheckedCreateWithoutRoomsInput = {
   id?: string
   name: string
   code: string
-  blockId?: string | null
+  blockId: string
   distance?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -659,7 +659,7 @@ export type BuildingUpdateWithoutRoomsInput = {
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  block?: Prisma.BlockUpdateOneWithoutBuildingsNestedInput
+  block?: Prisma.BlockUpdateOneRequiredWithoutBuildingsNestedInput
   floors?: Prisma.FloorUpdateManyWithoutBuildingNestedInput
 }
 
@@ -667,7 +667,7 @@ export type BuildingUncheckedUpdateWithoutRoomsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  blockId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  blockId?: Prisma.StringFieldUpdateOperationsInput | string
   distance?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -762,7 +762,7 @@ export type BuildingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   distance?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
   floors?: boolean | Prisma.Building$floorsArgs<ExtArgs>
   rooms?: boolean | Prisma.Building$roomsArgs<ExtArgs>
   _count?: boolean | Prisma.BuildingCountOutputTypeDefaultArgs<ExtArgs>
@@ -776,7 +776,7 @@ export type BuildingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   distance?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["building"]>
 
 export type BuildingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -787,7 +787,7 @@ export type BuildingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   distance?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["building"]>
 
 export type BuildingSelectScalar = {
@@ -802,22 +802,22 @@ export type BuildingSelectScalar = {
 
 export type BuildingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "code" | "blockId" | "distance" | "createdAt" | "updatedAt", ExtArgs["result"]["building"]>
 export type BuildingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
   floors?: boolean | Prisma.Building$floorsArgs<ExtArgs>
   rooms?: boolean | Prisma.Building$roomsArgs<ExtArgs>
   _count?: boolean | Prisma.BuildingCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type BuildingIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
 }
 export type BuildingIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  block?: boolean | Prisma.Building$blockArgs<ExtArgs>
+  block?: boolean | Prisma.BlockDefaultArgs<ExtArgs>
 }
 
 export type $BuildingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Building"
   objects: {
-    block: Prisma.$BlockPayload<ExtArgs> | null
+    block: Prisma.$BlockPayload<ExtArgs>
     floors: Prisma.$FloorPayload<ExtArgs>[]
     rooms: Prisma.$RoomPayload<ExtArgs>[]
   }
@@ -825,7 +825,7 @@ export type $BuildingPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     id: string
     name: string
     code: string
-    blockId: string | null
+    blockId: string
     distance: number
     createdAt: Date
     updatedAt: Date
@@ -1223,7 +1223,7 @@ readonly fields: BuildingFieldRefs;
  */
 export interface Prisma__BuildingClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  block<T extends Prisma.Building$blockArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$blockArgs<ExtArgs>>): Prisma.Prisma__BlockClient<runtime.Types.Result.GetResult<Prisma.$BlockPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  block<T extends Prisma.BlockDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.BlockDefaultArgs<ExtArgs>>): Prisma.Prisma__BlockClient<runtime.Types.Result.GetResult<Prisma.$BlockPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   floors<T extends Prisma.Building$floorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$floorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FloorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   rooms<T extends Prisma.Building$roomsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Building$roomsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RoomPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1655,25 +1655,6 @@ export type BuildingDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Limit how many Buildings to delete.
    */
   limit?: number
-}
-
-/**
- * Building.block
- */
-export type Building$blockArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Block
-   */
-  select?: Prisma.BlockSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Block
-   */
-  omit?: Prisma.BlockOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.BlockInclude<ExtArgs> | null
-  where?: Prisma.BlockWhereInput
 }
 
 /**

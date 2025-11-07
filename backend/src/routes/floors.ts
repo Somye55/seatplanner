@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { param, body, query, validationResult } from "express-validator";
 import { PrismaClient } from "../../generated/prisma/client";
 import { cacheMiddleware, invalidateCache } from "../middleware/cache";
-import { authenticateToken, requireAdmin } from "./auth";
+import { authenticateToken, requireAdmin, requireAdminOrTeacher } from "./auth";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -10,7 +10,11 @@ const prisma = new PrismaClient();
 // GET /api/locations/floors -> list floors (with optional buildingId filter)
 router.get(
   "/",
-  [authenticateToken, requireAdmin, query("buildingId").optional().isString()],
+  [
+    authenticateToken,
+    requireAdminOrTeacher,
+    query("buildingId").optional().isString(),
+  ],
   cacheMiddleware("floors"),
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -98,12 +102,10 @@ router.post(
       });
 
       if (!building) {
-        return res
-          .status(400)
-          .json({
-            error: "Invalid parent location in hierarchy",
-            message: "Building not found",
-          });
+        return res.status(400).json({
+          error: "Invalid parent location in hierarchy",
+          message: "Building not found",
+        });
       }
 
       const floor = await prisma.floor.create({
@@ -178,12 +180,10 @@ router.put(
           where: { id: buildingId },
         });
         if (!building) {
-          return res
-            .status(400)
-            .json({
-              error: "Invalid parent location in hierarchy",
-              message: "Building not found",
-            });
+          return res.status(400).json({
+            error: "Invalid parent location in hierarchy",
+            message: "Building not found",
+          });
         }
       }
 

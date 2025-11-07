@@ -150,10 +150,13 @@ const AllocationModal: React.FC<{
                     <Select
                       label="Club / Branch"
                       variant="bordered"
-                      selectedKeys={selectedBranch ? [selectedBranch] : []}
-                      onChange={(e) =>
-                        setSelectedBranch(e.target.value as Branch)
+                      selectedKeys={
+                        selectedBranch ? new Set([selectedBranch]) : new Set()
                       }
+                      onSelectionChange={(keys) => {
+                        const selectedKey = Array.from(keys)[0] as Branch;
+                        setSelectedBranch(selectedKey || "");
+                      }}
                       isDisabled={loading || eligibleBranches.length === 0}
                     >
                       {eligibleBranches.map((b) => (
@@ -818,10 +821,13 @@ const RoomsPage: React.FC = () => {
                   <Select
                     label="Floor"
                     variant="bordered"
-                    selectedKeys={newRoom.floorId ? [newRoom.floorId] : []}
-                    onChange={(e) =>
-                      setNewRoom({ ...newRoom, floorId: e.target.value })
+                    selectedKeys={
+                      newRoom.floorId ? new Set([newRoom.floorId]) : new Set()
                     }
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
+                      setNewRoom({ ...newRoom, floorId: selectedKey || "" });
+                    }}
                     isRequired
                     className="md:col-span-2"
                   >
@@ -931,10 +937,13 @@ const RoomsPage: React.FC = () => {
                   <Select
                     label="Floor"
                     variant="bordered"
-                    selectedKeys={editRoom.floorId ? [editRoom.floorId] : []}
-                    onChange={(e) =>
-                      setEditRoom({ ...editRoom, floorId: e.target.value })
+                    selectedKeys={
+                      editRoom.floorId ? new Set([editRoom.floorId]) : new Set()
                     }
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
+                      setEditRoom({ ...editRoom, floorId: selectedKey || "" });
+                    }}
                     isRequired
                     className="md:col-span-2"
                   >

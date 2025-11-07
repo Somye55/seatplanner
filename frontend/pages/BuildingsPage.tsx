@@ -330,14 +330,17 @@ const BuildingsPage: React.FC = () => {
                     label="Block"
                     variant="bordered"
                     selectedKeys={
-                      newBuilding.blockId ? [newBuilding.blockId] : []
+                      newBuilding.blockId
+                        ? new Set([newBuilding.blockId])
+                        : new Set()
                     }
-                    onChange={(e) =>
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
                       setNewBuilding({
                         ...newBuilding,
-                        blockId: e.target.value,
-                      })
-                    }
+                        blockId: selectedKey || "",
+                      });
+                    }}
                     isRequired
                   >
                     {blocks.map((block) => (
@@ -408,14 +411,17 @@ const BuildingsPage: React.FC = () => {
                     label="Block"
                     variant="bordered"
                     selectedKeys={
-                      editBuilding.blockId ? [editBuilding.blockId] : []
+                      editBuilding.blockId
+                        ? new Set([editBuilding.blockId])
+                        : new Set()
                     }
-                    onChange={(e) =>
+                    onSelectionChange={(keys) => {
+                      const selectedKey = Array.from(keys)[0] as string;
                       setEditBuilding({
                         ...editBuilding,
-                        blockId: e.target.value,
-                      })
-                    }
+                        blockId: selectedKey || "",
+                      });
+                    }}
                     isRequired
                   >
                     {blocks.map((block) => (

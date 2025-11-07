@@ -37,6 +37,7 @@ const TeacherForm: React.FC<TeacherFormProps> = ({
   const [name, setName] = useState(teacher?.name || "");
   const [email, setEmail] = useState(teacher?.email || "");
   const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [errors, setErrors] = useState<{
     name?: string;
     email?: string;
@@ -117,7 +118,7 @@ const TeacherForm: React.FC<TeacherFormProps> = ({
       />
       <Input
         label="Password"
-        type="password"
+        type={isPasswordVisible ? "text" : "password"}
         variant="bordered"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -128,6 +129,49 @@ const TeacherForm: React.FC<TeacherFormProps> = ({
           teacher
             ? "Leave blank to keep current password"
             : "Minimum 6 characters"
+        }
+        endContent={
+          <button
+            className="focus:outline-none"
+            type="button"
+            onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+          >
+            {isPasswordVisible ? (
+              <svg
+                className="w-5 h-5 text-default-400 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="w-5 h-5 text-default-400 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+              </svg>
+            )}
+          </button>
         }
       />
       <div className="flex justify-end gap-2 pt-4">
@@ -141,6 +185,61 @@ const TeacherForm: React.FC<TeacherFormProps> = ({
         )}
       </div>
     </form>
+  );
+};
+
+const PasswordCell: React.FC<{ password: string }> = ({ password }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-mono text-sm inline-block min-w-[100px]">
+        {isVisible ? password : "••••••••"}
+      </span>
+      <Button
+        isIconOnly
+        size="sm"
+        variant="light"
+        onPress={() => setIsVisible(!isVisible)}
+        className="min-w-unit-8 w-8 h-8 flex-shrink-0"
+      >
+        {isVisible ? (
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+            />
+          </svg>
+        ) : (
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+          </svg>
+        )}
+      </Button>
+    </div>
   );
 };
 
@@ -286,6 +385,7 @@ const FacultyManagementPage: React.FC = () => {
         <TableHeader>
           <TableColumn>NAME</TableColumn>
           <TableColumn>EMAIL</TableColumn>
+          <TableColumn>PASSWORD</TableColumn>
           <TableColumn align="end">ACTIONS</TableColumn>
         </TableHeader>
         <TableBody>
@@ -293,6 +393,9 @@ const FacultyManagementPage: React.FC = () => {
             <TableRow key={teacher.id}>
               <TableCell className="font-medium">{teacher.name}</TableCell>
               <TableCell>{teacher.email}</TableCell>
+              <TableCell>
+                <PasswordCell password={teacher.password} />
+              </TableCell>
               <TableCell>
                 <div className="flex gap-2 justify-end">
                   <Button

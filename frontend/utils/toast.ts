@@ -1,58 +1,44 @@
-// Toast utility - uses the custom ToastProvider
-// Import useToast from components/ui/Toast in components
-
-let toastFunction:
-  | ((
-      message: string,
-      type: "success" | "error" | "warning" | "info",
-      description?: string
-    ) => void)
-  | null = null;
-
-export const setToastFunction = (
-  fn: (
-    message: string,
-    type: "success" | "error" | "warning" | "info",
-    description?: string
-  ) => void
-) => {
-  toastFunction = fn;
-};
+// Toast utility - uses HeroUI's ToastProvider
+import { addToast } from "@heroui/react";
 
 /**
- * Toast utility for displaying notifications
+ * Toast utility for displaying notifications using HeroUI
  */
 export const toast = {
   success: (message: string, description?: string) => {
-    if (toastFunction) {
-      toastFunction(message, "success", description);
-    } else {
-      console.log("✓ Success:", message, description);
-    }
+    addToast({
+      title: message,
+      description,
+      severity: "success",
+      timeout: 4000,
+    });
   },
 
   error: (message: string, description?: string) => {
-    if (toastFunction) {
-      toastFunction(message, "error", description);
-    } else {
-      console.error("✗ Error:", message, description);
-    }
+    addToast({
+      title: message,
+      description,
+      severity: "danger",
+      timeout: 5000,
+    });
   },
 
   warning: (message: string, description?: string) => {
-    if (toastFunction) {
-      toastFunction(message, "warning", description);
-    } else {
-      console.warn("⚠ Warning:", message, description);
-    }
+    addToast({
+      title: message,
+      description,
+      severity: "warning",
+      timeout: 4000,
+    });
   },
 
   info: (message: string, description?: string) => {
-    if (toastFunction) {
-      toastFunction(message, "info", description);
-    } else {
-      console.info("ℹ Info:", message, description);
-    }
+    addToast({
+      title: message,
+      description,
+      severity: "primary",
+      timeout: 4000,
+    });
   },
 };
 

@@ -154,6 +154,7 @@ router.post(
           data: {
             name,
             email,
+            password,
             userId: newUser.id,
           },
           include: {
@@ -239,6 +240,7 @@ router.put(
       if (password) {
         const hashedPassword = await bcrypt.hash(password, 10);
         userUpdateData.password = hashedPassword;
+        teacherUpdateData.password = password;
       }
 
       // Update both teacher and user in a transaction

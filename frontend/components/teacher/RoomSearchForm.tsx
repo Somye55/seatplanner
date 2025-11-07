@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Input, Select, SelectItem, Button } from "@heroui/react";
 import LocationHierarchySelector from "./LocationHierarchySelector";
+import TimeRangePicker from "../ui/TimeRangePicker";
 import { SearchCriteria, Branch, BRANCH_OPTIONS } from "../../types";
 
 interface RoomSearchFormProps {
@@ -98,13 +99,6 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
     setBranch(selectedBranch);
   };
 
-  // Get minimum datetime for input (current time)
-  const getMinDateTime = () => {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + 5); // Add 5 minutes buffer
-    return now.toISOString().slice(0, 16);
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,33 +134,16 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Start Time Input */}
-        <Input
-          label="Start Time"
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          isInvalid={!!errors.startTime}
-          errorMessage={errors.startTime}
-          variant="bordered"
-          min={getMinDateTime()}
-          isRequired
-        />
-
-        {/* End Time Input */}
-        <Input
-          label="End Time"
-          type="datetime-local"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          isInvalid={!!errors.endTime}
-          errorMessage={errors.endTime}
-          variant="bordered"
-          min={startTime || getMinDateTime()}
-          isRequired
-        />
-      </div>
+      {/* Time Range Picker */}
+      <TimeRangePicker
+        startTime={startTime}
+        endTime={endTime}
+        onStartTimeChange={setStartTime}
+        onEndTimeChange={setEndTime}
+        startError={errors.startTime}
+        endError={errors.endTime}
+        isRequired
+      />
 
       {/* Location Hierarchy Selector */}
       <div className="border-2 border-dashed border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">

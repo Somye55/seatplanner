@@ -95,11 +95,11 @@ const RoomRecommendationCard: React.FC<RoomRecommendationCardProps> = ({
             <p className="text-xs font-semibold text-default-600">Location:</p>
             <div className="flex flex-wrap gap-1 text-xs text-default-500">
               <span className="bg-default-100 px-2 py-1 rounded">
-                {room.building.block.name}
+                {room.floor.building.block.name}
               </span>
               <span>→</span>
               <span className="bg-default-100 px-2 py-1 rounded">
-                {room.building.name}
+                {room.floor.building.name}
               </span>
               <span>→</span>
               <span className="bg-default-100 px-2 py-1 rounded">
@@ -159,8 +159,8 @@ const RoomRecommendationCard: React.FC<RoomRecommendationCardProps> = ({
                     <div className="flex justify-between">
                       <span className="font-semibold">Location:</span>
                       <span className="text-sm">
-                        {room.building.block.name} → {room.building.name} →{" "}
-                        {room.floor.name}
+                        {room.floor.building.block.name} →{" "}
+                        {room.floor.building.name} → {room.floor.name}
                       </span>
                     </div>
                   </div>

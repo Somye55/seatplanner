@@ -27,6 +27,7 @@ export type TeacherMinAggregateOutputType = {
   id: string | null
   name: string | null
   email: string | null
+  password: string | null
   userId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -36,6 +37,7 @@ export type TeacherMaxAggregateOutputType = {
   id: string | null
   name: string | null
   email: string | null
+  password: string | null
   userId: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -45,6 +47,7 @@ export type TeacherCountAggregateOutputType = {
   id: number
   name: number
   email: number
+  password: number
   userId: number
   createdAt: number
   updatedAt: number
@@ -56,6 +59,7 @@ export type TeacherMinAggregateInputType = {
   id?: true
   name?: true
   email?: true
+  password?: true
   userId?: true
   createdAt?: true
   updatedAt?: true
@@ -65,6 +69,7 @@ export type TeacherMaxAggregateInputType = {
   id?: true
   name?: true
   email?: true
+  password?: true
   userId?: true
   createdAt?: true
   updatedAt?: true
@@ -74,6 +79,7 @@ export type TeacherCountAggregateInputType = {
   id?: true
   name?: true
   email?: true
+  password?: true
   userId?: true
   createdAt?: true
   updatedAt?: true
@@ -156,6 +162,7 @@ export type TeacherGroupByOutputType = {
   id: string
   name: string
   email: string
+  password: string
   userId: string | null
   createdAt: Date
   updatedAt: Date
@@ -186,6 +193,7 @@ export type TeacherWhereInput = {
   id?: Prisma.StringFilter<"Teacher"> | string
   name?: Prisma.StringFilter<"Teacher"> | string
   email?: Prisma.StringFilter<"Teacher"> | string
+  password?: Prisma.StringFilter<"Teacher"> | string
   userId?: Prisma.StringNullableFilter<"Teacher"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Teacher"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Teacher"> | Date | string
@@ -197,6 +205,7 @@ export type TeacherOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -212,6 +221,7 @@ export type TeacherWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.TeacherWhereInput[]
   NOT?: Prisma.TeacherWhereInput | Prisma.TeacherWhereInput[]
   name?: Prisma.StringFilter<"Teacher"> | string
+  password?: Prisma.StringFilter<"Teacher"> | string
   createdAt?: Prisma.DateTimeFilter<"Teacher"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Teacher"> | Date | string
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -222,6 +232,7 @@ export type TeacherOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -237,6 +248,7 @@ export type TeacherScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Teacher"> | string
   name?: Prisma.StringWithAggregatesFilter<"Teacher"> | string
   email?: Prisma.StringWithAggregatesFilter<"Teacher"> | string
+  password?: Prisma.StringWithAggregatesFilter<"Teacher"> | string
   userId?: Prisma.StringNullableWithAggregatesFilter<"Teacher"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Teacher"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Teacher"> | Date | string
@@ -246,6 +258,7 @@ export type TeacherCreateInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -257,6 +270,7 @@ export type TeacherUncheckedCreateInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -268,6 +282,7 @@ export type TeacherUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -279,6 +294,7 @@ export type TeacherUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -290,6 +306,7 @@ export type TeacherCreateManyInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -299,6 +316,7 @@ export type TeacherUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -308,6 +326,7 @@ export type TeacherUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -322,6 +341,7 @@ export type TeacherCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -331,6 +351,7 @@ export type TeacherMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -340,6 +361,7 @@ export type TeacherMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  password?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -384,6 +406,7 @@ export type TeacherCreateWithoutUserInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -394,6 +417,7 @@ export type TeacherUncheckedCreateWithoutUserInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -420,6 +444,7 @@ export type TeacherUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -430,6 +455,7 @@ export type TeacherUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -440,6 +466,7 @@ export type TeacherCreateWithoutBookingsInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -450,6 +477,7 @@ export type TeacherUncheckedCreateWithoutBookingsInput = {
   id?: string
   name: string
   email: string
+  password?: string
   userId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -476,6 +504,7 @@ export type TeacherUpdateWithoutBookingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -486,6 +515,7 @@ export type TeacherUncheckedUpdateWithoutBookingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -527,6 +557,7 @@ export type TeacherSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   id?: boolean
   name?: boolean
   email?: boolean
+  password?: boolean
   userId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -539,6 +570,7 @@ export type TeacherSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   email?: boolean
+  password?: boolean
   userId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -548,6 +580,7 @@ export type TeacherSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   id?: boolean
   name?: boolean
   email?: boolean
+  password?: boolean
   userId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -557,12 +590,13 @@ export type TeacherSelectScalar = {
   id?: boolean
   name?: boolean
   email?: boolean
+  password?: boolean
   userId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TeacherOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "userId" | "createdAt" | "updatedAt", ExtArgs["result"]["teacher"]>
+export type TeacherOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "password" | "userId" | "createdAt" | "updatedAt", ExtArgs["result"]["teacher"]>
 export type TeacherInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.Teacher$userArgs<ExtArgs>
   bookings?: boolean | Prisma.Teacher$bookingsArgs<ExtArgs>
@@ -581,6 +615,7 @@ export type $TeacherPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     id: string
     name: string
     email: string
+    password: string
     userId: string | null
     createdAt: Date
     updatedAt: Date
@@ -1012,6 +1047,7 @@ export interface TeacherFieldRefs {
   readonly id: Prisma.FieldRef<"Teacher", 'String'>
   readonly name: Prisma.FieldRef<"Teacher", 'String'>
   readonly email: Prisma.FieldRef<"Teacher", 'String'>
+  readonly password: Prisma.FieldRef<"Teacher", 'String'>
   readonly userId: Prisma.FieldRef<"Teacher", 'String'>
   readonly createdAt: Prisma.FieldRef<"Teacher", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Teacher", 'DateTime'>

@@ -418,6 +418,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 // Export the SeatMapSkeleton component
 export { default as SeatMapSkeleton } from "./SeatMapSkeleton";
 
+// Export the BookingSkeleton component
+export { default as BookingSkeleton } from "./BookingSkeleton";
+
 // Export the TimeRangePicker component
 export { default as TimeRangePicker } from "./TimeRangePicker";
 

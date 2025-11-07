@@ -11,7 +11,6 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   Input,
   Select,
   SelectItem,
@@ -153,8 +152,11 @@ const StudentForm: React.FC<{
       <Select
         label="Branch"
         variant="bordered"
-        selectedKeys={[branch]}
-        onChange={(e) => setBranch(e.target.value as Branch)}
+        selectedKeys={new Set([branch])}
+        onSelectionChange={(keys) => {
+          const selectedKey = Array.from(keys)[0] as Branch;
+          setBranch(selectedKey);
+        }}
         isInvalid={!!errors.branch}
         errorMessage={errors.branch}
       >
@@ -189,7 +191,7 @@ const StudentForm: React.FC<{
         <label className="block text-sm font-medium mb-2">
           Accessibility Needs
         </label>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {POSSIBLE_NEEDS.map((need) => (
             <Checkbox
               key={need.id}

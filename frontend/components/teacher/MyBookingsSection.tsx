@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardBody, CardHeader, Button, Divider } from "@heroui/react";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Divider,
+  Skeleton,
+} from "@heroui/react";
 import { api } from "../../services/apiService";
 import { RoomBooking } from "../../types";
 import { authService } from "../../services/authService";
 import BookingStatusBadge from "./BookingStatusBadge";
-import { Spinner, ConfirmationModal } from "../ui";
+import { ConfirmationModal, BookingSkeleton } from "../ui";
 import { useBookingUpdates } from "../../hooks/useBookingUpdates";
 import { useSeatPlanner } from "../../context/SeatPlannerContext";
 import { showErrorToast, showSuccessToast } from "../../utils/toast";
@@ -19,8 +26,8 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
   const { state, dispatch } = useSeatPlanner();
   const { bookings } = state;
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [cancelError, setCancelError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<RoomBooking | null>(
@@ -59,10 +66,14 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
     },
   });
 
-  const loadBookings = async () => {
+  const loadBookings = async (isRefresh = false) => {
     if (!user) return;
 
-    setLoading(true);
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError("");
 
     try {
@@ -78,6 +89,7 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
       showErrorToast(err, "Failed to load bookings");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -117,30 +129,52 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <h2 className="text-xl font-semibold">My Bookings</h2>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <div className="flex justify-center py-8">
-            <Spinner />
-          </div>
-        </CardBody>
-      </Card>
-    );
+    return <BookingSkeleton />;
   }
 
   if (error) {
     return (
-      <Card className="border-danger">
-        <CardHeader>
-          <h2 className="text-xl font-semibold">My Bookings</h2>
+      <Card className="border-danger shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold">My Bookings</h2>
+          </div>
         </CardHeader>
         <Divider />
-        <CardBody>
-          <p className="text-danger text-center">{error}</p>
+        <CardBody className="pt-4">
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-danger-50 mb-4">
+              <svg
+                className="w-8 h-8 text-danger"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <p className="text-danger font-medium">{error}</p>
+          </div>
         </CardBody>
       </Card>
     );
@@ -148,65 +182,223 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">My Bookings</h2>
+      <Card className="shadow-sm">
+        <CardHeader className="flex justify-between items-center pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <svg
+                className="w-5 h-5 text-primary"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold">My Bookings</h2>
+          </div>
           <Button
             size="sm"
             variant="light"
-            onPress={loadBookings}
-            isLoading={loading}
+            onPress={() => loadBookings(true)}
+            isLoading={refreshing}
+            startContent={
+              !refreshing && (
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              )
+            }
           >
             Refresh
           </Button>
         </CardHeader>
         <Divider />
-        <CardBody>
-          {successMessage && (
-            <div className="mb-4 bg-success-50 border border-success p-3 rounded-lg">
-              <p className="text-success text-sm">{successMessage}</p>
-            </div>
-          )}
-
+        <CardBody className="pt-4">
           {cancelError && (
             <div className="mb-4 bg-danger-50 border border-danger p-3 rounded-lg">
               <p className="text-danger text-sm">{cancelError}</p>
             </div>
           )}
 
-          {bookings.length === 0 ? (
-            <p className="text-default-600 text-center py-8">
-              You don't have any bookings yet. Search for a room to get started.
-            </p>
+          {refreshing ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="border border-divider rounded-xl p-5 bg-gradient-to-br from-default-50 to-default-100/50"
+                >
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1 space-y-3">
+                      <Skeleton className="rounded-lg">
+                        <div className="h-6 w-48 rounded-lg bg-default-200"></div>
+                      </Skeleton>
+                      <Skeleton className="rounded-lg">
+                        <div className="h-4 w-64 rounded-lg bg-default-200"></div>
+                      </Skeleton>
+                      <div className="flex flex-wrap gap-2">
+                        <Skeleton className="rounded">
+                          <div className="h-6 w-24 rounded bg-default-200"></div>
+                        </Skeleton>
+                        <Skeleton className="rounded">
+                          <div className="h-6 w-20 rounded bg-default-200"></div>
+                        </Skeleton>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Skeleton className="rounded-full">
+                        <div className="h-6 w-20 rounded-full bg-default-200"></div>
+                      </Skeleton>
+                      <div className="space-y-1">
+                        <Skeleton className="rounded-lg">
+                          <div className="h-3 w-28 rounded-lg bg-default-200"></div>
+                        </Skeleton>
+                        <Skeleton className="rounded-lg">
+                          <div className="h-3 w-28 rounded-lg bg-default-200"></div>
+                        </Skeleton>
+                      </div>
+                      <Skeleton className="rounded-lg">
+                        <div className="h-8 w-16 rounded-lg bg-default-200"></div>
+                      </Skeleton>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-default-100 mb-4">
+                <svg
+                  className="w-8 h-8 text-default-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <p className="text-default-600 text-lg font-medium">
+                No bookings yet
+              </p>
+              <p className="text-default-400 text-sm mt-1">
+                Search for a room to get started
+              </p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {bookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="border border-divider rounded-lg p-4 hover:bg-default-50 dark:hover:bg-default-100/10 transition-colors"
+                  className="border border-divider rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all duration-200 bg-gradient-to-br from-default-50 to-default-100/50 dark:from-default-100/5 dark:to-default-100/10"
                 >
                   <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">
-                        {booking.room?.name || "Room"}
-                      </h3>
-                      {booking.room && (
-                        <p className="text-sm text-default-500 mt-1">
-                          {booking.room.building?.name} -{" "}
-                          {booking.room.floor?.name}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap gap-2 text-sm">
-                        <span className="bg-default-100 px-2 py-1 rounded">
-                          Capacity: {booking.capacity}
-                        </span>
-                        <span className="bg-default-100 px-2 py-1 rounded">
-                          Branch: {booking.branch}
-                        </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                          <svg
+                            className="w-5 h-5 text-primary"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg text-default-900 truncate">
+                            {booking.room?.name || "Room"}
+                          </h3>
+                          {booking.room && (
+                            <p className="text-sm text-default-500 mt-0.5 flex items-center gap-1.5">
+                              <svg
+                                className="w-4 h-4 flex-shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                              <span className="truncate">
+                                {booking.room.building?.name} •{" "}
+                                {booking.room.floor?.name}
+                              </span>
+                            </p>
+                          )}
+                          <div className="mt-2.5 flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-1.5 bg-default-100 dark:bg-default-200/10 px-2.5 py-1 rounded-md text-xs font-medium text-default-700">
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                />
+                              </svg>
+                              {booking.capacity}
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 bg-default-100 dark:bg-default-200/10 px-2.5 py-1 rounded-md text-xs font-medium text-default-700">
+                              <svg
+                                className="w-3.5 h-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                                />
+                              </svg>
+                              {booking.branch}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="flex flex-col items-end gap-2.5 flex-shrink-0">
                       <BookingStatusBadge
                         status={booking.status}
                         startTime={booking.startTime}
@@ -220,6 +412,7 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
                           variant="flat"
                           onPress={() => handleCancelClick(booking)}
                           isLoading={cancellingId === booking.id}
+                          className="min-w-[70px]"
                         >
                           Cancel
                         </Button>
