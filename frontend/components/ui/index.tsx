@@ -194,43 +194,72 @@ export const SkeletonCard: React.FC<{
 }> = ({ variant = "default" }) => {
   if (variant === "room") {
     return (
-      <HeroCard className="w-full hover:scale-105 transition-transform duration-300">
-        <CardBody className="gap-3">
-          {/* Title skeleton */}
-          <HeroSkeleton className="rounded-lg">
-            <div className="h-7 w-3/4 rounded-lg bg-default-200"></div>
+      <HeroCard className="relative w-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-divider overflow-hidden">
+        {/* Occupancy indicator bar skeleton */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-default-200">
+          <HeroSkeleton className="h-full w-2/3">
+            <div className="h-full bg-default-300"></div>
           </HeroSkeleton>
-          {/* Subtitle/description skeleton */}
-          <HeroSkeleton className="rounded-lg">
-            <div className="h-5 w-2/3 rounded-lg bg-default-200"></div>
-          </HeroSkeleton>
-          {/* Optional chip/tag skeleton */}
-          <HeroSkeleton className="rounded-lg">
-            <div className="h-6 w-1/3 rounded-lg bg-default-200"></div>
-          </HeroSkeleton>
-          {/* Status section with border */}
-          <div className="pt-3 border-t border-divider">
-            <HeroSkeleton className="rounded-lg">
-              <div className="h-7 w-1/2 rounded-lg bg-default-200"></div>
+        </div>
+
+        <CardBody className="gap-4 pt-6">
+          {/* Title and chip row */}
+          <div className="flex items-start justify-between gap-2">
+            <HeroSkeleton className="rounded-lg flex-1">
+              <div className="h-8 w-3/4 rounded-lg bg-default-200"></div>
+            </HeroSkeleton>
+            <HeroSkeleton className="rounded-full">
+              <div className="h-6 w-20 rounded-full bg-default-200"></div>
             </HeroSkeleton>
           </div>
-        </CardBody>
-        <CardFooter className="justify-between border-t border-divider">
-          {/* Primary action button */}
-          <HeroSkeleton className="rounded-lg">
-            <div className="h-9 w-24 rounded-lg bg-default-200"></div>
-          </HeroSkeleton>
-          {/* Admin actions */}
-          <div className="flex flex-col gap-2">
+
+          {/* Layout info row */}
+          <div className="flex items-center gap-2">
             <HeroSkeleton className="rounded-lg">
-              <div className="h-8 w-28 rounded-lg bg-default-200"></div>
+              <div className="h-5 w-40 rounded-lg bg-default-200"></div>
             </HeroSkeleton>
-            <div className="flex gap-2">
-              <HeroSkeleton className="rounded-lg">
-                <div className="h-8 w-12 rounded-lg bg-default-200"></div>
+          </div>
+
+          {/* Availability card */}
+          <div className="bg-gradient-to-br from-default-100 to-default-200 dark:from-default-900/20 dark:to-default-800/20 p-4 rounded-xl border border-default-200">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <HeroSkeleton className="rounded-lg">
+                  <div className="h-9 w-16 rounded-lg bg-default-300"></div>
+                </HeroSkeleton>
+                <HeroSkeleton className="rounded-lg">
+                  <div className="h-4 w-28 rounded-lg bg-default-300"></div>
+                </HeroSkeleton>
+              </div>
+              <div className="space-y-2 text-right">
+                <HeroSkeleton className="rounded-lg">
+                  <div className="h-8 w-12 rounded-lg bg-default-300"></div>
+                </HeroSkeleton>
+                <HeroSkeleton className="rounded-lg">
+                  <div className="h-3 w-16 rounded-lg bg-default-300"></div>
+                </HeroSkeleton>
+              </div>
+            </div>
+          </div>
+        </CardBody>
+
+        <CardFooter className="flex-col gap-3 border-t border-divider bg-default-50 dark:bg-default-100/10 pt-4">
+          {/* Primary action button */}
+          <HeroSkeleton className="rounded-lg w-full">
+            <div className="h-10 w-full rounded-lg bg-default-200"></div>
+          </HeroSkeleton>
+
+          {/* Admin actions */}
+          <div className="w-full flex flex-col gap-2">
+            <HeroSkeleton className="rounded-lg w-full">
+              <div className="h-8 w-full rounded-lg bg-default-200"></div>
+            </HeroSkeleton>
+            <div className="flex gap-2 w-full">
+              <HeroSkeleton className="rounded-lg flex-1">
+                <div className="h-8 w-full rounded-lg bg-default-200"></div>
               </HeroSkeleton>
-              <HeroSkeleton className="rounded-lg">
-                <div className="h-8 w-16 rounded-lg bg-default-200"></div>
+              <HeroSkeleton className="rounded-lg flex-1">
+                <div className="h-8 w-full rounded-lg bg-default-200"></div>
               </HeroSkeleton>
             </div>
           </div>

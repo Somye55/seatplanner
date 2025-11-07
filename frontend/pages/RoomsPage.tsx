@@ -352,21 +352,19 @@ const RoomsPage: React.FC = () => {
       if (isAdmin) {
         const eligibleRoomIds = new Set<string>();
         for (const room of roomsData) {
-          if (room.branchAllocated) {
-            try {
-              const eligibleBranches = await api.getEligibleBranches(
-                undefined,
-                room.id
-              );
-              if (eligibleBranches.length > 0) {
-                eligibleRoomIds.add(room.id);
-              }
-            } catch (err) {
-              console.error(
-                `Failed to check eligibility for room ${room.id}:`,
-                err
-              );
+          try {
+            const eligibleBranches = await api.getEligibleBranches(
+              undefined,
+              room.id
+            );
+            if (eligibleBranches.length > 0) {
+              eligibleRoomIds.add(room.id);
             }
+          } catch (err) {
+            console.error(
+              `Failed to check eligibility for room ${room.id}:`,
+              err
+            );
           }
         }
         setRoomsWithEligibleBranches(eligibleRoomIds);
@@ -569,53 +567,117 @@ const RoomsPage: React.FC = () => {
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {buildingRooms.map((room) => (
-            <Card
-              key={room.id}
-              className="relative hover:scale-105 transition-transform duration-300"
-            >
-              {!isAdmin && studentHasSeatInRoom(room.id) && (
-                <Tooltip content="You have a seat booked in this room">
-                  <div className="absolute top-2 right-2 z-10">
-                    <BookedIcon />
-                  </div>
-                </Tooltip>
-              )}
-              <CardBody className="gap-3">
-                <h2 className="text-xl font-bold">{room.name}</h2>
-                <p className="text-default-500">
-                  Capacity: {room.capacity} ({room.rows} rows x {room.cols}{" "}
-                  cols)
-                </p>
-                {room.branchAllocated && (
-                  <Chip color="primary" variant="flat" size="sm">
-                    {
-                      BRANCH_OPTIONS.find((b) => b.id === room.branchAllocated)
-                        ?.label
-                    }
-                  </Chip>
-                )}
-                <div className="pt-3 border-t border-divider">
-                  <p className="text-success font-bold text-lg">
-                    {room.capacity - room.claimed} seats available
-                  </p>
+          {buildingRooms.map((room) => {
+            const availableSeats = room.capacity - room.claimed;
+            const occupancyPercentage = (room.claimed / room.capacity) * 100;
+
+            return (
+              <Card
+                key={room.id}
+                className="relative hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-divider overflow-hidden"
+              >
+                {/* Occupancy indicator bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-default-200">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      occupancyPercentage >= 90
+                        ? "bg-danger"
+                        : occupancyPercentage >= 70
+                        ? "bg-warning"
+                        : "bg-success"
+                    }`}
+                    style={{ width: `${occupancyPercentage}%` }}
+                  />
                 </div>
-              </CardBody>
-              <CardFooter className="justify-between border-t border-divider">
-                <Link to={`/rooms/${room.id}`}>
-                  <Button color="primary" variant="light">
-                    View Seats
-                  </Button>
-                </Link>
-                {isAdmin && (
-                  <div className="flex flex-col gap-2">
-                    {dataLoaded &&
-                      (!room.branchAllocated ||
-                        roomsWithEligibleBranches.has(room.id)) && (
+
+                {!isAdmin && studentHasSeatInRoom(room.id) && (
+                  <Tooltip content="You have a seat booked in this room">
+                    <div className="absolute top-4 right-4 z-10">
+                      <BookedIcon />
+                    </div>
+                  </Tooltip>
+                )}
+
+                <CardBody className="gap-4 pt-6">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {room.name}
+                    </h2>
+                    {room.branchAllocated && (
+                      <Chip
+                        color="primary"
+                        variant="flat"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        {
+                          BRANCH_OPTIONS.find(
+                            (b) => b.id === room.branchAllocated
+                          )?.label
+                        }
+                      </Chip>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-default-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                    <span className="text-sm font-medium">
+                      {room.rows} × {room.cols} layout
+                    </span>
+                    <span className="text-default-400">•</span>
+                    <span className="text-sm font-medium">
+                      {room.capacity} total seats
+                    </span>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-success-50 to-success-100 dark:from-success-900/20 dark:to-success-800/20 p-4 rounded-xl border border-success-200 dark:border-success-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-3xl font-bold text-success">
+                          {availableSeats}
+                        </p>
+                        <p className="text-sm text-success-700 dark:text-success-300 mt-1">
+                          seats available
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-semibold text-default-700">
+                          {room.claimed}
+                        </p>
+                        <p className="text-xs text-default-500 mt-1">
+                          occupied
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardBody>
+
+                <CardFooter className="flex-col gap-3 border-t border-divider bg-default-50 dark:bg-default-100/10 pt-4">
+                  <Link to={`/rooms/${room.id}`} className="w-full">
+                    <Button
+                      color="primary"
+                      variant="shadow"
+                      className="w-full font-semibold"
+                    >
+                      View Seat Map
+                    </Button>
+                  </Link>
+
+                  {isAdmin && (
+                    <div className="w-full flex flex-col gap-2">
+                      {dataLoaded && roomsWithEligibleBranches.has(room.id) && (
                         <Button
                           size="sm"
                           color="success"
                           variant="flat"
+                          className="w-full"
                           onPress={() => setAllocatingRoomId(room.id)}
                         >
                           {room.branchAllocated
@@ -623,30 +685,33 @@ const RoomsPage: React.FC = () => {
                             : "Allocate Branch"}
                         </Button>
                       )}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        color="primary"
-                        variant="flat"
-                        onPress={() => handleEditRoom(room)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        color="danger"
-                        variant="flat"
-                        onPress={() => handleDeleteRoom(room)}
-                        isLoading={deleteLoading === room.id}
-                      >
-                        Delete
-                      </Button>
+                      <div className="flex gap-2 w-full">
+                        <Button
+                          size="sm"
+                          color="default"
+                          variant="bordered"
+                          className="flex-1"
+                          onPress={() => handleEditRoom(room)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          color="danger"
+                          variant="bordered"
+                          className="flex-1"
+                          onPress={() => handleDeleteRoom(room)}
+                          isLoading={deleteLoading === room.id}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardFooter>
-            </Card>
-          ))}
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
       )}
 
