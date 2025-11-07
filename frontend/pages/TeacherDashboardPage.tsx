@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Card, CardBody } from "@heroui/react";
 import RoomSearchForm from "../components/teacher/RoomSearchForm";
 import RoomRecommendationCard from "../components/teacher/RoomRecommendationCard";
-import MyBookingsSection from "../components/teacher/MyBookingsSection";
 import { SearchCriteria, RoomRecommendation } from "../types";
 import { api } from "../services/apiService";
 import { Spinner } from "../components/ui";
@@ -14,7 +13,6 @@ const TeacherDashboardPage: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string>("");
   const [hasSearched, setHasSearched] = useState(false);
-  const [refreshBookings, setRefreshBookings] = useState(0);
   const [lastSearchCriteria, setLastSearchCriteria] =
     useState<SearchCriteria | null>(null);
 
@@ -66,8 +64,6 @@ const TeacherDashboardPage: React.FC = () => {
   };
 
   const handleBookingCreated = () => {
-    // Refresh bookings list
-    setRefreshBookings((prev) => prev + 1);
     // Clear search results
     setSearchResults([]);
     setHasSearched(false);
@@ -137,9 +133,6 @@ const TeacherDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* My Bookings Section */}
-      <MyBookingsSection refreshTrigger={refreshBookings} />
     </div>
   );
 };

@@ -8,6 +8,26 @@ import { SeatGenerationService } from "../services/seatGenerationService";
 const router = Router();
 const prisma = new PrismaClient();
 
+// GET /api/rooms -> list all rooms
+router.get(
+  "/",
+  cacheMiddleware("rooms"),
+  async (req: Request, res: Response) => {
+    try {
+      const rooms = await prisma.room.findMany({
+        include: {
+          building: true,
+          floor: true,
+        },
+        orderBy: { name: "asc" },
+      });
+      res.json(rooms);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rooms" });
+    }
+  }
+);
+
 // GET /api/rooms/:id
 router.get(
   "/:id",

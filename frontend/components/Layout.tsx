@@ -187,6 +187,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = isAdmin
     ? [
+        { name: "Locations", href: "/locations", icon: "📍" },
         { name: "Blocks", href: "/blocks", icon: "🏗️" },
         { name: "Buildings", href: "/buildings", icon: "🏢" },
         { name: "Floors", href: "/floors", icon: "📐" },
@@ -197,9 +198,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     ? [
         { name: "Find Room", href: "/find-room", icon: "🔍" },
         { name: "My Bookings", href: "/my-bookings", icon: "📅" },
-        { name: "Buildings", href: "/buildings", icon: "🏢" },
+        { name: "Locations", href: "/locations", icon: "📍" },
       ]
-    : [{ name: "Buildings", href: "/buildings", icon: "🏢" }];
+    : [{ name: "Locations", href: "/locations", icon: "📍" }];
 
   useEffect(() => {
     const checkExpiry = () => {
@@ -233,13 +234,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getBreadcrumbs = () => {
     const paths = location.pathname.split("/").filter(Boolean);
     const crumbs = [
-      { name: "Home", href: isTeacher ? "/find-room" : "/buildings" },
+      { name: "Home", href: isTeacher ? "/find-room" : "/locations" },
     ];
 
     if (paths.includes("find-room")) {
       crumbs.push({ name: "Find Room", href: "/find-room" });
     } else if (paths.includes("my-bookings")) {
       crumbs.push({ name: "My Bookings", href: "/my-bookings" });
+    } else if (paths.includes("locations")) {
+      crumbs.push({ name: "Locations", href: "/locations" });
     } else if (paths.includes("blocks")) {
       crumbs.push({ name: "Blocks", href: "/blocks" });
     } else if (paths.includes("floors")) {

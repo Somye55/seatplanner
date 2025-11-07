@@ -153,6 +153,7 @@ export const api = {
     fetchApi(`/buildings/${buildingId}/rooms`),
 
   // Rooms
+  getRooms: (): Promise<Room[]> => fetchApi("/rooms"),
   createRoom: (roomData: {
     buildingId: string;
     floorId: string;

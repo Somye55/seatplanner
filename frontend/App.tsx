@@ -15,6 +15,7 @@ import MyBookingsPage from "./pages/MyBookingsPage";
 import FacultyManagementPage from "./pages/FacultyManagementPage";
 import BlocksPage from "./pages/BlocksPage";
 import FloorsPage from "./pages/FloorsPage";
+import LocationHierarchyPage from "./pages/LocationHierarchyPage";
 
 const App: React.FC = () => {
   return (
@@ -34,7 +35,11 @@ const App: React.FC = () => {
                   <PrivateRoute>
                     <Layout>
                       <Routes>
-                        <Route path="/" element={<BuildingsPage />} />
+                        <Route path="/" element={<LocationHierarchyPage />} />
+                        <Route
+                          path="/locations"
+                          element={<LocationHierarchyPage />}
+                        />
                         <Route path="/buildings" element={<BuildingsPage />} />
                         <Route
                           path="/buildings/:buildingId/rooms"
@@ -86,7 +91,7 @@ const App: React.FC = () => {
                         />
                         <Route
                           path="*"
-                          element={<Navigate to="/buildings" replace />}
+                          element={<Navigate to="/locations" replace />}
                         />
                       </Routes>
                     </Layout>
