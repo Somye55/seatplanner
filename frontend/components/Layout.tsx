@@ -196,6 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     : isTeacher
     ? [
         { name: "Find Room", href: "/find-room", icon: "🔍" },
+        { name: "My Bookings", href: "/my-bookings", icon: "📅" },
         { name: "Buildings", href: "/buildings", icon: "🏢" },
       ]
     : [{ name: "Buildings", href: "/buildings", icon: "🏢" }];
@@ -237,6 +238,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     if (paths.includes("find-room")) {
       crumbs.push({ name: "Find Room", href: "/find-room" });
+    } else if (paths.includes("my-bookings")) {
+      crumbs.push({ name: "My Bookings", href: "/my-bookings" });
     } else if (paths.includes("blocks")) {
       crumbs.push({ name: "Blocks", href: "/blocks" });
     } else if (paths.includes("floors")) {

@@ -121,7 +121,7 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
         <Select
           label="Branch"
           placeholder="Select a branch"
-          selectedKeys={branch ? new Set([branch]) : new Set()}
+          selectedKeys={branch ? [branch] : []}
           onSelectionChange={handleBranchChange}
           isInvalid={!!errors.branch}
           errorMessage={errors.branch}
@@ -129,7 +129,9 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
           isRequired
         >
           {BRANCH_OPTIONS.map((option) => (
-            <SelectItem key={option.id}>{option.label}</SelectItem>
+            <SelectItem key={option.id} textValue={option.id}>
+              {option.label}
+            </SelectItem>
           ))}
         </Select>
       </div>

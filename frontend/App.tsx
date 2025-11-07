@@ -11,6 +11,7 @@ import RoomsPage from "./pages/RoomsPage";
 import SeatMapPage from "./pages/SeatMapPage";
 import StudentsPage from "./pages/StudentsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import MyBookingsPage from "./pages/MyBookingsPage";
 import FacultyManagementPage from "./pages/FacultyManagementPage";
 import BlocksPage from "./pages/BlocksPage";
 import FloorsPage from "./pages/FloorsPage";
@@ -78,6 +79,10 @@ const App: React.FC = () => {
                         <Route
                           path="/find-room"
                           element={<TeacherDashboardPage />}
+                        />
+                        <Route
+                          path="/my-bookings"
+                          element={<MyBookingsPage />}
                         />
                         <Route
                           path="*"
