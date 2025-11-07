@@ -1,23 +1,27 @@
-import * as dotenv from 'dotenv';
+import * as dotenv from "dotenv";
 dotenv.config();
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import { PrismaClient } from '../generated/prisma/client';
-import authRouter from './routes/auth';
-import buildingsRouter from './routes/buildings';
-import roomsRouter from './routes/rooms';
-import seatsRouter from './routes/seats';
-import studentsRouter from './routes/students';
-import planRouter from './routes/plan';
-import allocationsRouter from './routes/allocations';
-
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { PrismaClient } from "../generated/prisma/client";
+import authRouter from "./routes/auth";
+import buildingsRouter from "./routes/buildings";
+import roomsRouter from "./routes/rooms";
+import seatsRouter from "./routes/seats";
+import studentsRouter from "./routes/students";
+import teachersRouter from "./routes/teachers";
+import planRouter from "./routes/plan";
+import allocationsRouter from "./routes/allocations";
+import blocksRouter from "./routes/blocks";
+import floorsRouter from "./routes/floors";
+import roomBookingsRouter from "./routes/roomBookings";
+import { BookingExpirationService } from "./services/bookingExpirationService";
 
 const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
+  log: ["query", "info", "warn", "error"],
 });
 
 const app = express();
@@ -25,16 +29,18 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"], // Allow both local and production frontend
-    methods: ["GET", "POST", "PUT"]
-  }
+    methods: ["GET", "POST", "PUT"],
+  },
 });
 const port = process.env.PORT || 3001;
 
 app.use(helmet());
-app.use(cors({
-  origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://seatplanner-mu.pages.dev"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Rate limiting
@@ -57,41 +63,50 @@ const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
 });
-app.use('/api/plan/allocate', sensitiveLimiter);
-app.use('/api/auth/login', sensitiveLimiter); // if exists
+app.use("/api/plan/allocate", sensitiveLimiter);
+app.use("/api/auth/login", sensitiveLimiter); // if exists
 
-app.get('/api', (req, res) => {
-  res.json({ message: 'SeatPlanner API is running!' });
+app.get("/api", (req, res) => {
+  res.json({ message: "SeatPlanner API is running!" });
 });
 
-app.use('/api/auth', authRouter);
-app.use('/api/buildings', buildingsRouter);
-app.use('/api/rooms', roomsRouter);
-app.use('/api/seats', seatsRouter);
-app.use('/api/students', studentsRouter);
-app.use('/api/plan', planRouter);
-app.use('/api/allocations', allocationsRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/buildings", buildingsRouter);
+app.use("/api/rooms", roomsRouter);
+app.use("/api/seats", seatsRouter);
+app.use("/api/students", studentsRouter);
+app.use("/api/teachers", teachersRouter);
+app.use("/api/plan", planRouter);
+app.use("/api/allocations", allocationsRouter);
+app.use("/api/locations/blocks", blocksRouter);
+app.use("/api/locations/floors", floorsRouter);
+app.use("/api/room-bookings", roomBookingsRouter);
 
 // Socket.io connection
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
   });
 });
 
 // Make io available in routes
-app.set('io', io);
+app.set("io", io);
+
+// Initialize and start booking expiration service
+const bookingExpirationService = new BookingExpirationService(io);
+const expirationInterval = bookingExpirationService.startScheduledJob();
 
 server.listen(port, () => {
   console.log(`SeatPlanner backend listening at http://localhost:${port}`);
 });
 
 // Graceful shutdown for nodemon restarts
-process.on('SIGUSR2', async () => {
+process.on("SIGUSR2", async () => {
+  bookingExpirationService.stopScheduledJob(expirationInterval);
   await prisma.$disconnect();
   server.close(() => {
-    process.kill(process.pid, 'SIGUSR2');
+    process.kill(process.pid, "SIGUSR2");
   });
 });

@@ -175,6 +175,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const user = authService.getUser();
   const isAdmin = authService.isAdmin();
+  const isTeacher = user?.role === "Teacher";
+  const isStudent = user?.role === "Student";
   const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebarCollapsed");
@@ -185,8 +187,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = isAdmin
     ? [
+        { name: "Blocks", href: "/blocks", icon: "🏗️" },
         { name: "Buildings", href: "/buildings", icon: "🏢" },
+        { name: "Floors", href: "/floors", icon: "📐" },
         { name: "Students", href: "/students", icon: "👥" },
+        { name: "Faculty", href: "/faculty", icon: "👨‍🏫" },
+      ]
+    : isTeacher
+    ? [
+        { name: "Find Room", href: "/find-room", icon: "🔍" },
+        { name: "Buildings", href: "/buildings", icon: "🏢" },
       ]
     : [{ name: "Buildings", href: "/buildings", icon: "🏢" }];
 
@@ -221,9 +231,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Generate breadcrumbs from current path
   const getBreadcrumbs = () => {
     const paths = location.pathname.split("/").filter(Boolean);
-    const crumbs = [{ name: "Home", href: "/buildings" }];
+    const crumbs = [
+      { name: "Home", href: isTeacher ? "/find-room" : "/buildings" },
+    ];
 
-    if (paths.includes("buildings") && paths.length > 1) {
+    if (paths.includes("find-room")) {
+      crumbs.push({ name: "Find Room", href: "/find-room" });
+    } else if (paths.includes("blocks")) {
+      crumbs.push({ name: "Blocks", href: "/blocks" });
+    } else if (paths.includes("floors")) {
+      crumbs.push({ name: "Floors", href: "/floors" });
+    } else if (paths.includes("buildings") && paths.length > 1) {
       crumbs.push({ name: "Buildings", href: "/buildings" });
       if (paths.includes("rooms")) {
         crumbs.push({ name: "Rooms", href: location.pathname });
@@ -232,6 +250,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       crumbs.push({ name: "Seat Map", href: location.pathname });
     } else if (paths.includes("students")) {
       crumbs.push({ name: "Students", href: "/students" });
+    } else if (paths.includes("faculty")) {
+      crumbs.push({ name: "Faculty", href: "/faculty" });
     }
 
     return crumbs;
@@ -326,7 +346,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </DropdownTrigger>
             <DropdownMenu aria-label="User menu">
-              {!isAdmin && (
+              {isStudent && (
                 <DropdownItem
                   key="profile"
                   onPress={() => setIsProfileModalOpen(true)}
@@ -417,7 +437,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Profile Modal */}
-      {!isAdmin && (
+      {isStudent && (
         <ProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}

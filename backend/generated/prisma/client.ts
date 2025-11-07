@@ -51,10 +51,20 @@ path.join(process.cwd(), "generated/prisma/libquery_engine-linux-musl-openssl-3.
  */
 export type User = Prisma.UserModel
 /**
+ * Model Block
+ * 
+ */
+export type Block = Prisma.BlockModel
+/**
  * Model Building
  * 
  */
 export type Building = Prisma.BuildingModel
+/**
+ * Model Floor
+ * 
+ */
+export type Floor = Prisma.FloorModel
 /**
  * Model Room
  * 
@@ -70,3 +80,13 @@ export type Seat = Prisma.SeatModel
  * 
  */
 export type Student = Prisma.StudentModel
+/**
+ * Model Teacher
+ * 
+ */
+export type Teacher = Prisma.TeacherModel
+/**
+ * Model RoomBooking
+ * 
+ */
+export type RoomBooking = Prisma.RoomBookingModel

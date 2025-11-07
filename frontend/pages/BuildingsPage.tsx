@@ -12,12 +12,14 @@ import {
   ModalBody,
   ModalFooter,
   Input,
+  Select,
+  SelectItem,
   Skeleton,
 } from "@heroui/react";
 import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
-import { Building } from "../types";
+import { Building, Block } from "../types";
 import { ConfirmationModal } from "../components/ui";
 
 const BuildingIcon: React.FC = () => (
@@ -82,11 +84,22 @@ const BuildingSkeleton: React.FC = () => (
 const BuildingsPage: React.FC = () => {
   const { state, dispatch } = useSeatPlanner();
   const { buildings, loading, error } = state;
+  const [blocks, setBlocks] = useState<Block[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newBuilding, setNewBuilding] = useState({ name: "", code: "" });
+  const [newBuilding, setNewBuilding] = useState({
+    name: "",
+    code: "",
+    blockId: "",
+    distance: 0,
+  });
   const [createLoading, setCreateLoading] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
-  const [editBuilding, setEditBuilding] = useState({ name: "", code: "" });
+  const [editBuilding, setEditBuilding] = useState({
+    name: "",
+    code: "",
+    blockId: "",
+    distance: 0,
+  });
   const [editLoading, setEditLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -99,8 +112,12 @@ const BuildingsPage: React.FC = () => {
     const fetchData = async () => {
       dispatch({ type: "API_REQUEST_START" });
       try {
-        const buildingsData = await api.getBuildings();
+        const [buildingsData, blocksData] = await Promise.all([
+          api.getBuildings(),
+          api.getBlocks(),
+        ]);
         dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
+        setBlocks(blocksData);
       } catch (err) {
         dispatch({
           type: "API_REQUEST_FAIL",
@@ -117,7 +134,7 @@ const BuildingsPage: React.FC = () => {
     setCreateLoading(true);
     try {
       await api.createBuilding(newBuilding);
-      setNewBuilding({ name: "", code: "" });
+      setNewBuilding({ name: "", code: "", blockId: "", distance: 0 });
       setShowCreateModal(false);
       // Small delay to ensure cache invalidation completes
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -125,6 +142,7 @@ const BuildingsPage: React.FC = () => {
       dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
     } catch (err) {
       console.error("Failed to create building:", err);
+      alert(`Failed to create building: ${(err as Error).message}`);
     } finally {
       setCreateLoading(false);
     }
@@ -132,7 +150,12 @@ const BuildingsPage: React.FC = () => {
 
   const handleEditBuilding = (building: Building) => {
     setEditingBuilding(building);
-    setEditBuilding({ name: building.name, code: building.code });
+    setEditBuilding({
+      name: building.name,
+      code: building.code,
+      blockId: building.blockId,
+      distance: building.distance,
+    });
   };
 
   const handleUpdateBuilding = async (e: React.FormEvent) => {
@@ -142,13 +165,14 @@ const BuildingsPage: React.FC = () => {
     try {
       await api.updateBuilding(editingBuilding.id, editBuilding);
       setEditingBuilding(null);
-      setEditBuilding({ name: "", code: "" });
+      setEditBuilding({ name: "", code: "", blockId: "", distance: 0 });
       // Small delay to ensure cache invalidation completes
       await new Promise((resolve) => setTimeout(resolve, 100));
       const buildingsData = await api.getBuildings();
       dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
     } catch (err) {
       console.error("Failed to update building:", err);
+      alert(`Failed to update building: ${(err as Error).message}`);
     } finally {
       setEditLoading(false);
     }
@@ -228,8 +252,14 @@ const BuildingsPage: React.FC = () => {
                 <div className="flex-1">
                   <h2 className="text-xl font-bold">{building.name}</h2>
                   <p className="text-default-500">{building.code}</p>
+                  {building.block && (
+                    <p className="text-default-400 text-sm mt-1">
+                      Block: {building.block.name}
+                    </p>
+                  )}
                   <p className="text-secondary font-semibold mt-2">
-                    {building.roomCount ?? 0} Rooms
+                    {building.roomCount ?? 0} Rooms • Distance:{" "}
+                    {building.distance}m
                   </p>
                 </div>
               </div>
@@ -296,6 +326,39 @@ const BuildingsPage: React.FC = () => {
                     }
                     required
                   />
+                  <Select
+                    label="Block"
+                    variant="bordered"
+                    selectedKeys={
+                      newBuilding.blockId ? [newBuilding.blockId] : []
+                    }
+                    onChange={(e) =>
+                      setNewBuilding({
+                        ...newBuilding,
+                        blockId: e.target.value,
+                      })
+                    }
+                    isRequired
+                  >
+                    {blocks.map((block) => (
+                      <SelectItem key={block.id}>
+                        {block.name} ({block.code})
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Distance (meters)"
+                    type="number"
+                    variant="bordered"
+                    value={newBuilding.distance.toString()}
+                    onChange={(e) =>
+                      setNewBuilding({
+                        ...newBuilding,
+                        distance: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    required
+                  />
                 </div>
               </ModalBody>
               <ModalFooter>
@@ -338,6 +401,39 @@ const BuildingsPage: React.FC = () => {
                     value={editBuilding.code}
                     onChange={(e) =>
                       setEditBuilding({ ...editBuilding, code: e.target.value })
+                    }
+                    required
+                  />
+                  <Select
+                    label="Block"
+                    variant="bordered"
+                    selectedKeys={
+                      editBuilding.blockId ? [editBuilding.blockId] : []
+                    }
+                    onChange={(e) =>
+                      setEditBuilding({
+                        ...editBuilding,
+                        blockId: e.target.value,
+                      })
+                    }
+                    isRequired
+                  >
+                    {blocks.map((block) => (
+                      <SelectItem key={block.id}>
+                        {block.name} ({block.code})
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Distance (meters)"
+                    type="number"
+                    variant="bordered"
+                    value={editBuilding.distance.toString()}
+                    onChange={(e) =>
+                      setEditBuilding({
+                        ...editBuilding,
+                        distance: parseFloat(e.target.value) || 0,
+                      })
                     }
                     required
                   />

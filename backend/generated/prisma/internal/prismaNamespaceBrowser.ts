@@ -49,10 +49,14 @@ export const AnyNull = runtime.objectEnumValues.instances.AnyNull
 
 export const ModelName = {
   User: 'User',
+  Block: 'Block',
   Building: 'Building',
+  Floor: 'Floor',
   Room: 'Room',
   Seat: 'Seat',
-  Student: 'Student'
+  Student: 'Student',
+  Teacher: 'Teacher',
+  RoomBooking: 'RoomBooking'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -77,6 +81,7 @@ export const UserScalarFieldEnum = {
   password: 'password',
   role: 'role',
   studentId: 'studentId',
+  teacherId: 'teacherId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -84,10 +89,24 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const BlockScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  distance: 'distance',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BlockScalarFieldEnum = (typeof BlockScalarFieldEnum)[keyof typeof BlockScalarFieldEnum]
+
+
 export const BuildingScalarFieldEnum = {
   id: 'id',
   name: 'name',
   code: 'code',
+  blockId: 'blockId',
+  distance: 'distance',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -95,14 +114,29 @@ export const BuildingScalarFieldEnum = {
 export type BuildingScalarFieldEnum = (typeof BuildingScalarFieldEnum)[keyof typeof BuildingScalarFieldEnum]
 
 
+export const FloorScalarFieldEnum = {
+  id: 'id',
+  buildingId: 'buildingId',
+  name: 'name',
+  number: 'number',
+  distance: 'distance',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FloorScalarFieldEnum = (typeof FloorScalarFieldEnum)[keyof typeof FloorScalarFieldEnum]
+
+
 export const RoomScalarFieldEnum = {
   id: 'id',
   buildingId: 'buildingId',
+  floorId: 'floorId',
   name: 'name',
   capacity: 'capacity',
   rows: 'rows',
   cols: 'cols',
   claimed: 'claimed',
+  distance: 'distance',
   version: 'version',
   branchAllocated: 'branchAllocated',
   createdAt: 'createdAt',
@@ -142,6 +176,34 @@ export const StudentScalarFieldEnum = {
 } as const
 
 export type StudentScalarFieldEnum = (typeof StudentScalarFieldEnum)[keyof typeof StudentScalarFieldEnum]
+
+
+export const TeacherScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeacherScalarFieldEnum = (typeof TeacherScalarFieldEnum)[keyof typeof TeacherScalarFieldEnum]
+
+
+export const RoomBookingScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  teacherId: 'teacherId',
+  branch: 'branch',
+  capacity: 'capacity',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoomBookingScalarFieldEnum = (typeof RoomBookingScalarFieldEnum)[keyof typeof RoomBookingScalarFieldEnum]
 
 
 export const SortOrder = {

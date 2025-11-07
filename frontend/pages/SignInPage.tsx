@@ -1,27 +1,21 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
-import { Branch } from "../types";
 import AuthCard from "../components/auth/AuthCard";
 import SignInForm from "../components/auth/SignInForm";
-import SignUpForm from "../components/auth/SignUpForm";
 import { useTheme } from "../providers/ThemeProvider";
 import { Switch } from "@heroui/react";
 
-const LoginPage: React.FC = () => {
+const SignInPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"Admin" | "Student">("Admin");
-  const [accessibilityNeeds, setAccessibilityNeeds] = useState<string[]>([]);
-  const [branch, setBranch] = useState<Branch>(Branch.ConsultingClub);
+  const [selectedRole, setSelectedRole] = useState<
+    "Admin" | "Teacher" | "Student"
+  >("Student");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-
-  const isLogin =
-    location.pathname === "/signin" || location.pathname === "/login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,18 +23,21 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        await authService.login(email, password);
+      // Send role to backend for validation
+      const authData = await authService.login(email, password, selectedRole);
+
+      console.log("✅ Login successful:", {
+        role: authData.user.role,
+        email: authData.user.email,
+        isAuthenticated: authService.isAuthenticated(),
+      });
+
+      // Redirect based on user role
+      if (authData.user.role === "Teacher") {
+        navigate("/find-room");
       } else {
-        await authService.signup(
-          email,
-          password,
-          role,
-          accessibilityNeeds,
-          role === "Student" ? branch : undefined
-        );
+        navigate("/");
       }
-      navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -97,53 +94,26 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side - Auth Forms */}
+        {/* Right Side - Auth Form */}
         <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white dark:bg-gray-950">
-          <div className="flip-card-container">
-            <div className={`flip-card-inner ${!isLogin ? "flipped" : ""}`}>
-              {/* Sign In Card (Front) */}
-              <div className="flip-card-front">
-                <AuthCard>
-                  <SignInForm
-                    email={email}
-                    password={password}
-                    error={isLogin ? error : ""}
-                    loading={loading}
-                    onEmailChange={setEmail}
-                    onPasswordChange={setPassword}
-                    onSubmit={handleSubmit}
-                    onErrorClear={handleErrorClear}
-                  />
-                </AuthCard>
-              </div>
-
-              {/* Sign Up Card (Back) */}
-              <div className="flip-card-back">
-                <AuthCard>
-                  <SignUpForm
-                    email={email}
-                    password={password}
-                    role={role}
-                    branch={branch}
-                    accessibilityNeeds={accessibilityNeeds}
-                    error={!isLogin ? error : ""}
-                    loading={loading}
-                    onEmailChange={setEmail}
-                    onPasswordChange={setPassword}
-                    onRoleChange={setRole}
-                    onBranchChange={setBranch}
-                    onAccessibilityNeedsChange={setAccessibilityNeeds}
-                    onSubmit={handleSubmit}
-                    onErrorClear={handleErrorClear}
-                  />
-                </AuthCard>
-              </div>
-            </div>
-          </div>
+          <AuthCard>
+            <SignInForm
+              email={email}
+              password={password}
+              selectedRole={selectedRole}
+              error={error}
+              loading={loading}
+              onEmailChange={setEmail}
+              onPasswordChange={setPassword}
+              onRoleChange={setSelectedRole}
+              onSubmit={handleSubmit}
+              onErrorClear={handleErrorClear}
+            />
+          </AuthCard>
         </div>
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default SignInPage;

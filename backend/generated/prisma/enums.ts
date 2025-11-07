@@ -19,7 +19,8 @@ export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus]
 
 export const UserRole = {
   Admin: 'Admin',
-  Student: 'Student'
+  Student: 'Student',
+  Teacher: 'Teacher'
 } as const
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole]
@@ -37,3 +38,12 @@ export const Branch = {
 } as const
 
 export type Branch = (typeof Branch)[keyof typeof Branch]
+
+
+export const BookingStatus = {
+  NotStarted: 'NotStarted',
+  Ongoing: 'Ongoing',
+  Completed: 'Completed'
+} as const
+
+export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus]

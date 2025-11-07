@@ -8,8 +8,12 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User'
+export type * from './models/Block'
 export type * from './models/Building'
+export type * from './models/Floor'
 export type * from './models/Room'
 export type * from './models/Seat'
 export type * from './models/Student'
+export type * from './models/Teacher'
+export type * from './models/RoomBooking'
 export type * from './commonInputTypes'

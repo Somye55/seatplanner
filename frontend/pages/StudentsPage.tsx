@@ -47,10 +47,9 @@ const StudentForm: React.FC<{
     branch?: string;
   }>({});
 
-  // Track if any changes have been made
+  // Track if any changes have been made (exclude name for existing students)
   const hasChanges = student
-    ? name !== student.name ||
-      email !== student.email ||
+    ? email !== student.email ||
       branch !== student.branch ||
       tags !== (student.tags?.join(", ") || "") ||
       JSON.stringify(needs.sort()) !==
@@ -86,16 +85,28 @@ const StudentForm: React.FC<{
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    const studentData = {
-      name,
-      email,
-      branch,
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
-      accessibilityNeeds: needs,
-    };
+
+    // Exclude name from update payload for existing students
+    const studentData = student
+      ? {
+          email,
+          branch,
+          tags: tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          accessibilityNeeds: needs,
+        }
+      : {
+          name,
+          email,
+          branch,
+          tags: tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
+          accessibilityNeeds: needs,
+        };
 
     if (student) {
       onSave({ ...student, ...studentData });
@@ -106,6 +117,14 @@ const StudentForm: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {student && (
+        <div className="bg-warning-50 border border-warning-200 rounded-lg p-3 mb-2">
+          <p className="text-sm text-warning-700">
+            <strong>Note:</strong> Student names cannot be changed after
+            creation.
+          </p>
+        </div>
+      )}
       <Input
         label="Name"
         variant="bordered"
@@ -114,6 +133,12 @@ const StudentForm: React.FC<{
         isInvalid={!!errors.name}
         errorMessage={errors.name}
         required
+        isReadOnly={!!student}
+        isDisabled={!!student}
+        description={student ? "Name cannot be changed" : undefined}
+        classNames={{
+          input: student ? "cursor-not-allowed" : undefined,
+        }}
       />
       <Input
         label="Email"

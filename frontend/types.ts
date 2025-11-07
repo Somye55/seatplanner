@@ -29,7 +29,7 @@ export const BRANCH_OPTIONS = [
 export interface User {
   id: string;
   email: string;
-  role: "Admin" | "Student";
+  role: "Admin" | "Student" | "Teacher";
 }
 
 export interface AuthResponse {
@@ -63,13 +63,16 @@ export interface Seat {
 export interface Room {
   id: string;
   buildingId: string;
+  floorId: string;
   name: string;
   capacity: number;
   rows: number;
   cols: number;
   claimed: number;
+  distance: number;
   branchAllocated?: Branch;
   building?: Building;
+  floor?: Floor;
   version: number;
 }
 
@@ -77,6 +80,9 @@ export interface Building {
   id: string;
   name: string;
   code: string;
+  blockId: string;
+  distance: number;
+  block?: Block;
   roomCount?: number;
 }
 
@@ -89,4 +95,78 @@ export interface AllocationSummary {
   branchAllocated?: string;
   availableSeatsAfterAllocation?: number;
   roomsAllocated?: number;
+}
+
+// Teacher and Room Booking Types
+export interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  userId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export enum BookingStatus {
+  NotStarted = "NotStarted",
+  Ongoing = "Ongoing",
+  Completed = "Completed",
+}
+
+export interface RoomBooking {
+  id: string;
+  roomId: string;
+  teacherId: string;
+  branch: Branch;
+  capacity: number;
+  startTime: string;
+  endTime: string;
+  status: BookingStatus;
+  room?: Room;
+  teacher?: Teacher;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Location Hierarchy Types
+export interface Block {
+  id: string;
+  name: string;
+  code: string;
+  distance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Floor {
+  id: string;
+  buildingId: string;
+  name: string;
+  number: number;
+  distance: number;
+  building?: Building;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Room Search and Recommendation Types
+export interface SearchCriteria {
+  capacity: number;
+  branch: Branch;
+  startTime: string;
+  endTime: string;
+  preferredLocation?: {
+    blockId?: string;
+    buildingId?: string;
+    floorId?: string;
+  };
+}
+
+export interface RoomRecommendation {
+  room: Room & {
+    building: Building & { block: Block };
+    floor: Floor;
+  };
+  distance: number;
+  score: number;
 }

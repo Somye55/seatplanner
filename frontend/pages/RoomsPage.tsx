@@ -27,6 +27,7 @@ import {
   Branch,
   AllocationSummary,
   BRANCH_OPTIONS,
+  Floor,
 } from "../types";
 import io from "socket.io-client";
 
@@ -290,12 +291,15 @@ const RoomsPage: React.FC = () => {
   const navigate = useNavigate();
   const { state, dispatch } = useSeatPlanner();
   const { rooms, buildings, loading, error } = state;
+  const [floors, setFloors] = useState<Floor[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRoom, setNewRoom] = useState({
     name: "",
     capacity: 1,
     rows: 1,
     cols: 1,
+    floorId: "",
+    distance: 0,
   });
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -311,6 +315,8 @@ const RoomsPage: React.FC = () => {
     capacity: 1,
     rows: 1,
     cols: 1,
+    floorId: "",
+    distance: 0,
     version: 0,
   });
   const [editLoading, setEditLoading] = useState(false);
@@ -389,6 +395,16 @@ const RoomsPage: React.FC = () => {
           console.error("Failed to fetch buildings:", err);
         }
       }
+
+      // Load floors for this building
+      if (buildingId) {
+        try {
+          const floorsData = await api.getFloors(buildingId);
+          setFloors(floorsData);
+        } catch (err) {
+          console.error("Failed to fetch floors:", err);
+        }
+      }
     };
 
     loadBuildingData();
@@ -432,7 +448,14 @@ const RoomsPage: React.FC = () => {
     setCreateLoading(true);
     try {
       await api.createRoom({ buildingId, ...newRoom });
-      setNewRoom({ name: "", capacity: 1, rows: 1, cols: 1 });
+      setNewRoom({
+        name: "",
+        capacity: 1,
+        rows: 1,
+        cols: 1,
+        floorId: "",
+        distance: 0,
+      });
       setShowCreateModal(false);
       // Small delay to ensure cache invalidation completes
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -452,6 +475,8 @@ const RoomsPage: React.FC = () => {
       capacity: maxCapacity,
       rows: room.rows,
       cols: room.cols,
+      floorId: room.floorId,
+      distance: room.distance,
       version: room.version,
     });
   };
@@ -619,22 +644,29 @@ const RoomsPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-default-600">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
-                    <span className="text-sm font-medium">
-                      {room.rows} × {room.cols} layout
-                    </span>
-                    <span className="text-default-400">•</span>
-                    <span className="text-sm font-medium">
-                      {room.capacity} total seats
-                    </span>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 text-default-600">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                      </svg>
+                      <span className="text-sm font-medium">
+                        {room.rows} × {room.cols} layout
+                      </span>
+                      <span className="text-default-400">•</span>
+                      <span className="text-sm font-medium">
+                        {room.capacity} total seats
+                      </span>
+                    </div>
+                    {room.floor && (
+                      <p className="text-default-400 text-sm">
+                        Floor: {room.floor.name} • Distance: {room.distance}m
+                      </p>
+                    )}
                   </div>
 
                   <div className="bg-gradient-to-br from-success-50 to-success-100 dark:from-success-900/20 dark:to-success-800/20 p-4 rounded-xl border border-success-200 dark:border-success-800">
@@ -783,6 +815,36 @@ const RoomsPage: React.FC = () => {
                     required
                     className="md:col-span-2"
                   />
+                  <Select
+                    label="Floor"
+                    variant="bordered"
+                    selectedKeys={newRoom.floorId ? [newRoom.floorId] : []}
+                    onChange={(e) =>
+                      setNewRoom({ ...newRoom, floorId: e.target.value })
+                    }
+                    isRequired
+                    className="md:col-span-2"
+                  >
+                    {floors.map((floor) => (
+                      <SelectItem key={floor.id}>
+                        {floor.name} (Floor {floor.number})
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Distance (meters)"
+                    type="number"
+                    variant="bordered"
+                    value={newRoom.distance.toString()}
+                    onChange={(e) =>
+                      setNewRoom({
+                        ...newRoom,
+                        distance: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    required
+                    className="md:col-span-2"
+                  />
                 </div>
               </ModalBody>
               <ModalFooter>
@@ -861,6 +923,36 @@ const RoomsPage: React.FC = () => {
                       setEditRoom({
                         ...editRoom,
                         capacity: parseInt(e.target.value) || 1,
+                      })
+                    }
+                    required
+                    className="md:col-span-2"
+                  />
+                  <Select
+                    label="Floor"
+                    variant="bordered"
+                    selectedKeys={editRoom.floorId ? [editRoom.floorId] : []}
+                    onChange={(e) =>
+                      setEditRoom({ ...editRoom, floorId: e.target.value })
+                    }
+                    isRequired
+                    className="md:col-span-2"
+                  >
+                    {floors.map((floor) => (
+                      <SelectItem key={floor.id}>
+                        {floor.name} (Floor {floor.number})
+                      </SelectItem>
+                    ))}
+                  </Select>
+                  <Input
+                    label="Distance (meters)"
+                    type="number"
+                    variant="bordered"
+                    value={editRoom.distance.toString()}
+                    onChange={(e) =>
+                      setEditRoom({
+                        ...editRoom,
+                        distance: parseFloat(e.target.value) || 0,
                       })
                     }
                     required

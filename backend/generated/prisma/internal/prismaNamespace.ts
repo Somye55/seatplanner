@@ -390,10 +390,14 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  Block: 'Block',
   Building: 'Building',
+  Floor: 'Floor',
   Room: 'Room',
   Seat: 'Seat',
-  Student: 'Student'
+  Student: 'Student',
+  Teacher: 'Teacher',
+  RoomBooking: 'RoomBooking'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -409,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "building" | "room" | "seat" | "student"
+    modelProps: "user" | "block" | "building" | "floor" | "room" | "seat" | "student" | "teacher" | "roomBooking"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -487,6 +491,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Block: {
+      payload: Prisma.$BlockPayload<ExtArgs>
+      fields: Prisma.BlockFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BlockFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BlockFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        findFirst: {
+          args: Prisma.BlockFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BlockFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        findMany: {
+          args: Prisma.BlockFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>[]
+        }
+        create: {
+          args: Prisma.BlockCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        createMany: {
+          args: Prisma.BlockCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BlockCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>[]
+        }
+        delete: {
+          args: Prisma.BlockDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        update: {
+          args: Prisma.BlockUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        deleteMany: {
+          args: Prisma.BlockDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BlockUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BlockUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>[]
+        }
+        upsert: {
+          args: Prisma.BlockUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BlockPayload>
+        }
+        aggregate: {
+          args: Prisma.BlockAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBlock>
+        }
+        groupBy: {
+          args: Prisma.BlockGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BlockGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BlockCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BlockCountAggregateOutputType> | number
+        }
+      }
+    }
     Building: {
       payload: Prisma.$BuildingPayload<ExtArgs>
       fields: Prisma.BuildingFieldRefs
@@ -558,6 +636,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.BuildingCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.BuildingCountAggregateOutputType> | number
+        }
+      }
+    }
+    Floor: {
+      payload: Prisma.$FloorPayload<ExtArgs>
+      fields: Prisma.FloorFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FloorFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FloorFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        findFirst: {
+          args: Prisma.FloorFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FloorFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        findMany: {
+          args: Prisma.FloorFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>[]
+        }
+        create: {
+          args: Prisma.FloorCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        createMany: {
+          args: Prisma.FloorCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FloorCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>[]
+        }
+        delete: {
+          args: Prisma.FloorDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        update: {
+          args: Prisma.FloorUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        deleteMany: {
+          args: Prisma.FloorDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FloorUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FloorUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>[]
+        }
+        upsert: {
+          args: Prisma.FloorUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FloorPayload>
+        }
+        aggregate: {
+          args: Prisma.FloorAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFloor>
+        }
+        groupBy: {
+          args: Prisma.FloorGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FloorGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FloorCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FloorCountAggregateOutputType> | number
         }
       }
     }
@@ -783,6 +935,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    Teacher: {
+      payload: Prisma.$TeacherPayload<ExtArgs>
+      fields: Prisma.TeacherFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TeacherFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TeacherFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        findFirst: {
+          args: Prisma.TeacherFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TeacherFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        findMany: {
+          args: Prisma.TeacherFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>[]
+        }
+        create: {
+          args: Prisma.TeacherCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        createMany: {
+          args: Prisma.TeacherCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TeacherCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>[]
+        }
+        delete: {
+          args: Prisma.TeacherDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        update: {
+          args: Prisma.TeacherUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        deleteMany: {
+          args: Prisma.TeacherDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TeacherUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TeacherUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>[]
+        }
+        upsert: {
+          args: Prisma.TeacherUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TeacherPayload>
+        }
+        aggregate: {
+          args: Prisma.TeacherAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTeacher>
+        }
+        groupBy: {
+          args: Prisma.TeacherGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeacherGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TeacherCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TeacherCountAggregateOutputType> | number
+        }
+      }
+    }
+    RoomBooking: {
+      payload: Prisma.$RoomBookingPayload<ExtArgs>
+      fields: Prisma.RoomBookingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RoomBookingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RoomBookingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        findFirst: {
+          args: Prisma.RoomBookingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RoomBookingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        findMany: {
+          args: Prisma.RoomBookingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>[]
+        }
+        create: {
+          args: Prisma.RoomBookingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        createMany: {
+          args: Prisma.RoomBookingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RoomBookingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>[]
+        }
+        delete: {
+          args: Prisma.RoomBookingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        update: {
+          args: Prisma.RoomBookingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        deleteMany: {
+          args: Prisma.RoomBookingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RoomBookingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RoomBookingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>[]
+        }
+        upsert: {
+          args: Prisma.RoomBookingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RoomBookingPayload>
+        }
+        aggregate: {
+          args: Prisma.RoomBookingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRoomBooking>
+        }
+        groupBy: {
+          args: Prisma.RoomBookingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoomBookingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RoomBookingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RoomBookingCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -828,6 +1128,7 @@ export const UserScalarFieldEnum = {
   password: 'password',
   role: 'role',
   studentId: 'studentId',
+  teacherId: 'teacherId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -835,10 +1136,24 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const BlockScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  distance: 'distance',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BlockScalarFieldEnum = (typeof BlockScalarFieldEnum)[keyof typeof BlockScalarFieldEnum]
+
+
 export const BuildingScalarFieldEnum = {
   id: 'id',
   name: 'name',
   code: 'code',
+  blockId: 'blockId',
+  distance: 'distance',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -846,14 +1161,29 @@ export const BuildingScalarFieldEnum = {
 export type BuildingScalarFieldEnum = (typeof BuildingScalarFieldEnum)[keyof typeof BuildingScalarFieldEnum]
 
 
+export const FloorScalarFieldEnum = {
+  id: 'id',
+  buildingId: 'buildingId',
+  name: 'name',
+  number: 'number',
+  distance: 'distance',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FloorScalarFieldEnum = (typeof FloorScalarFieldEnum)[keyof typeof FloorScalarFieldEnum]
+
+
 export const RoomScalarFieldEnum = {
   id: 'id',
   buildingId: 'buildingId',
+  floorId: 'floorId',
   name: 'name',
   capacity: 'capacity',
   rows: 'rows',
   cols: 'cols',
   claimed: 'claimed',
+  distance: 'distance',
   version: 'version',
   branchAllocated: 'branchAllocated',
   createdAt: 'createdAt',
@@ -893,6 +1223,34 @@ export const StudentScalarFieldEnum = {
 } as const
 
 export type StudentScalarFieldEnum = (typeof StudentScalarFieldEnum)[keyof typeof StudentScalarFieldEnum]
+
+
+export const TeacherScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TeacherScalarFieldEnum = (typeof TeacherScalarFieldEnum)[keyof typeof TeacherScalarFieldEnum]
+
+
+export const RoomBookingScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  teacherId: 'teacherId',
+  branch: 'branch',
+  capacity: 'capacity',
+  startTime: 'startTime',
+  endTime: 'endTime',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoomBookingScalarFieldEnum = (typeof RoomBookingScalarFieldEnum)[keyof typeof RoomBookingScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -968,6 +1326,20 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1010,16 +1382,16 @@ export type ListEnumSeatStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
 
 
 /**
- * Reference to a field of type 'Float'
+ * Reference to a field of type 'BookingStatus'
  */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+export type EnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatus'>
     
 
 
 /**
- * Reference to a field of type 'Float[]'
+ * Reference to a field of type 'BookingStatus[]'
  */
-export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+export type ListEnumBookingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingStatus[]'>
     
 
 /**
@@ -1110,10 +1482,14 @@ export interface PrismaClientOptions {
 }
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  block?: Prisma.BlockOmit
   building?: Prisma.BuildingOmit
+  floor?: Prisma.FloorOmit
   room?: Prisma.RoomOmit
   seat?: Prisma.SeatOmit
   student?: Prisma.StudentOmit
+  teacher?: Prisma.TeacherOmit
+  roomBooking?: Prisma.RoomBookingOmit
 }
 
 /* Types for Logging */
