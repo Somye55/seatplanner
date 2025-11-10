@@ -228,7 +228,7 @@ export const api = {
     studentData: Partial<Student>
   ): Promise<Student> =>
     fetchApi(`/students/${studentId}`, {
-      method: "PATCH",
+      method: "PUT",
       body: JSON.stringify(studentData),
     }),
   deleteStudent: (studentId: string): Promise<void> =>

@@ -15,6 +15,7 @@ import { ConfirmationModal, LocationCard, FloorIcon } from "../components/ui";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Floor, Building } from "../types";
+import { toast } from "../utils/toast";
 
 const FloorSkeleton: React.FC<{ showFooter?: boolean }> = ({
   showFooter = true,
@@ -105,7 +106,9 @@ const FloorsPage: React.FC = () => {
       setFloors(data);
       setError("");
     } catch (err) {
-      setError("Failed to fetch floors.");
+      const errorMsg = "Failed to fetch floors.";
+      setError(errorMsg);
+      toast.error("Error", errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -124,7 +127,9 @@ const FloorsPage: React.FC = () => {
           setLoading(false);
         }
       } catch (err) {
-        setError("Failed to fetch buildings.");
+        const errorMsg = "Failed to fetch buildings.";
+        setError(errorMsg);
+        toast.error("Error", errorMsg);
         console.error(err);
         setLoading(false);
       }
@@ -150,7 +155,7 @@ const FloorsPage: React.FC = () => {
       fetchFloors(selectedBuildingId);
     } catch (err) {
       console.error("Failed to create floor:", err);
-      alert(`Failed to create floor: ${(err as Error).message}`);
+      toast.error("Failed to create floor", (err as Error).message);
     } finally {
       setCreateLoading(false);
     }
@@ -178,7 +183,7 @@ const FloorsPage: React.FC = () => {
       fetchFloors(selectedBuildingId);
     } catch (err) {
       console.error("Failed to update floor:", err);
-      alert(`Failed to update floor: ${(err as Error).message}`);
+      toast.error("Failed to update floor", (err as Error).message);
     } finally {
       setEditLoading(false);
     }
@@ -200,7 +205,7 @@ const FloorsPage: React.FC = () => {
       setFloorToDelete(null);
     } catch (err) {
       console.error("Failed to delete floor:", err);
-      alert(`Failed to delete floor: ${(err as Error).message}`);
+      toast.error("Failed to delete floor", (err as Error).message);
     } finally {
       setDeleteLoading(null);
     }

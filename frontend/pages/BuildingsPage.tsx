@@ -21,6 +21,7 @@ import {
   LocationCard,
   BuildingIcon,
 } from "../components/ui";
+import { toast } from "../utils/toast";
 
 const BuildingSkeleton: React.FC = () => (
   <div className="border-2 border-default-200 dark:border-default-800 rounded-xl overflow-hidden">
@@ -118,10 +119,12 @@ const BuildingsPage: React.FC = () => {
         dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
         setBlocks(blocksData);
       } catch (err) {
+        const errorMsg = "Failed to fetch buildings.";
         dispatch({
           type: "API_REQUEST_FAIL",
-          payload: "Failed to fetch buildings.",
+          payload: errorMsg,
         });
+        toast.error("Error", errorMsg);
       }
     };
 
@@ -141,7 +144,7 @@ const BuildingsPage: React.FC = () => {
       dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
     } catch (err) {
       console.error("Failed to create building:", err);
-      alert(`Failed to create building: ${(err as Error).message}`);
+      toast.error("Failed to create building", (err as Error).message);
     } finally {
       setCreateLoading(false);
     }
@@ -171,7 +174,7 @@ const BuildingsPage: React.FC = () => {
       dispatch({ type: "GET_BUILDINGS_SUCCESS", payload: buildingsData });
     } catch (err) {
       console.error("Failed to update building:", err);
-      alert(`Failed to update building: ${(err as Error).message}`);
+      toast.error("Failed to update building", (err as Error).message);
     } finally {
       setEditLoading(false);
     }
@@ -195,6 +198,7 @@ const BuildingsPage: React.FC = () => {
       setBuildingToDelete(null);
     } catch (err) {
       console.error("Failed to delete building:", err);
+      toast.error("Failed to delete building", (err as Error).message);
     } finally {
       setDeleteLoading(null);
     }
@@ -222,7 +226,7 @@ const BuildingsPage: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Buildings</h1>
+        <h1 className="text-3xl font-bold underline">Buildings</h1>
         {isAdmin && (
           <Button color="primary" onPress={() => setShowCreateModal(true)}>
             Add Building
@@ -249,11 +253,6 @@ const BuildingsPage: React.FC = () => {
               { label: "Rooms", value: building.roomCount ?? 0 },
               { label: "Distance", value: `${building.distance}m` },
             ]}
-            badge={
-              building.block
-                ? { text: building.block.code, color: "primary" }
-                : undefined
-            }
             colorScheme="indigo"
             footer={
               <div className="flex flex-col gap-2 w-full">

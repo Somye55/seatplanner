@@ -5,6 +5,7 @@ import AuthCard from "../components/auth/AuthCard";
 import SignInForm from "../components/auth/SignInForm";
 import { useTheme } from "../providers/ThemeProvider";
 import { Switch } from "@heroui/react";
+import { toast } from "../utils/toast";
 
 const SignInPage: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -12,14 +13,12 @@ const SignInPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<
     "Admin" | "Teacher" | "Student"
   >("Student");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -39,13 +38,13 @@ const SignInPage: React.FC = () => {
         navigate("/");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      toast.error("Sign In Failed", errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleErrorClear = () => setError("");
 
   return (
     <div className="min-h-screen bg-background text-foreground relative">
@@ -101,13 +100,11 @@ const SignInPage: React.FC = () => {
               email={email}
               password={password}
               selectedRole={selectedRole}
-              error={error}
               loading={loading}
               onEmailChange={setEmail}
               onPasswordChange={setPassword}
               onRoleChange={setSelectedRole}
               onSubmit={handleSubmit}
-              onErrorClear={handleErrorClear}
             />
           </AuthCard>
         </div>

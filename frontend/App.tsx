@@ -110,8 +110,8 @@ const App: React.FC = () => {
             </Routes>
           </BrowserRouter>
         </SeatPlannerProvider>
+        <ToastProvider placement="bottom-right" />
       </ThemeProvider>
-      <ToastProvider placement="bottom-right" />
     </HeroUIProvider>
   );
 };

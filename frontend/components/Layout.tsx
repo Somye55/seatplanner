@@ -26,6 +26,7 @@ import { api } from "../services/apiService";
 import { useTheme } from "../providers/ThemeProvider";
 import { Student, BRANCH_OPTIONS } from "../types";
 import { ACCESSIBILITY_NEEDS } from "../constants";
+import { toast } from "../utils/toast";
 
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
@@ -67,7 +68,9 @@ const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
       await api.updateStudentProfile({ name, accessibilityNeeds: needs });
       onClose();
     } catch (err) {
-      setError((err as Error).message);
+      const errorMsg = (err as Error).message;
+      setError(errorMsg);
+      toast.error("Failed to update profile", errorMsg);
     } finally {
       setLoading(false);
     }

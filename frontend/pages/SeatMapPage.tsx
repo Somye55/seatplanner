@@ -245,45 +245,14 @@ const SeatMapPage: React.FC = () => {
         ← Back to Rooms
       </Button>
 
+      {/* Room Title */}
       {currentRoom && (
-        <LocationBreadcrumb
-          levels={[
-            ...(currentRoom.building?.block
-              ? [
-                  {
-                    type: "block" as const,
-                    name: currentRoom.building.block.name,
-                    code: currentRoom.building.block.code,
-                    link: "/blocks",
-                  },
-                ]
-              : []),
-            ...(currentRoom.building
-              ? [
-                  {
-                    type: "building" as const,
-                    name: currentRoom.building.name,
-                    code: currentRoom.building.code,
-                    link: `/buildings/${currentRoom.buildingId}/rooms`,
-                  },
-                ]
-              : []),
-            ...(currentRoom.floor
-              ? [
-                  {
-                    type: "floor" as const,
-                    name: currentRoom.floor.name,
-                    code: `Floor ${currentRoom.floor.number}`,
-                  },
-                ]
-              : []),
-            {
-              type: "room" as const,
-              name: currentRoom.name,
-            },
-          ]}
-          className="mb-6"
-        />
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-default-900 dark:text-default-100 mb-2">
+            {currentRoom.name}
+          </h1>
+          <div className="w-24 h-1 bg-gradient-to-r from-primary-400 to-secondary-400 dark:from-primary-600 dark:to-secondary-600 rounded-full mx-auto"></div>
+        </div>
       )}
 
       <div className="max-w-7xl mx-auto px-4 pb-8">

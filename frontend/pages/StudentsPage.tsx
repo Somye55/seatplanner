@@ -23,6 +23,7 @@ import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api } from "../services/apiService";
 import { Student, BRANCH_OPTIONS, Branch } from "../types";
 import { ACCESSIBILITY_NEEDS } from "../constants";
+import { toast } from "../utils/toast";
 
 const POSSIBLE_NEEDS = ACCESSIBILITY_NEEDS;
 
@@ -30,7 +31,8 @@ const StudentForm: React.FC<{
   student?: Student;
   onSave: (student: Omit<Student, "id"> | Student) => void;
   onCancel: () => void;
-}> = ({ student, onSave, onCancel }) => {
+  isLoading?: boolean;
+}> = ({ student, onSave, onCancel, isLoading = false }) => {
   const [name, setName] = useState(student?.name || "");
   const [email, setEmail] = useState(student?.email || "");
   const [branch, setBranch] = useState<Branch>(
@@ -88,6 +90,7 @@ const StudentForm: React.FC<{
     // Exclude name from update payload for existing students
     const studentData = student
       ? {
+          id: student.id,
           email,
           branch,
           tags: tags
@@ -107,23 +110,11 @@ const StudentForm: React.FC<{
           accessibilityNeeds: needs,
         };
 
-    if (student) {
-      onSave({ ...student, ...studentData });
-    } else {
-      onSave(studentData as any);
-    }
+    onSave(studentData as any);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {student && (
-        <div className="bg-warning-50 border border-warning-200 rounded-lg p-3 mb-2">
-          <p className="text-sm text-warning-700">
-            <strong>Note:</strong> Student names cannot be changed after
-            creation.
-          </p>
-        </div>
-      )}
+    <form onSubmit={handleSubmit} className="space-y-5 pb-2">
       <Input
         label="Name"
         variant="bordered"
@@ -168,12 +159,12 @@ const StudentForm: React.FC<{
       </Select>
       {student && (
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium text-foreground-600 mb-2">
             Current Allocation
           </label>
-          <div className="bg-default-100 p-3 rounded-lg">
+          <div className="bg-default-100 border border-default-200 p-3 rounded-lg">
             {allocation ? (
-              <span className="text-sm">
+              <span className="text-sm font-medium">
                 {allocation.room?.building?.code} / {allocation.room?.name} (
                 {allocation.label})
               </span>
@@ -188,29 +179,42 @@ const StudentForm: React.FC<{
         variant="bordered"
         value={tags}
         onChange={(e) => setTags(e.target.value)}
+        placeholder="e.g., honors, athlete, international"
       />
-      <div>
-        <label className="block text-sm font-medium mb-2">
+      <div className="pt-2">
+        <label className="block text-sm font-medium text-foreground-600 mb-4">
           Accessibility Needs
         </label>
-        <div className="space-y-3">
+        <div className="bg-default-50 border border-default-200 rounded-lg p-4 space-y-3">
           {POSSIBLE_NEEDS.map((need) => (
-            <Checkbox
+            <div
               key={need.id}
-              isSelected={needs.includes(need.id)}
-              onValueChange={() => handleNeedsChange(need.id)}
+              className="flex items-center py-1 hover:bg-default-100 rounded-md px-2 -mx-2 transition-colors"
             >
-              {need.label}
-            </Checkbox>
+              <Checkbox
+                isSelected={needs.includes(need.id)}
+                onValueChange={() => handleNeedsChange(need.id)}
+                classNames={{
+                  wrapper: "mr-3",
+                }}
+              >
+                <span className="text-sm">{need.label}</span>
+              </Checkbox>
+            </div>
           ))}
         </div>
       </div>
-      <div className="flex justify-end gap-2 pt-4">
-        <Button color="default" variant="light" onPress={onCancel}>
+      <div className="flex justify-end gap-3 pt-6 border-t border-default-200">
+        <Button
+          color="default"
+          variant="light"
+          onPress={onCancel}
+          isDisabled={isLoading}
+        >
           Cancel
         </Button>
         {(!student || hasChanges) && (
-          <Button color="primary" type="submit">
+          <Button color="primary" type="submit" isLoading={isLoading}>
             {student ? "Save Changes" : "Add Student"}
           </Button>
         )}
@@ -229,6 +233,7 @@ const StudentsPage: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -237,10 +242,12 @@ const StudentsPage: React.FC = () => {
         const data = await api.getStudents();
         dispatch({ type: "GET_STUDENTS_SUCCESS", payload: data });
       } catch (err) {
+        const errorMsg = "Failed to fetch students.";
         dispatch({
           type: "API_REQUEST_FAIL",
-          payload: "Failed to fetch students.",
+          payload: errorMsg,
         });
+        toast.error("Error", errorMsg);
       }
     };
 
@@ -252,6 +259,7 @@ const StudentsPage: React.FC = () => {
   const handleSaveStudent = async (
     studentData: Omit<Student, "id"> | Student
   ) => {
+    setSaveLoading(true);
     dispatch({ type: "API_REQUEST_START" });
     try {
       if ("id" in studentData) {
@@ -261,14 +269,17 @@ const StudentsPage: React.FC = () => {
         const added = await api.addStudent(studentData as Omit<Student, "id">);
         dispatch({ type: "ADD_STUDENT_SUCCESS", payload: added });
       }
-    } catch (err) {
-      dispatch({
-        type: "API_REQUEST_FAIL",
-        payload: "Failed to save student.",
-      });
-    } finally {
       setIsModalOpen(false);
       setEditingStudent(undefined);
+    } catch (err) {
+      const errorMsg = "Failed to save student.";
+      dispatch({
+        type: "API_REQUEST_FAIL",
+        payload: errorMsg,
+      });
+      toast.error("Error", errorMsg);
+    } finally {
+      setSaveLoading(false);
     }
   };
 
@@ -287,10 +298,12 @@ const StudentsPage: React.FC = () => {
       setDeleteConfirmOpen(false);
       setStudentToDelete(null);
     } catch (err) {
+      const errorMsg = "Failed to delete student.";
       dispatch({
         type: "API_REQUEST_FAIL",
-        payload: "Failed to delete student.",
+        payload: errorMsg,
       });
+      toast.error("Error", errorMsg);
     } finally {
       setDeleteLoading(false);
     }
@@ -437,18 +450,30 @@ const StudentsPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         size="2xl"
         scrollBehavior="inside"
+        classNames={{
+          body: "py-6",
+          header: "border-b border-default-200",
+        }}
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
-              <ModalHeader>
-                {editingStudent ? "Edit Student" : "Add Student"}
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-xl font-semibold">
+                  {editingStudent ? "Edit Student" : "Add Student"}
+                </h2>
+                <p className="text-sm font-normal text-default-500">
+                  {editingStudent
+                    ? "Update student information and accessibility preferences"
+                    : "Add a new student to the system"}
+                </p>
               </ModalHeader>
               <ModalBody>
                 <StudentForm
                   student={editingStudent}
                   onSave={handleSaveStudent}
                   onCancel={() => setIsModalOpen(false)}
+                  isLoading={saveLoading}
                 />
               </ModalBody>
             </>

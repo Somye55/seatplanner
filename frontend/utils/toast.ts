@@ -9,6 +9,7 @@ export const toast = {
     addToast({
       title: message,
       description,
+      color: "success",
       severity: "success",
       timeout: 4000,
     });
@@ -18,6 +19,7 @@ export const toast = {
     addToast({
       title: message,
       description,
+      color: "danger",
       severity: "danger",
       timeout: 5000,
     });

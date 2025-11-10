@@ -13,6 +13,7 @@ import { ConfirmationModal, LocationCard, BlockIcon } from "../components/ui";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Block } from "../types";
+import { toast } from "../utils/toast";
 
 const BlockSkeleton: React.FC = () => (
   <div className="border-2 border-default-200 dark:border-default-800 rounded-xl overflow-hidden">
@@ -83,7 +84,9 @@ const BlocksPage: React.FC = () => {
       setBlocks(data);
       setError("");
     } catch (err) {
-      setError("Failed to fetch blocks.");
+      const errorMsg = "Failed to fetch blocks.";
+      setError(errorMsg);
+      toast.error("Error", errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -105,7 +108,7 @@ const BlocksPage: React.FC = () => {
       fetchBlocks();
     } catch (err) {
       console.error("Failed to create block:", err);
-      alert(`Failed to create block: ${(err as Error).message}`);
+      toast.error("Failed to create block", (err as Error).message);
     } finally {
       setCreateLoading(false);
     }
@@ -132,7 +135,7 @@ const BlocksPage: React.FC = () => {
       fetchBlocks();
     } catch (err) {
       console.error("Failed to update block:", err);
-      alert(`Failed to update block: ${(err as Error).message}`);
+      toast.error("Failed to update block", (err as Error).message);
     } finally {
       setEditLoading(false);
     }
@@ -154,7 +157,7 @@ const BlocksPage: React.FC = () => {
       setBlockToDelete(null);
     } catch (err) {
       console.error("Failed to delete block:", err);
-      alert(`Failed to delete block: ${(err as Error).message}`);
+      toast.error("Failed to delete block", (err as Error).message);
     } finally {
       setDeleteLoading(null);
     }

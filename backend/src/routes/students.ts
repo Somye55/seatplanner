@@ -168,7 +168,7 @@ router.put(
   async (req: AuthRequest, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return sendValidationError(res, errors.array());
     }
 
     // Reject if name is in the request body
