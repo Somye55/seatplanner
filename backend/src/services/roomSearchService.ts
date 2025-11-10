@@ -180,7 +180,16 @@ export class RoomSearchService {
     // 3. Location Proximity Score (30 points max)
     // Closer = higher score (inverse relationship)
     // Distance is always calculated from current location
-    score += Math.max(0, 30 - distance);
+    // Use a logarithmic scale to handle large distance values
+    if (distance === 0) {
+      score += 30; // Same location gets full points
+    } else {
+      // Scale distance: closer rooms get higher scores
+      // Using formula: 30 * (1 / (1 + distance/100))
+      // This gives: distance 0 = 30 points, 100 = 15 points, 500 = 5 points, 1000 = 2.7 points
+      const proximityScore = 30 * (1 / (1 + distance / 100));
+      score += proximityScore;
+    }
 
     return score;
   }

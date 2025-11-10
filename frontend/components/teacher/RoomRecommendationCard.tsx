@@ -104,7 +104,7 @@ const RoomRecommendationCard: React.FC<RoomRecommendationCardProps> = ({
               </p>
             </div>
             <Chip color={getScoreColor(score)} variant="flat" size="sm">
-              Score: {score}
+              Score: {Math.round(score)}
             </Chip>
           </div>
 
