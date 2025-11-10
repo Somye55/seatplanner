@@ -238,29 +238,36 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
 
           {refreshing ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
+              {[1, 2].map((i) => (
                 <div
                   key={i}
                   className="border border-divider rounded-xl p-5 bg-gradient-to-br from-default-50 to-default-100/50"
                 >
                   <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 space-y-3">
-                      <Skeleton className="rounded-lg">
-                        <div className="h-6 w-48 rounded-lg bg-default-200"></div>
-                      </Skeleton>
-                      <Skeleton className="rounded-lg">
-                        <div className="h-4 w-64 rounded-lg bg-default-200"></div>
-                      </Skeleton>
-                      <div className="flex flex-wrap gap-2">
-                        <Skeleton className="rounded">
-                          <div className="h-6 w-24 rounded bg-default-200"></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3">
+                        <Skeleton className="rounded-lg flex-shrink-0 mt-0.5">
+                          <div className="w-10 h-10 rounded-lg bg-default-200"></div>
                         </Skeleton>
-                        <Skeleton className="rounded">
-                          <div className="h-6 w-20 rounded bg-default-200"></div>
-                        </Skeleton>
+                        <div className="flex-1 min-w-0">
+                          <Skeleton className="rounded-lg">
+                            <div className="h-[1.75rem] w-48 rounded-lg bg-default-200"></div>
+                          </Skeleton>
+                          <Skeleton className="rounded-lg mt-0.5">
+                            <div className="h-5 w-64 rounded-lg bg-default-200"></div>
+                          </Skeleton>
+                          <div className="mt-2.5 flex flex-wrap gap-2">
+                            <Skeleton className="rounded-md">
+                              <div className="h-6 w-16 rounded-md bg-default-200"></div>
+                            </Skeleton>
+                            <Skeleton className="rounded-md">
+                              <div className="h-6 w-20 rounded-md bg-default-200"></div>
+                            </Skeleton>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       <Skeleton className="rounded-full">
                         <div className="h-6 w-20 rounded-full bg-default-200"></div>
                       </Skeleton>
@@ -272,9 +279,6 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
                           <div className="h-3 w-28 rounded-lg bg-default-200"></div>
                         </Skeleton>
                       </div>
-                      <Skeleton className="rounded-lg">
-                        <div className="h-8 w-16 rounded-lg bg-default-200"></div>
-                      </Skeleton>
                     </div>
                   </div>
                 </div>
