@@ -27,13 +27,18 @@ router.get(
         select: {
           id: true,
           email: true,
-          password: true,
+          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
-      res.json(admins);
+      res.json(
+        admins.map((admin) => ({
+          ...admin,
+          password: admin.plainPassword || "••••••••",
+        }))
+      );
     } catch (error) {
       return handleUnexpectedError(error, res);
     }
@@ -78,19 +83,23 @@ router.post(
         data: {
           email,
           password: hashedPassword,
+          plainPassword: password,
           role: UserRole.Admin,
         },
         select: {
           id: true,
           email: true,
-          password: true,
+          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
-      res.status(201).json(admin);
+      res.status(201).json({
+        ...admin,
+        password: admin.plainPassword,
+      });
     } catch (error) {
       return handleUnexpectedError(error, res);
     }
@@ -140,7 +149,11 @@ router.put(
       }
 
       const { email, password } = req.body;
-      const updateData: { email?: string; password?: string } = {};
+      const updateData: {
+        email?: string;
+        password?: string;
+        plainPassword?: string;
+      } = {};
 
       if (email) {
         // Check if email is already taken by another user
@@ -155,6 +168,7 @@ router.put(
 
       if (password) {
         updateData.password = await bcrypt.hash(password, 10);
+        updateData.plainPassword = password;
       }
 
       const updatedAdmin = await prisma.user.update({
@@ -163,14 +177,17 @@ router.put(
         select: {
           id: true,
           email: true,
-          password: true,
+          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
-      res.json(updatedAdmin);
+      res.json({
+        ...updatedAdmin,
+        password: updatedAdmin.plainPassword || "••••••••",
+      });
     } catch (error: any) {
       if (error.code === "P2025") {
         return sendError(res, 404, ErrorCode.USER_NOT_FOUND);

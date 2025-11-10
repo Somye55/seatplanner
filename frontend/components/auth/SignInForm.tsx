@@ -159,7 +159,7 @@ const SignInForm: React.FC<SignInFormProps> = ({
         </Button>
       </form>
 
-      <div className="text-center mt-6 p-3 bg-default-100 dark:bg-default-50/5 rounded-lg border border-default-200 dark:border-default-100">
+      {/* <div className="text-center mt-6 p-3 bg-default-100 dark:bg-default-50/5 rounded-lg border border-default-200 dark:border-default-100">
         <p className="text-xs text-default-600 dark:text-default-400">
           <svg
             className="w-4 h-4 inline-block mr-1 mb-0.5"
@@ -175,7 +175,7 @@ const SignInForm: React.FC<SignInFormProps> = ({
           Accounts are managed by administrators. Contact your admin to create
           an account.
         </p>
-      </div>
+      </div> */}
     </>
   );
 };
