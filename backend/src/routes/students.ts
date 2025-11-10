@@ -31,7 +31,23 @@ router.get(
             include: {
               room: {
                 include: {
-                  building: true,
+                  building: {
+                    include: {
+                      block: true,
+                    },
+                  },
+                  floor: true,
+                  bookings: {
+                    where: {
+                      status: { in: ["NotStarted", "Ongoing"] },
+                    },
+                    include: {
+                      teacher: true,
+                    },
+                    orderBy: {
+                      startTime: "asc",
+                    },
+                  },
                 },
               },
             },
@@ -99,7 +115,16 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const students = await prisma.student.findMany({
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          branch: true,
+          tags: true,
+          accessibilityNeeds: true,
+          userId: true,
+          createdAt: true,
+          updatedAt: true,
           seats: {
             include: {
               room: { include: { building: true } },

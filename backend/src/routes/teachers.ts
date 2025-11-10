@@ -22,7 +22,13 @@ router.get(
   async (req: AuthRequest, res: Response) => {
     try {
       const teachers = await prisma.teacher.findMany({
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          userId: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
             select: {
               id: true,
@@ -64,7 +70,13 @@ router.get(
     try {
       const teacher = await prisma.teacher.findUnique({
         where: { id: req.params.id },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          userId: true,
+          createdAt: true,
+          updatedAt: true,
           user: {
             select: {
               id: true,
@@ -157,7 +169,13 @@ router.post(
             password,
             userId: newUser.id,
           },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true,
             user: {
               select: {
                 id: true,
@@ -258,7 +276,13 @@ router.put(
           return await tx.teacher.update({
             where: { id: req.params.id },
             data: teacherUpdateData,
-            include: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              userId: true,
+              createdAt: true,
+              updatedAt: true,
               user: {
                 select: {
                   id: true,
@@ -273,7 +297,13 @@ router.put(
         // If only password was updated, fetch the teacher
         return await tx.teacher.findUnique({
           where: { id: req.params.id },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true,
             user: {
               select: {
                 id: true,

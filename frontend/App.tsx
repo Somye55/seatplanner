@@ -16,6 +16,7 @@ import MyBookingsPage from "./pages/MyBookingsPage";
 import StudentBookingsPage from "./pages/StudentBookingsPage";
 import FacultyManagementPage from "./pages/FacultyManagementPage";
 import AdminManagementPage from "./pages/AdminManagementPage";
+import PasswordResetPage from "./pages/PasswordResetPage";
 import BlocksPage from "./pages/BlocksPage";
 import FloorsPage from "./pages/FloorsPage";
 import LocationHierarchyPage from "./pages/LocationHierarchyPage";
@@ -97,6 +98,14 @@ const App: React.FC = () => {
                           element={
                             <PrivateRoute requireSuperAdmin={true}>
                               <AdminManagementPage />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/reset-password"
+                          element={
+                            <PrivateRoute requireAdmin={true}>
+                              <PasswordResetPage />
                             </PrivateRoute>
                           }
                         />

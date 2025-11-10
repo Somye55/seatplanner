@@ -94,7 +94,7 @@ const StudentBookingsPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">My Bookings</h1>
           <p className="text-default-600 mt-2">
-            View all your allocated seats across different rooms.
+            View all your allocated seats with location and timing details.
           </p>
         </div>
         <Button
@@ -123,53 +123,6 @@ const StudentBookingsPage: React.FC = () => {
           Refresh
         </Button>
       </div>
-
-      {/* Student Info Card */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg
-                className="w-5 h-5 text-primary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold">Student Information</h2>
-          </div>
-        </CardHeader>
-        <Divider />
-        <CardBody className="pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-default-500">Name</p>
-              <p className="font-medium text-default-900">{student?.name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-default-500">Email</p>
-              <p className="font-medium text-default-900">{student?.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-default-500">Club / Branch</p>
-              <p className="font-medium text-default-900">{student?.branch}</p>
-            </div>
-            <div>
-              <p className="text-sm text-default-500">Total Seats Allocated</p>
-              <p className="font-medium text-default-900">
-                {allocatedSeats.length}
-              </p>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
 
       {/* Allocated Seats Card */}
       <Card className="shadow-sm">
@@ -221,105 +174,172 @@ const StudentBookingsPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {allocatedSeats.map((seat) => (
-                <div
-                  key={seat.id}
-                  className="border border-divider rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all duration-200 bg-gradient-to-br from-default-50 to-default-100/50 dark:from-default-100/5 dark:to-default-100/10"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center mt-0.5">
-                          <svg
-                            className="w-5 h-5 text-success"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg text-default-900">
-                            Seat {seat.label}
-                          </h3>
-                          {seat.room && (
-                            <>
-                              <p className="text-sm text-default-500 mt-0.5">
-                                {seat.room.name}
-                              </p>
-                              {seat.room.building && (
-                                <p className="text-sm text-default-500 flex items-center gap-1.5 mt-1">
-                                  <svg
-                                    className="w-4 h-4 flex-shrink-0"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                    />
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-                                  </svg>
-                                  <span className="truncate">
-                                    {seat.room.building.name}
-                                  </span>
+              {allocatedSeats.map((seat) => {
+                const booking = seat.room?.bookings?.[0];
+                const formatTime = (dateString: string) => {
+                  return new Date(dateString).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                };
+
+                return (
+                  <div
+                    key={seat.id}
+                    className="border border-divider rounded-xl p-5 hover:shadow-md hover:border-primary/30 transition-all duration-200 bg-gradient-to-br from-default-50 to-default-100/50 dark:from-default-100/5 dark:to-default-100/10"
+                  >
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center mt-0.5">
+                            <svg
+                              className="w-5 h-5 text-success"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg text-default-900">
+                              Seat {seat.label}
+                            </h3>
+                            {seat.room && (
+                              <>
+                                <p className="text-sm text-default-500 mt-0.5">
+                                  {seat.room.name}
                                 </p>
-                              )}
-                            </>
-                          )}
-                          {seat.features && seat.features.length > 0 && (
-                            <div className="mt-2.5 flex flex-wrap gap-2">
-                              {seat.features.map((feature) => (
-                                <span
-                                  key={feature}
-                                  className="inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-md text-xs font-medium text-primary"
-                                >
-                                  {feature}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+
+                                {/* Location Information */}
+                                {seat.room.building && (
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-sm text-default-600 flex items-center gap-1.5">
+                                      <svg
+                                        className="w-4 h-4 flex-shrink-0"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                      </svg>
+                                      <span className="font-medium">
+                                        {seat.room.building.block?.name || ""}{" "}
+                                        {seat.room.building.block?.name && "→"}{" "}
+                                        {seat.room.building.name}
+                                        {seat.room.floor &&
+                                          ` → ${seat.room.floor.name}`}
+                                      </span>
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Faculty and Timing Information */}
+                                {booking && (
+                                  <div className="mt-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2">
+                                        <svg
+                                          className="w-4 h-4 text-primary flex-shrink-0"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                          />
+                                        </svg>
+                                        <span className="text-sm font-medium text-default-900">
+                                          Faculty:{" "}
+                                          {booking.teacher?.name || "N/A"}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <svg
+                                          className="w-4 h-4 text-primary flex-shrink-0"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                          />
+                                        </svg>
+                                        <span className="text-sm text-default-700">
+                                          {formatTime(booking.startTime)} -{" "}
+                                          {formatTime(booking.endTime)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            {seat.features && seat.features.length > 0 && (
+                              <div className="mt-2.5 flex flex-wrap gap-2">
+                                {seat.features.map((feature) => (
+                                  <span
+                                    key={feature}
+                                    className="inline-flex items-center gap-1.5 bg-secondary/10 px-2.5 py-1 rounded-md text-xs font-medium text-secondary"
+                                  >
+                                    {feature}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <span className="inline-flex items-center gap-1.5 bg-success/10 px-3 py-1.5 rounded-full text-xs font-semibold text-success">
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Allocated
-                      </span>
-                      <div className="text-right text-xs text-default-500">
-                        <p>Row {seat.row}</p>
-                        <p>Column {seat.col}</p>
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <span className="inline-flex items-center gap-1.5 bg-success/10 px-3 py-1.5 rounded-full text-xs font-semibold text-success">
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Allocated
+                        </span>
+                        <div className="text-right text-xs text-default-500">
+                          <p>Row {seat.row}</p>
+                          <p>Col {seat.col}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardBody>

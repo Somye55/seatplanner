@@ -35,34 +35,41 @@ A Node.js backend API for the SeatPlanner application, built with Express.js, Pr
 ### Installation
 
 1. Clone the repository and navigate to the backend directory:
+
    ```bash
    cd backend
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Set up environment variables:
    Copy `.env.local` and update the values:
+
    ```bash
    cp .env.local .env
    ```
 
    Required environment variables:
+
    - `DATABASE_URL`: PostgreSQL connection string
    - `UPSTASH_REDIS_REST_URL`: Upstash Redis REST URL
    - `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis REST token
    - `JWT_SECRET`: Secret key for JWT signing
+   - `MASTER_PASSWORD`: Master password for admin password resets (see [Master Password Guide](./MASTER_PASSWORD_GUIDE.md))
 
 4. Set up the database:
+
    ```bash
    npx prisma migrate dev
    npx prisma db seed
    ```
 
 5. Generate Prisma client:
+
    ```bash
    npx prisma generate
    ```
@@ -90,35 +97,43 @@ This will start the API, PostgreSQL, and Redis services.
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/signup` - User registration
 - `POST /api/auth/login` - User login
+- `POST /api/auth/reset-password` - Reset user password with master password (Admin/SuperAdmin only)
 
 ### Buildings
+
 - `GET /api/buildings` - List all buildings
 - `POST /api/buildings` - Create a new building (Admin only)
 - `GET /api/buildings/:id/rooms` - Get rooms in a building
 
 ### Rooms
+
 - `GET /api/rooms/:id` - Get room details
 - `POST /api/rooms` - Create a new room (Admin only)
 - `GET /api/rooms/:id/seats` - Get seats in a room
 
 ### Seats
+
 - `PATCH /api/seats/:id/status` - Update seat status
 
 ### Students
+
 - `GET /api/students` - List all students
 - `POST /api/students` - Create a new student
 - `PATCH /api/students/:id` - Update a student
 - `DELETE /api/students/:id` - Delete a student
 
 ### Planning
+
 - `POST /api/plan/allocate` - Run automatic seat allocation
 - `POST /api/plan/rebalance` - Rebalance allocations after seat changes
 
 ## Database Schema
 
 The application uses the following main entities:
+
 - **User**: Authentication and authorization
 - **Building**: Physical buildings containing rooms
 - **Room**: Rooms within buildings containing seats
@@ -128,6 +143,7 @@ The application uses the following main entities:
 ## Development
 
 ### Scripts
+
 - `npm run dev` - Start development server with hot reload
 - `npm run build` - Build for production
 - `npm start` - Start production server
@@ -135,11 +151,13 @@ The application uses the following main entities:
 - `npm run lint` - Run ESLint
 
 ### Testing
+
 ```bash
 npm test
 ```
 
 ### Code Quality
+
 ```bash
 npm run lint
 ```
@@ -147,6 +165,7 @@ npm run lint
 ## Deployment
 
 1. Build the application:
+
    ```bash
    npm run build
    ```

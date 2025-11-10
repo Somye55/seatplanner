@@ -104,23 +104,33 @@ const ProfileModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {student && (
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Club / Branch
-                      </label>
-                      <p className="text-sm bg-default-100 p-3 rounded-lg">
-                        {BRANCH_OPTIONS.find((b) => b.id === student.branch)
-                          ?.label || student.branch}
-                      </p>
-                    </div>
-                  )}
                   <Input
                     label="Name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     variant="bordered"
                   />
+                  {student && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Email
+                        </label>
+                        <p className="text-sm bg-default-100 p-3 rounded-lg text-default-600">
+                          {student.email}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Club / Branch
+                        </label>
+                        <p className="text-sm bg-default-100 p-3 rounded-lg text-default-600">
+                          {BRANCH_OPTIONS.find((b) => b.id === student.branch)
+                            ?.label || student.branch}
+                        </p>
+                      </div>
+                    </>
+                  )}
                   <div className="border-2 border-dashed border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">
                     <label className="text-sm font-semibold text-default-700">
                       Accessibility Needs (Optional)
@@ -198,6 +208,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: "Floors", href: "/floors", icon: "📐" },
         { name: "Students", href: "/students", icon: "👥" },
         { name: "Faculty", href: "/faculty", icon: "👨‍🏫" },
+        { name: "Reset Password", href: "/reset-password", icon: "🔑" },
         ...(isSuperAdmin
           ? [{ name: "Admins", href: "/admins", icon: "👑" }]
           : []),
@@ -282,6 +293,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       crumbs.push({ name: "Faculty", href: "/faculty" });
     } else if (paths.includes("admins")) {
       crumbs.push({ name: "Admins", href: "/admins" });
+    } else if (paths.includes("reset-password")) {
+      crumbs.push({ name: "Reset Password", href: "/reset-password" });
     }
 
     return crumbs;

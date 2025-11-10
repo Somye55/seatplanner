@@ -27,18 +27,12 @@ router.get(
         select: {
           id: true,
           email: true,
-          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
-      res.json(
-        admins.map((admin) => ({
-          ...admin,
-          password: admin.plainPassword || "••••••••",
-        }))
-      );
+      res.json(admins);
     } catch (error) {
       return handleUnexpectedError(error, res);
     }
@@ -89,17 +83,13 @@ router.post(
         select: {
           id: true,
           email: true,
-          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
-      res.status(201).json({
-        ...admin,
-        password: admin.plainPassword,
-      });
+      res.status(201).json(admin);
     } catch (error) {
       return handleUnexpectedError(error, res);
     }
@@ -177,17 +167,13 @@ router.put(
         select: {
           id: true,
           email: true,
-          plainPassword: true,
           role: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
-      res.json({
-        ...updatedAdmin,
-        password: updatedAdmin.plainPassword || "••••••••",
-      });
+      res.json(updatedAdmin);
     } catch (error: any) {
       if (error.code === "P2025") {
         return sendError(res, 404, ErrorCode.USER_NOT_FOUND);

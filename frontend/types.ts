@@ -57,7 +57,9 @@ export interface Seat {
   studentId?: string;
   features: string[];
   version: number;
-  room?: Room;
+  room?: Room & {
+    bookings?: RoomBooking[];
+  };
 }
 
 export interface Room {
@@ -102,7 +104,6 @@ export interface Teacher {
   id: string;
   name: string;
   email: string;
-  password: string;
   userId?: string;
   createdAt: string;
   updatedAt: string;

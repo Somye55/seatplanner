@@ -357,6 +357,17 @@ export const api = {
   deleteAdmin: (adminId: string): Promise<void> =>
     fetchApi(`/admins/${adminId}`, { method: "DELETE" }),
 
+  // Password Reset
+  resetPassword: (resetData: {
+    userEmail: string;
+    newPassword: string;
+    masterPassword: string;
+  }): Promise<{ message: string; email: string }> =>
+    fetchApi("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(resetData),
+    }),
+
   // Blocks
   getBlocks: (): Promise<Block[]> => fetchApi("/locations/blocks"),
   createBlock: (blockData: {

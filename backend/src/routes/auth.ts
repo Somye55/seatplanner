@@ -8,6 +8,8 @@ const router = Router();
 const prisma = new PrismaClient();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const MASTER_PASSWORD =
+  process.env.MASTER_PASSWORD || "default-master-password";
 
 export interface AuthRequest extends Request {
   user?: { id: string; email: string; role: string };
@@ -151,5 +153,72 @@ export const requireAdminOrTeacher = (
   }
   next();
 };
+
+// POST /api/auth/reset-password - Reset user password with master password (Admin/SuperAdmin only)
+router.post(
+  "/reset-password",
+  authenticateToken,
+  requireAdmin,
+  [
+    body("userEmail")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email is required"),
+    body("newPassword")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+    body("masterPassword").exists().withMessage("Master password is required"),
+  ],
+  async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { userEmail, newPassword, masterPassword } = req.body;
+
+      // Verify master password
+      if (masterPassword !== MASTER_PASSWORD) {
+        return res.status(403).json({ error: "Invalid master password" });
+      }
+
+      // Find the user to reset
+      const user = await prisma.user.findUnique({
+        where: { email: userEmail },
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Prevent resetting SuperAdmin password unless requester is SuperAdmin
+      if (user.role === "SuperAdmin" && req.user?.role !== "SuperAdmin") {
+        return res
+          .status(403)
+          .json({ error: "Cannot reset SuperAdmin password" });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update the user's password
+      await prisma.user.update({
+        where: { email: userEmail },
+        data: {
+          password: hashedPassword,
+          plainPassword: newPassword,
+        },
+      });
+
+      res.json({
+        message: "Password reset successfully",
+        email: userEmail,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Password reset failed" });
+    }
+  }
+);
 
 export default router;
