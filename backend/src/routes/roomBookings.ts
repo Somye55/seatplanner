@@ -55,6 +55,24 @@ router.post(
       }
       return true;
     }),
+    body("currentLocation")
+      .isObject()
+      .withMessage("Current location is required"),
+    body("currentLocation").custom((currentLocation) => {
+      if (
+        !currentLocation.blockId &&
+        !currentLocation.buildingId &&
+        !currentLocation.floorId
+      ) {
+        throw new Error(
+          "Current location must specify at least one level (block, building, or floor)"
+        );
+      }
+      return true;
+    }),
+    body("currentLocation.blockId").optional().isString(),
+    body("currentLocation.buildingId").optional().isString(),
+    body("currentLocation.floorId").optional().isString(),
     body("preferredLocation").optional().isObject(),
     body("preferredLocation.blockId").optional().isString(),
     body("preferredLocation.buildingId").optional().isString(),
@@ -67,14 +85,21 @@ router.post(
     }
 
     try {
-      const { capacity, branch, startTime, endTime, preferredLocation } =
-        req.body;
+      const {
+        capacity,
+        branch,
+        startTime,
+        endTime,
+        currentLocation,
+        preferredLocation,
+      } = req.body;
 
       const criteria: SearchCriteria = {
         capacity,
         branch,
         startTime: new Date(startTime),
         endTime: new Date(endTime),
+        currentLocation,
         preferredLocation,
       };
 

@@ -49,6 +49,11 @@ export interface SearchCriteria {
   branch: Branch;
   startTime: Date;
   endTime: Date;
+  currentLocation: {
+    blockId?: string;
+    buildingId?: string;
+    floorId?: string;
+  };
   preferredLocation?: {
     blockId?: string;
     buildingId?: string;
@@ -72,40 +77,58 @@ export interface RoomRecommendation {
 
 export class RoomSearchService {
   /**
-   * Calculate distance between a room and preferred location based on hierarchy
+   * Calculate distance between a room and a reference location based on hierarchy
    */
   static calculateDistance(
     room: RoomWithHierarchy,
-    preferred?: { blockId?: string; buildingId?: string; floorId?: string }
-  ): number {
-    if (!preferred) {
-      return 0;
+    referenceLocation: {
+      blockId?: string;
+      buildingId?: string;
+      floorId?: string;
     }
-
+  ): number {
     let totalDistance = 0;
 
-    // Block-level distance
+    // If on the same floor, add room distance
     if (
-      preferred.blockId &&
-      room.floor.building.blockId !== preferred.blockId
+      referenceLocation.floorId &&
+      referenceLocation.floorId === room.floorId
     ) {
-      totalDistance += room.floor.building.block.distance;
-    }
-
-    // Building-level distance
-    if (preferred.buildingId && room.buildingId !== preferred.buildingId) {
-      totalDistance += room.floor.building.distance;
-    }
-
-    // Floor-level distance
-    if (preferred.floorId && room.floorId !== preferred.floorId) {
-      totalDistance += room.floor.distance;
-    }
-
-    // Room-level distance (within same floor)
-    if (preferred.floorId === room.floorId) {
       totalDistance += room.distance;
+      return totalDistance;
     }
+
+    // If in the same building but different floor
+    if (
+      referenceLocation.buildingId &&
+      referenceLocation.buildingId === room.buildingId
+    ) {
+      // Add floor distance
+      totalDistance += room.floor.distance;
+      // Add room distance
+      totalDistance += room.distance;
+      return totalDistance;
+    }
+
+    // If in the same block but different building
+    if (
+      referenceLocation.blockId &&
+      referenceLocation.blockId === room.floor.building.blockId
+    ) {
+      // Add building distance
+      totalDistance += room.floor.building.distance;
+      // Add floor distance
+      totalDistance += room.floor.distance;
+      // Add room distance
+      totalDistance += room.distance;
+      return totalDistance;
+    }
+
+    // Different blocks - add all distances
+    totalDistance += room.floor.building.block.distance;
+    totalDistance += room.floor.building.distance;
+    totalDistance += room.floor.distance;
+    totalDistance += room.distance;
 
     return totalDistance;
   }
@@ -155,10 +178,9 @@ export class RoomSearchService {
     }
 
     // 3. Location Proximity Score (30 points max)
-    if (criteria.preferredLocation) {
-      // Closer = higher score (inverse relationship)
-      score += Math.max(0, 30 - distance);
-    }
+    // Closer = higher score (inverse relationship)
+    // Distance is always calculated from current location
+    score += Math.max(0, 30 - distance);
 
     return score;
   }
@@ -175,6 +197,7 @@ export class RoomSearchService {
       branch: criteria.branch,
       startTime: criteria.startTime.toISOString(),
       endTime: criteria.endTime.toISOString(),
+      currentLocation: criteria.currentLocation,
       preferredLocation: criteria.preferredLocation,
     });
 
@@ -185,11 +208,29 @@ export class RoomSearchService {
       return cached;
     }
 
-    // Fetch all rooms with capacity >= requested capacity
+    // Build where clause for room filtering
+    const whereClause: any = {
+      capacity: { gte: criteria.capacity },
+    };
+
+    // If preferred location is specified, filter rooms by that location
+    if (criteria.preferredLocation) {
+      if (criteria.preferredLocation.floorId) {
+        whereClause.floorId = criteria.preferredLocation.floorId;
+      } else if (criteria.preferredLocation.buildingId) {
+        whereClause.buildingId = criteria.preferredLocation.buildingId;
+      } else if (criteria.preferredLocation.blockId) {
+        whereClause.floor = {
+          building: {
+            blockId: criteria.preferredLocation.blockId,
+          },
+        };
+      }
+    }
+
+    // Fetch rooms based on criteria
     const rooms = await prisma.room.findMany({
-      where: {
-        capacity: { gte: criteria.capacity },
-      },
+      where: whereClause,
       include: {
         floor: {
           include: {
@@ -214,10 +255,10 @@ export class RoomSearchService {
         criteria.endTime
       ));
 
-      // Calculate distance
+      // Calculate distance from current location
       const distance = this.calculateDistance(
         room as any,
-        criteria.preferredLocation
+        criteria.currentLocation
       );
 
       // Calculate score

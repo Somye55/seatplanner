@@ -17,6 +17,11 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
   const [branch, setBranch] = useState<Branch | "">("");
   const [startTime, setStartTime] = useState<string>("");
   const [endTime, setEndTime] = useState<string>("");
+  const [currentLocation, setCurrentLocation] = useState<{
+    blockId?: string;
+    buildingId?: string;
+    floorId?: string;
+  }>({});
   const [preferredLocation, setPreferredLocation] = useState<{
     blockId?: string;
     buildingId?: string;
@@ -28,6 +33,7 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
     branch?: string;
     startTime?: string;
     endTime?: string;
+    currentLocation?: string;
   }>({});
 
   const validateForm = (): boolean => {
@@ -69,6 +75,11 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
       }
     }
 
+    // Validate current location
+    if (Object.keys(currentLocation).length === 0) {
+      newErrors.currentLocation = "Current location is required";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,6 +96,7 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
       branch: branch as Branch,
       startTime,
       endTime,
+      currentLocation,
       preferredLocation:
         Object.keys(preferredLocation).length > 0
           ? preferredLocation
@@ -147,14 +159,32 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
         isRequired
       />
 
-      {/* Location Hierarchy Selector */}
-      <div className="border-2 border-dashed border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">
-        <label className="text-sm font-semibold text-default-700 mb-3 block">
-          Preferred Location (Optional)
+      {/* Current Location Selector */}
+      <div className="border-2 border-solid border-primary-200 dark:border-primary-800 rounded-xl p-4 bg-primary-50 dark:bg-primary-900/10">
+        <label className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-3 block">
+          Your Current Location <span className="text-danger">*</span>
         </label>
         <p className="text-xs text-default-500 mb-4">
-          Select your preferred location to find rooms nearby. You can choose at
-          any level.
+          Select where you are currently located. This helps calculate accurate
+          distances to available rooms.
+        </p>
+        <LocationHierarchySelector
+          onSelect={setCurrentLocation}
+          value={currentLocation}
+        />
+        {errors.currentLocation && (
+          <p className="text-xs text-danger mt-2">{errors.currentLocation}</p>
+        )}
+      </div>
+
+      {/* Preferred Location Selector */}
+      <div className="border-2 border-dashed border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">
+        <label className="text-sm font-semibold text-default-700 mb-3 block">
+          Preferred Search Location (Optional)
+        </label>
+        <p className="text-xs text-default-500 mb-4">
+          Optionally narrow your search to a specific area. Leave empty to
+          search all locations.
         </p>
         <LocationHierarchySelector
           onSelect={setPreferredLocation}

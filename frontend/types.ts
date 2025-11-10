@@ -156,6 +156,11 @@ export interface SearchCriteria {
   branch: Branch;
   startTime: string;
   endTime: string;
+  currentLocation: {
+    blockId?: string;
+    buildingId?: string;
+    floorId?: string;
+  };
   preferredLocation?: {
     blockId?: string;
     buildingId?: string;
