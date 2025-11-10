@@ -208,6 +208,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: "My Bookings", href: "/my-bookings", icon: "📅" },
         { name: "Locations", href: "/locations", icon: "📍" },
       ]
+    : isStudent
+    ? [
+        { name: "My Bookings", href: "/student-bookings", icon: "📅" },
+        { name: "Locations", href: "/locations", icon: "📍" },
+      ]
     : [{ name: "Locations", href: "/locations", icon: "📍" }];
 
   useEffect(() => {
@@ -242,13 +247,22 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const getBreadcrumbs = () => {
     const paths = location.pathname.split("/").filter(Boolean);
     const crumbs = [
-      { name: "Home", href: isTeacher ? "/find-room" : "/locations" },
+      {
+        name: "Home",
+        href: isTeacher
+          ? "/find-room"
+          : isStudent
+          ? "/student-bookings"
+          : "/locations",
+      },
     ];
 
     if (paths.includes("find-room")) {
       crumbs.push({ name: "Find Room", href: "/find-room" });
     } else if (paths.includes("my-bookings")) {
       crumbs.push({ name: "My Bookings", href: "/my-bookings" });
+    } else if (paths.includes("student-bookings")) {
+      crumbs.push({ name: "My Bookings", href: "/student-bookings" });
     } else if (paths.includes("locations")) {
       crumbs.push({ name: "Locations", href: "/locations" });
     } else if (paths.includes("blocks")) {

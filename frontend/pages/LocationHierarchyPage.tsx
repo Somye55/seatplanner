@@ -9,6 +9,7 @@ import {
   Skeleton,
 } from "@heroui/react";
 import { api } from "../services/apiService";
+import { authService } from "../services/authService";
 import { Block, Building, Floor, Room } from "../types";
 
 interface BlockWithHierarchy extends Block {
@@ -21,6 +22,8 @@ interface BlockWithHierarchy extends Block {
 
 const LocationHierarchyPage: React.FC = () => {
   const navigate = useNavigate();
+  const user = authService.getUser();
+  const isStudent = user?.role === "Student";
   const [blocks, setBlocks] = useState<BlockWithHierarchy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -239,11 +242,17 @@ const LocationHierarchyPage: React.FC = () => {
                                   {floor.rooms.map((room) => (
                                     <Card
                                       key={room.id}
-                                      isPressable
-                                      onPress={() =>
-                                        navigate(`/rooms/${room.id}`)
+                                      isPressable={!isStudent}
+                                      onPress={
+                                        !isStudent
+                                          ? () => navigate(`/rooms/${room.id}`)
+                                          : undefined
                                       }
-                                      className="hover:scale-105 transition-transform"
+                                      className={
+                                        !isStudent
+                                          ? "hover:scale-105 transition-transform cursor-pointer"
+                                          : "cursor-default"
+                                      }
                                     >
                                       <CardBody className="p-4">
                                         <div className="flex items-start justify-between">

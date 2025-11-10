@@ -5,6 +5,7 @@ import { SeatPlannerProvider } from "./context/SeatPlannerContext";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import Layout from "./components/Layout";
 import PrivateRoute from "./components/PrivateRoute";
+import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import SignInPage from "./pages/SignInPage";
 import BuildingsPage from "./pages/BuildingsPage";
 import RoomsPage from "./pages/RoomsPage";
@@ -12,6 +13,7 @@ import SeatMapPage from "./pages/SeatMapPage";
 import StudentsPage from "./pages/StudentsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
+import StudentBookingsPage from "./pages/StudentBookingsPage";
 import FacultyManagementPage from "./pages/FacultyManagementPage";
 import AdminManagementPage from "./pages/AdminManagementPage";
 import BlocksPage from "./pages/BlocksPage";
@@ -36,7 +38,7 @@ const App: React.FC = () => {
                   <PrivateRoute>
                     <Layout>
                       <Routes>
-                        <Route path="/" element={<LocationHierarchyPage />} />
+                        <Route path="/" element={<RoleBasedRedirect />} />
                         <Route
                           path="/locations"
                           element={<LocationHierarchyPage />}
@@ -44,11 +46,19 @@ const App: React.FC = () => {
                         <Route path="/buildings" element={<BuildingsPage />} />
                         <Route
                           path="/buildings/:buildingId/rooms"
-                          element={<RoomsPage />}
+                          element={
+                            <PrivateRoute requireAdminOrTeacher={true}>
+                              <RoomsPage />
+                            </PrivateRoute>
+                          }
                         />
                         <Route
                           path="/rooms/:roomId"
-                          element={<SeatMapPage />}
+                          element={
+                            <PrivateRoute requireAdminOrTeacher={true}>
+                              <SeatMapPage />
+                            </PrivateRoute>
+                          }
                         />
                         <Route
                           path="/blocks"
@@ -96,12 +106,21 @@ const App: React.FC = () => {
                         />
                         <Route
                           path="/my-bookings"
-                          element={<MyBookingsPage />}
+                          element={
+                            <PrivateRoute requireTeacher={true}>
+                              <MyBookingsPage />
+                            </PrivateRoute>
+                          }
                         />
                         <Route
-                          path="*"
-                          element={<Navigate to="/locations" replace />}
+                          path="/student-bookings"
+                          element={
+                            <PrivateRoute requireStudent={true}>
+                              <StudentBookingsPage />
+                            </PrivateRoute>
+                          }
                         />
+                        <Route path="*" element={<RoleBasedRedirect />} />
                       </Routes>
                     </Layout>
                   </PrivateRoute>

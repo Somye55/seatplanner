@@ -171,6 +171,9 @@ describe("Room Search and Booking Flow", () => {
           branch: Branch.ConsultingClub,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          currentLocation: {
+            blockId: block.id,
+          },
         });
 
       expect(response.status).toBe(200);
@@ -198,6 +201,9 @@ describe("Room Search and Booking Flow", () => {
           branch: Branch.ConsultingClub,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          currentLocation: {
+            blockId: block.id,
+          },
         });
 
       expect(response.status).toBe(200);
@@ -224,6 +230,9 @@ describe("Room Search and Booking Flow", () => {
           branch: Branch.ConsultingClub,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          currentLocation: {
+            blockId: block.id,
+          },
         });
 
       expect(response.status).toBe(200);
@@ -630,6 +639,9 @@ describe("Room Search and Booking Flow", () => {
           branch: Branch.ConsultingClub,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          currentLocation: {
+            blockId: block.id,
+          },
         });
 
       expect(searchResponse.status).toBe(200);
@@ -648,6 +660,243 @@ describe("Room Search and Booking Flow", () => {
           expect(availableRoom.score).toBeGreaterThan(bookedRoom.score);
         }
       }
+    });
+  });
+
+  describe("Student Allocation on Room Booking", () => {
+    let testRoom: any;
+    let testStudents: any[] = [];
+
+    beforeAll(async () => {
+      // Clean up any existing test data
+      await prisma.seat.deleteMany({
+        where: { room: { name: "Test Student Allocation Room" } },
+      });
+      await prisma.student.deleteMany({
+        where: { email: { contains: "test-allocation-student" } },
+      });
+      await prisma.room.deleteMany({
+        where: { name: "Test Student Allocation Room" },
+      });
+
+      // Create a test room with seats
+      testRoom = await prisma.room.create({
+        data: {
+          name: "Test Student Allocation Room",
+          capacity: 10,
+          rows: 2,
+          cols: 5,
+          buildingId: building.id,
+          floorId: floor.id,
+          distance: 0,
+        },
+      });
+
+      // Create seats for the room
+      const seatPromises = [];
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 5; col++) {
+          seatPromises.push(
+            prisma.seat.create({
+              data: {
+                roomId: testRoom.id,
+                label: `${String.fromCharCode(65 + row)}${col + 1}`,
+                row,
+                col,
+                features: [],
+                status: "Available",
+              },
+            })
+          );
+        }
+      }
+      await Promise.all(seatPromises);
+
+      // Create test students from ConsultingClub branch
+      for (let i = 0; i < 5; i++) {
+        const student = await prisma.student.create({
+          data: {
+            name: `Test Allocation Student ${i + 1}`,
+            email: `test-allocation-student${i + 1}@example.com`,
+            branch: Branch.ConsultingClub,
+            tags: [],
+            accessibilityNeeds: [],
+          },
+        });
+        testStudents.push(student);
+      }
+    });
+
+    afterAll(async () => {
+      // Clean up test data
+      await prisma.seat.deleteMany({
+        where: { roomId: testRoom.id },
+      });
+      await prisma.student.deleteMany({
+        where: { email: { contains: "test-allocation-student" } },
+      });
+      await prisma.roomBooking.deleteMany({
+        where: { roomId: testRoom.id },
+      });
+      await prisma.room.deleteMany({
+        where: { id: testRoom.id },
+      });
+    });
+
+    it("should automatically allocate students when teacher claims a room", async () => {
+      const startTime = new Date(Date.now() + 15 * 60 * 60 * 1000);
+      const endTime = new Date(Date.now() + 16 * 60 * 60 * 1000);
+
+      // Create booking - this should trigger automatic student allocation
+      const response = await request(app)
+        .post("/api/room-bookings")
+        .set("Authorization", `Bearer ${teacherToken}`)
+        .send({
+          roomId: testRoom.id,
+          branch: Branch.ConsultingClub,
+          capacity: 5,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        });
+
+      expect(response.status).toBe(201);
+
+      // Wait a bit for allocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Verify students are allocated to seats
+      const allocatedSeats = await prisma.seat.findMany({
+        where: {
+          roomId: testRoom.id,
+          status: "Allocated",
+        },
+        include: {
+          student: true,
+        },
+      });
+
+      expect(allocatedSeats.length).toBe(5);
+
+      // Verify all allocated students are from ConsultingClub
+      allocatedSeats.forEach((seat) => {
+        expect(seat.student?.branch).toBe(Branch.ConsultingClub);
+      });
+
+      // Verify room is marked as allocated to the branch
+      const updatedRoom = await prisma.room.findUnique({
+        where: { id: testRoom.id },
+      });
+
+      expect(updatedRoom?.branchAllocated).toBe(Branch.ConsultingClub);
+      expect(updatedRoom?.claimed).toBe(5);
+    });
+
+    it("should deallocate students when booking is canceled", async () => {
+      // Find the booking we just created
+      const booking = await prisma.roomBooking.findFirst({
+        where: {
+          roomId: testRoom.id,
+          teacherId: teacher.id,
+          branch: Branch.ConsultingClub,
+        },
+      });
+
+      expect(booking).toBeDefined();
+
+      // Cancel the booking
+      const response = await request(app)
+        .delete(`/api/room-bookings/${booking!.id}`)
+        .set("Authorization", `Bearer ${teacherToken}`);
+
+      expect(response.status).toBe(204);
+
+      // Wait a bit for deallocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify students are deallocated
+      const allocatedSeats = await prisma.seat.findMany({
+        where: {
+          roomId: testRoom.id,
+          status: "Allocated",
+        },
+      });
+
+      expect(allocatedSeats.length).toBe(0);
+
+      // Verify room is no longer allocated to the branch
+      const updatedRoom = await prisma.room.findUnique({
+        where: { id: testRoom.id },
+      });
+
+      expect(updatedRoom?.branchAllocated).toBeNull();
+      expect(updatedRoom?.claimed).toBe(0);
+    });
+
+    it("should deallocate students when booking expires", async () => {
+      // Create a booking that expires immediately
+      const startTime = new Date(Date.now() - 2000);
+      const endTime = new Date(Date.now() - 1000);
+
+      const booking = await prisma.roomBooking.create({
+        data: {
+          roomId: testRoom.id,
+          teacherId: teacher.id,
+          branch: Branch.ConsultingClub,
+          capacity: 5,
+          startTime,
+          endTime,
+          status: "Ongoing",
+        },
+      });
+
+      // Manually allocate students first
+      const { AllocationService } = await import(
+        "../services/allocationService"
+      );
+      await AllocationService.allocateBranchToRoom(
+        Branch.ConsultingClub,
+        testRoom.id
+      );
+
+      // Verify students are allocated
+      let allocatedSeats = await prisma.seat.findMany({
+        where: {
+          roomId: testRoom.id,
+          status: "Allocated",
+        },
+      });
+
+      expect(allocatedSeats.length).toBeGreaterThan(0);
+
+      // Trigger expiration (simulating the scheduled service)
+      const { BookingExpirationService } = await import(
+        "../services/bookingExpirationService"
+      );
+      const expirationService = new BookingExpirationService();
+      await expirationService.updateBookingStatuses();
+
+      // Wait a bit for deallocation to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verify students are deallocated
+      allocatedSeats = await prisma.seat.findMany({
+        where: {
+          roomId: testRoom.id,
+          status: "Allocated",
+        },
+      });
+
+      expect(allocatedSeats.length).toBe(0);
+
+      // Verify booking is marked as completed
+      const updatedBooking = await prisma.roomBooking.findUnique({
+        where: { id: booking.id },
+      });
+
+      expect(updatedBooking?.status).toBe("Completed");
+
+      // Clean up
+      await prisma.roomBooking.delete({ where: { id: booking.id } });
     });
   });
 });

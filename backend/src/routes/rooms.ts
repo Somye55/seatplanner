@@ -393,4 +393,46 @@ router.get(
   }
 );
 
+// POST /api/rooms/:id/regenerate-seats - Regenerate seats for a room (admin only)
+router.post(
+  "/:id/regenerate-seats",
+  [authenticateToken, requireAdmin, param("id").isString().notEmpty()],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const room = await prisma.room.findUnique({
+        where: { id: req.params.id },
+      });
+
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+
+      // Regenerate seats
+      await SeatGenerationService.generateSeatsForRoom(
+        room.id,
+        room.capacity,
+        room.rows,
+        room.cols,
+        prisma
+      );
+
+      await invalidateCache(`room-seats:/api/rooms/${room.id}/seats`);
+
+      res.json({
+        message: "Seats regenerated successfully",
+        roomId: room.id,
+        capacity: room.capacity,
+      });
+    } catch (error) {
+      console.error("Failed to regenerate seats:", error);
+      res.status(500).json({ error: "Failed to regenerate seats" });
+    }
+  }
+);
+
 export default router;

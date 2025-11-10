@@ -75,6 +75,77 @@ export class BookingExpirationService {
       });
 
       for (const booking of expiredBookings) {
+        // Deallocate students from the room when booking expires
+        try {
+          // Find all students from this branch that are allocated to this room
+          const allocatedSeats = await prisma.seat.findMany({
+            where: {
+              roomId: booking.roomId,
+              status: "Allocated",
+              student: {
+                branch: booking.branch,
+              },
+            },
+            include: {
+              student: true,
+            },
+          });
+
+          // Deallocate all seats for students from this branch
+          if (allocatedSeats.length > 0) {
+            await prisma.$transaction(async (tx) => {
+              // Update all seats to Available and remove student assignment
+              await tx.seat.updateMany({
+                where: {
+                  id: { in: allocatedSeats.map((s) => s.id) },
+                },
+                data: {
+                  status: "Available",
+                  studentId: null,
+                },
+              });
+
+              // Update room claimed count and potentially clear branchAllocated
+              const room = await tx.room.findUnique({
+                where: { id: booking.roomId },
+                include: {
+                  seats: {
+                    where: {
+                      status: "Allocated",
+                    },
+                  },
+                },
+              });
+
+              if (room) {
+                const remainingAllocatedCount =
+                  room.seats.length - allocatedSeats.length;
+                await tx.room.update({
+                  where: { id: booking.roomId },
+                  data: {
+                    claimed: { decrement: allocatedSeats.length },
+                    // Clear branchAllocated if no more students are allocated
+                    branchAllocated:
+                      remainingAllocatedCount === 0
+                        ? null
+                        : room.branchAllocated,
+                  },
+                });
+              }
+            });
+
+            console.log(
+              `Deallocated ${allocatedSeats.length} students from room ${booking.roomId} after booking expiration`
+            );
+          }
+        } catch (deallocationError) {
+          console.error(
+            `Failed to deallocate students for expired booking ${booking.id}:`,
+            deallocationError
+          );
+          // Continue with booking status update even if deallocation fails
+        }
+
         await prisma.roomBooking.update({
           where: { id: booking.id },
           data: { status: "Completed" },

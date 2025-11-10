@@ -79,14 +79,26 @@ async function fetchApi(url: string, options: RequestInit = {}) {
     },
   });
 
-  // Handle authentication errors (401 Unauthorized, 403 Forbidden)
-  if (response.status === 401 || response.status === 403) {
+  // Handle authentication errors (401 Unauthorized)
+  if (response.status === 401) {
     const errorData = await response
       .json()
       .catch(() => ({ error: "Authentication failed" }));
     authService.handleAuthError();
     throw new Error(
       errorData.error || "Your session has expired. Please login again."
+    );
+  }
+
+  // Handle 403 Forbidden (permission denied, but user is authenticated)
+  if (response.status === 403) {
+    const errorData = await response
+      .json()
+      .catch(() => ({ error: "Access denied" }));
+    throw new ApiError(
+      errorData.error || "You don't have permission to access this resource",
+      403,
+      "FORBIDDEN"
     );
   }
 

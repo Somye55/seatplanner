@@ -320,7 +320,7 @@ router.post(
         );
       }
 
-      // Step 4: Create the booking
+      // Step 4: Create the booking and allocate students to the room
       const booking = await prisma.roomBooking.create({
         data: {
           roomId,
@@ -346,7 +346,44 @@ router.post(
         },
       });
 
-      // Step 5: Release lock after successful booking
+      // Step 5: Automatically allocate all students from the branch to the room
+      const { AllocationService } = await import(
+        "../services/allocationService"
+      );
+      try {
+        // Check if room has seats before attempting allocation
+        const seatCount = await prisma.seat.count({
+          where: { roomId },
+        });
+
+        if (seatCount === 0) {
+          console.warn(
+            `Room ${roomId} has no seats. Skipping student allocation. Please ensure seats are generated for this room.`
+          );
+        } else {
+          const allocationResult = await AllocationService.allocateBranchToRoom(
+            branch,
+            roomId
+          );
+          console.log(
+            `Auto-allocated ${allocationResult.summary.allocatedCount} students from ${branch} to room ${roomId} (${allocationResult.summary.unallocatedCount} unallocated)`
+          );
+
+          if (allocationResult.summary.unallocatedCount > 0) {
+            console.warn(
+              `${allocationResult.summary.unallocatedCount} students could not be allocated. Reasons:`,
+              allocationResult.summary.unallocatedStudents.map(
+                (u) => `${u.student.name}: ${u.reason}`
+              )
+            );
+          }
+        }
+      } catch (allocationError) {
+        console.error("Failed to auto-allocate students:", allocationError);
+        // Don't fail the booking if allocation fails - the booking is still valid
+      }
+
+      // Step 6: Release lock after successful booking
       roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
 
       // Invalidate search cache
@@ -498,6 +535,63 @@ router.delete(
 
       if (booking.status === "Completed") {
         return sendError(res, 400, ErrorCode.CANNOT_CANCEL_COMPLETED);
+      }
+
+      // Deallocate students from the room before deleting the booking
+      // Only if the room is allocated to this branch
+      try {
+        const room = await prisma.room.findUnique({
+          where: { id: booking.roomId },
+        });
+
+        // Only deallocate if the room is currently allocated to this booking's branch
+        if (room && room.branchAllocated === booking.branch) {
+          // Find all students from this branch that are allocated to this room
+          const allocatedSeats = await prisma.seat.findMany({
+            where: {
+              roomId: booking.roomId,
+              status: "Allocated",
+              student: {
+                branch: booking.branch,
+              },
+            },
+            include: {
+              student: true,
+            },
+          });
+
+          // Deallocate all seats for students from this branch
+          if (allocatedSeats.length > 0) {
+            await prisma.$transaction(async (tx) => {
+              // Update all seats to Available and remove student assignment
+              await tx.seat.updateMany({
+                where: {
+                  id: { in: allocatedSeats.map((s) => s.id) },
+                },
+                data: {
+                  status: "Available",
+                  studentId: null,
+                },
+              });
+
+              // Update room claimed count and clear branchAllocated
+              await tx.room.update({
+                where: { id: booking.roomId },
+                data: {
+                  claimed: { decrement: allocatedSeats.length },
+                  branchAllocated: null,
+                },
+              });
+            });
+
+            console.log(
+              `Deallocated ${allocatedSeats.length} students from room ${booking.roomId} after booking cancellation`
+            );
+          }
+        }
+      } catch (deallocationError) {
+        console.error("Failed to deallocate students:", deallocationError);
+        // Continue with booking deletion even if deallocation fails
       }
 
       // Delete the booking

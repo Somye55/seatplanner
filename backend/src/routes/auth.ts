@@ -144,7 +144,8 @@ export const requireAdminOrTeacher = (
   if (
     req.user?.role !== "Admin" &&
     req.user?.role !== "Teacher" &&
-    req.user?.role !== "SuperAdmin"
+    req.user?.role !== "SuperAdmin" &&
+    req.user?.role !== "Student"
   ) {
     return res.status(403).json({ error: "Admin or Teacher access required" });
   }

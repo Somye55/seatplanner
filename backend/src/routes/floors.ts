@@ -10,11 +10,7 @@ const prisma = new PrismaClient();
 // GET /api/locations/floors -> list floors (with optional buildingId filter)
 router.get(
   "/",
-  [
-    authenticateToken,
-    requireAdminOrTeacher,
-    query("buildingId").optional().isString(),
-  ],
+  [authenticateToken, query("buildingId").optional().isString()],
   cacheMiddleware("floors"),
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
