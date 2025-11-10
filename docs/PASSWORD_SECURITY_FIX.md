@@ -36,6 +36,7 @@ Removed password fields from all API responses and frontend displays to ensure p
 - Removed `PasswordCell` component
 - Removed PASSWORD column from the teachers table
 - Updated skeleton table to remove password column
+- Removed password field from edit teacher form (only shown when creating new teachers)
 
 #### 2. Admin Management Page (`frontend/pages/AdminManagementPage.tsx`)
 
@@ -43,10 +44,15 @@ Removed password fields from all API responses and frontend displays to ensure p
 - Removed PASSWORD column from the admins table
 - Updated skeleton table to remove password column
 - Removed `password` field from Admin interface
+- Removed password field from edit admin form (only shown when creating new admins)
 
 #### 3. Types (`frontend/types.ts`)
 
 - Removed `password` field from Teacher interface
+
+#### 4. API Service (`frontend/services/apiService.ts`)
+
+- Removed `password` field from Admin type definitions in `getAdmins()`, `createAdmin()`, and `updateAdmin()` return types
 
 ## Security Impact
 

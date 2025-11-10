@@ -321,7 +321,6 @@ export const api = {
     Array<{
       id: string;
       email: string;
-      password: string;
       role: string;
       createdAt: string;
     }>
@@ -332,7 +331,6 @@ export const api = {
   }): Promise<{
     id: string;
     email: string;
-    password: string;
     role: string;
     createdAt: string;
   }> =>
@@ -346,7 +344,6 @@ export const api = {
   ): Promise<{
     id: string;
     email: string;
-    password: string;
     role: string;
     createdAt: string;
   }> =>
