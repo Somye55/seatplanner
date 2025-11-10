@@ -24,6 +24,7 @@ export enum ErrorCode {
   CANNOT_CANCEL_ONGOING = "CANNOT_CANCEL_ONGOING",
   CANNOT_CANCEL_COMPLETED = "CANNOT_CANCEL_COMPLETED",
   BOOKING_CONFLICT = "BOOKING_CONFLICT",
+  TEACHER_TIME_CONFLICT = "TEACHER_TIME_CONFLICT",
 
   // Teacher Management Errors
   TEACHER_EXISTS = "TEACHER_EXISTS",
@@ -81,6 +82,8 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.CANNOT_CANCEL_COMPLETED]: "Cannot cancel a completed booking",
   [ErrorCode.BOOKING_CONFLICT]:
     "Another teacher is currently booking this room",
+  [ErrorCode.TEACHER_TIME_CONFLICT]:
+    "Teacher already has a booking during this time slot",
 
   // Teacher Management Errors
   [ErrorCode.TEACHER_EXISTS]: "Teacher with this email already exists",

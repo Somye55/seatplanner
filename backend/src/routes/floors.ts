@@ -209,7 +209,7 @@ router.put(
   }
 );
 
-// DELETE /api/locations/floors/:id -> delete floor
+// DELETE /api/locations/floors/:id -> delete floor (cascades to rooms)
 router.delete(
   "/:id",
   [authenticateToken, requireAdmin, param("id").isString().notEmpty()],
@@ -225,21 +225,13 @@ router.delete(
       // Check if floor exists
       const floor = await prisma.floor.findUnique({
         where: { id },
-        include: { rooms: true },
       });
 
       if (!floor) {
         return res.status(404).json({ error: "Floor not found" });
       }
 
-      // Prevent deletion if floor has rooms
-      if (floor.rooms.length > 0) {
-        return res.status(400).json({
-          error: "Cannot delete floor with existing rooms",
-          message: "Location has children",
-        });
-      }
-
+      // Delete floor - cascades to all rooms
       await prisma.floor.delete({
         where: { id },
       });

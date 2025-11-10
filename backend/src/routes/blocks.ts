@@ -180,7 +180,7 @@ router.put(
   }
 );
 
-// DELETE /api/locations/blocks/:id -> delete block
+// DELETE /api/locations/blocks/:id -> delete block (cascades to buildings, floors, and rooms)
 router.delete(
   "/:id",
   [authenticateToken, requireAdmin, param("id").isString().notEmpty()],
@@ -196,26 +196,20 @@ router.delete(
       // Check if block exists
       const block = await prisma.block.findUnique({
         where: { id },
-        include: { buildings: true },
       });
 
       if (!block) {
         return res.status(404).json({ error: "Block not found" });
       }
 
-      // Prevent deletion if block has buildings
-      if (block.buildings.length > 0) {
-        return res.status(400).json({
-          error: "Cannot delete block with existing buildings",
-          message: "Location has children",
-        });
-      }
-
+      // Delete block - cascades to all buildings, floors, and rooms
       await prisma.block.delete({
         where: { id },
       });
 
       await invalidateCache("blocks:*");
+      await invalidateCache("buildings:*");
+      await invalidateCache("floors:*");
 
       res.status(204).send();
     } catch (error) {

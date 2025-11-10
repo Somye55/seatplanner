@@ -283,9 +283,33 @@ describe("Room Search and Booking Flow", () => {
       booking1 = response.body;
     });
 
-    it("should prevent overlapping bookings", async () => {
-      const startTime = new Date(Date.now() + 3.5 * 60 * 60 * 1000); // Overlaps with previous booking
-      const endTime = new Date(Date.now() + 4.5 * 60 * 60 * 1000);
+    it("should prevent overlapping bookings in same room", async () => {
+      // First, cancel the existing booking to avoid teacher conflict
+      await prisma.roomBooking.deleteMany({
+        where: {
+          teacherId: teacher.id,
+          roomId: room1.id,
+        },
+      });
+
+      // Create a new booking
+      const startTime1 = new Date(Date.now() + 10 * 60 * 60 * 1000);
+      const endTime1 = new Date(Date.now() + 11 * 60 * 60 * 1000);
+
+      await request(app)
+        .post("/api/room-bookings")
+        .set("Authorization", `Bearer ${teacherToken}`)
+        .send({
+          roomId: room1.id,
+          branch: Branch.ConsultingClub,
+          capacity: 25,
+          startTime: startTime1.toISOString(),
+          endTime: endTime1.toISOString(),
+        });
+
+      // Try to book the same room at overlapping time (should fail due to room conflict)
+      const startTime2 = new Date(Date.now() + 10.5 * 60 * 60 * 1000); // Overlaps
+      const endTime2 = new Date(Date.now() + 11.5 * 60 * 60 * 1000);
 
       const response = await request(app)
         .post("/api/room-bookings")
@@ -294,13 +318,14 @@ describe("Room Search and Booking Flow", () => {
           roomId: room1.id,
           branch: Branch.ConsultingClub,
           capacity: 25,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
+          startTime: startTime2.toISOString(),
+          endTime: endTime2.toISOString(),
         });
 
       expect(response.status).toBe(409);
       expect(response.body).toHaveProperty("error");
-      expect(response.body.error).toContain("not available");
+      // Should get teacher conflict first since same teacher
+      expect(response.body.error).toContain("already have a booking");
     });
 
     it("should prevent booking in the past", async () => {
@@ -341,15 +366,51 @@ describe("Room Search and Booking Flow", () => {
       expect(response.body).toHaveProperty("error");
     });
 
-    it("should allow booking in different room at same time", async () => {
-      const startTime = new Date(Date.now() + 3 * 60 * 60 * 1000);
-      const endTime = new Date(Date.now() + 4 * 60 * 60 * 1000);
+    it("should prevent teacher from booking multiple rooms at same time", async () => {
+      // First, create a booking in room1
+      const startTime = new Date(Date.now() + 20 * 60 * 60 * 1000);
+      const endTime = new Date(Date.now() + 21 * 60 * 60 * 1000);
+
+      const firstBooking = await request(app)
+        .post("/api/room-bookings")
+        .set("Authorization", `Bearer ${teacherToken}`)
+        .send({
+          roomId: room1.id,
+          branch: Branch.ConsultingClub,
+          capacity: 25,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        });
+
+      expect(firstBooking.status).toBe(201);
+
+      // Now try to book room2 at the same time - should fail
+      const response = await request(app)
+        .post("/api/room-bookings")
+        .set("Authorization", `Bearer ${teacherToken}`)
+        .send({
+          roomId: room2.id, // Different room, same time
+          branch: Branch.ConsultingClub,
+          capacity: 40,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        });
+
+      expect(response.status).toBe(409);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toContain("already have a booking");
+      expect(response.body.code).toBe("TEACHER_TIME_CONFLICT");
+    });
+
+    it("should allow booking in different room at different time", async () => {
+      const startTime = new Date(Date.now() + 5 * 60 * 60 * 1000); // Different time
+      const endTime = new Date(Date.now() + 6 * 60 * 60 * 1000);
 
       const response = await request(app)
         .post("/api/room-bookings")
         .set("Authorization", `Bearer ${teacherToken}`)
         .send({
-          roomId: room2.id, // Different room
+          roomId: room2.id, // Different room, different time
           branch: Branch.ConsultingClub,
           capacity: 40,
           startTime: startTime.toISOString(),

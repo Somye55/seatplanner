@@ -164,12 +164,10 @@ router.put(
           where: { id: blockId },
         });
         if (!block) {
-          return res
-            .status(400)
-            .json({
-              error: "Invalid parent location in hierarchy",
-              message: "Block not found",
-            });
+          return res.status(400).json({
+            error: "Invalid parent location in hierarchy",
+            message: "Block not found",
+          });
         }
       }
 
@@ -206,7 +204,7 @@ router.put(
   }
 );
 
-// DELETE /api/buildings/:id -> delete building
+// DELETE /api/buildings/:id -> delete building (cascades to floors and rooms)
 router.delete(
   "/:id",
   [authenticateToken, requireAdmin, param("id").isString().notEmpty()],
@@ -221,24 +219,19 @@ router.delete(
 
       const building = await prisma.building.findUnique({
         where: { id },
-        include: { rooms: true },
       });
 
       if (!building) {
         return res.status(404).json({ error: "Building not found" });
       }
 
-      if (building.rooms.length > 0) {
-        return res
-          .status(400)
-          .json({ error: "Cannot delete building with existing rooms" });
-      }
-
+      // Delete building - cascades to all floors and rooms
       await prisma.building.delete({
         where: { id },
       });
 
       await invalidateCache("buildings:*");
+      await invalidateCache("floors:*");
 
       res.status(204).send();
     } catch (error) {

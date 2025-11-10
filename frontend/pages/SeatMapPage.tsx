@@ -597,7 +597,7 @@ const SeatMapPage: React.FC = () => {
                                       : "danger"
                                   }
                                   variant="flat"
-                                  size="lg"
+                                  size="md"
                                   className="font-semibold"
                                 >
                                   {selectedSeat.status}

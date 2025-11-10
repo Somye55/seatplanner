@@ -75,9 +75,13 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
       }
     }
 
-    // Validate current location
-    if (Object.keys(currentLocation).length === 0) {
-      newErrors.currentLocation = "Current location is required";
+    // Validate current location - all fields required
+    if (!currentLocation.blockId) {
+      newErrors.currentLocation = "Please select a block";
+    } else if (!currentLocation.buildingId) {
+      newErrors.currentLocation = "Please select a building";
+    } else if (!currentLocation.floorId) {
+      newErrors.currentLocation = "Please select a floor";
     }
 
     setErrors(newErrors);
@@ -141,7 +145,7 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
           isRequired
         >
           {BRANCH_OPTIONS.map((option) => (
-            <SelectItem key={option.id} textValue={option.id}>
+            <SelectItem key={option.id} textValue={option.label}>
               {option.label}
             </SelectItem>
           ))}
@@ -171,6 +175,7 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
         <LocationHierarchySelector
           onSelect={setCurrentLocation}
           value={currentLocation}
+          isOptional={false}
         />
         {errors.currentLocation && (
           <p className="text-xs text-danger mt-2">{errors.currentLocation}</p>

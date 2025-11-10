@@ -227,7 +227,48 @@ router.post(
         return sendError(res, 400, ErrorCode.INSUFFICIENT_CAPACITY);
       }
 
-      // Step 2: Double-check for overlapping bookings (race condition protection)
+      // Step 2: Check if teacher already has a booking at this time
+      const teacherConflict = await prisma.roomBooking.findFirst({
+        where: {
+          teacherId: teacher.id,
+          status: { in: ["NotStarted", "Ongoing"] },
+          OR: [
+            {
+              AND: [
+                { startTime: { lt: endTimeDate } },
+                { endTime: { gt: startTimeDate } },
+              ],
+            },
+          ],
+        },
+        include: {
+          room: {
+            include: {
+              building: {
+                include: {
+                  block: true,
+                },
+              },
+              floor: true,
+            },
+          },
+        },
+      });
+
+      if (teacherConflict) {
+        roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
+
+        const roomLocation = `${teacherConflict.room.building.block.name} - ${teacherConflict.room.building.name} - ${teacherConflict.room.floor.name} - ${teacherConflict.room.name}`;
+
+        return sendError(
+          res,
+          409,
+          ErrorCode.TEACHER_TIME_CONFLICT,
+          `You already have a booking at ${roomLocation} during this time slot. A teacher cannot book multiple rooms at the same time.`
+        );
+      }
+
+      // Step 3: Double-check for overlapping bookings (race condition protection)
       const overlappingBooking = await prisma.roomBooking.findFirst({
         where: {
           roomId,
@@ -279,7 +320,7 @@ router.post(
         );
       }
 
-      // Step 3: Create the booking
+      // Step 4: Create the booking
       const booking = await prisma.roomBooking.create({
         data: {
           roomId,
@@ -305,7 +346,7 @@ router.post(
         },
       });
 
-      // Step 4: Release lock after successful booking
+      // Step 5: Release lock after successful booking
       roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
 
       // Invalidate search cache

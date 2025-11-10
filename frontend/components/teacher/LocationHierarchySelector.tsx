@@ -15,11 +15,13 @@ interface LocationHierarchySelectorProps {
     buildingId?: string;
     floorId?: string;
   };
+  isOptional?: boolean;
 }
 
 const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
   onSelect,
   value,
+  isOptional = true,
 }) => {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -156,7 +158,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           <BlockIcon className="h-5 w-5" variant="solid" />
         </div>
         <Select
-          label="Preferred Block (Optional)"
+          label={isOptional ? "Preferred Block (Optional)" : "Block"}
           placeholder="Select a block"
           selectionMode="single"
           selectedKeys={
@@ -168,6 +170,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
           isLoading={loadingBlocks}
           variant="bordered"
           disallowEmptySelection={false}
+          isRequired={!isOptional}
           classNames={{
             trigger: "pl-12",
           }}
@@ -189,7 +192,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
             <BuildingIcon className="h-5 w-5" variant="solid" />
           </div>
           <Select
-            label="Preferred Building (Optional)"
+            label={isOptional ? "Preferred Building (Optional)" : "Building"}
             placeholder="Select a building"
             selectionMode="single"
             selectedKeys={
@@ -202,6 +205,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
             isDisabled={!selectedBlockId || buildings.length === 0}
             variant="bordered"
             disallowEmptySelection={false}
+            isRequired={!isOptional}
             classNames={{
               trigger: "pl-12",
             }}
@@ -224,7 +228,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
             <FloorIcon className="h-5 w-5" variant="solid" />
           </div>
           <Select
-            label="Preferred Floor (Optional)"
+            label={isOptional ? "Preferred Floor (Optional)" : "Floor"}
             placeholder="Select a floor"
             selectionMode="single"
             selectedKeys={
@@ -237,6 +241,7 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
             isDisabled={!selectedBuildingId || floors.length === 0}
             variant="bordered"
             disallowEmptySelection={false}
+            isRequired={!isOptional}
             classNames={{
               trigger: "pl-12",
             }}
