@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Select, SelectItem } from "@heroui/react";
+import { BlockIcon, BuildingIcon, FloorIcon } from "../ui";
 import { api } from "../../services/apiService";
 import { Block, Building, Floor } from "../../types";
 
@@ -150,82 +151,106 @@ const LocationHierarchySelector: React.FC<LocationHierarchySelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      <Select
-        label="Preferred Block (Optional)"
-        placeholder="Select a block"
-        selectionMode="single"
-        selectedKeys={
-          selectedBlockId && selectedBlockId !== ""
-            ? new Set([selectedBlockId])
-            : new Set()
-        }
-        onSelectionChange={handleBlockChange}
-        isLoading={loadingBlocks}
-        variant="bordered"
-        disallowEmptySelection={false}
-      >
-        {blocks.map((block) => (
-          <SelectItem
-            key={block.id}
-            textValue={`${block.name} (${block.code})`}
-          >
-            {block.name} ({block.code})
-          </SelectItem>
-        ))}
-      </Select>
-
-      {(selectedBlockId || buildings.length > 0) && (
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+          <BlockIcon className="h-5 w-5" variant="solid" />
+        </div>
         <Select
-          label="Preferred Building (Optional)"
-          placeholder="Select a building"
+          label="Preferred Block (Optional)"
+          placeholder="Select a block"
           selectionMode="single"
           selectedKeys={
-            selectedBuildingId && selectedBuildingId !== ""
-              ? new Set([selectedBuildingId])
+            selectedBlockId && selectedBlockId !== ""
+              ? new Set([selectedBlockId])
               : new Set()
           }
-          onSelectionChange={handleBuildingChange}
-          isLoading={loadingBuildings}
-          isDisabled={!selectedBlockId || buildings.length === 0}
+          onSelectionChange={handleBlockChange}
+          isLoading={loadingBlocks}
           variant="bordered"
           disallowEmptySelection={false}
+          classNames={{
+            trigger: "pl-12",
+          }}
         >
-          {buildings.map((building) => (
+          {blocks.map((block) => (
             <SelectItem
-              key={building.id}
-              textValue={`${building.name} (${building.code})`}
+              key={block.id}
+              textValue={`${block.name} (${block.code})`}
             >
-              {building.name} ({building.code})
+              {block.name} ({block.code})
             </SelectItem>
           ))}
         </Select>
+      </div>
+
+      {(selectedBlockId || buildings.length > 0) && (
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+            <BuildingIcon className="h-5 w-5" variant="solid" />
+          </div>
+          <Select
+            label="Preferred Building (Optional)"
+            placeholder="Select a building"
+            selectionMode="single"
+            selectedKeys={
+              selectedBuildingId && selectedBuildingId !== ""
+                ? new Set([selectedBuildingId])
+                : new Set()
+            }
+            onSelectionChange={handleBuildingChange}
+            isLoading={loadingBuildings}
+            isDisabled={!selectedBlockId || buildings.length === 0}
+            variant="bordered"
+            disallowEmptySelection={false}
+            classNames={{
+              trigger: "pl-12",
+            }}
+          >
+            {buildings.map((building) => (
+              <SelectItem
+                key={building.id}
+                textValue={`${building.name} (${building.code})`}
+              >
+                {building.name} ({building.code})
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
       )}
 
       {(selectedBuildingId || floors.length > 0) && (
-        <Select
-          label="Preferred Floor (Optional)"
-          placeholder="Select a floor"
-          selectionMode="single"
-          selectedKeys={
-            selectedFloorId && selectedFloorId !== ""
-              ? new Set([selectedFloorId])
-              : new Set()
-          }
-          onSelectionChange={handleFloorChange}
-          isLoading={loadingFloors}
-          isDisabled={!selectedBuildingId || floors.length === 0}
-          variant="bordered"
-          disallowEmptySelection={false}
-        >
-          {floors.map((floor) => (
-            <SelectItem
-              key={floor.id}
-              textValue={`${floor.name} (Floor ${floor.number})`}
-            >
-              {floor.name} (Floor {floor.number})
-            </SelectItem>
-          ))}
-        </Select>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+            <FloorIcon className="h-5 w-5" variant="solid" />
+          </div>
+          <Select
+            label="Preferred Floor (Optional)"
+            placeholder="Select a floor"
+            selectionMode="single"
+            selectedKeys={
+              selectedFloorId && selectedFloorId !== ""
+                ? new Set([selectedFloorId])
+                : new Set()
+            }
+            onSelectionChange={handleFloorChange}
+            isLoading={loadingFloors}
+            isDisabled={!selectedBuildingId || floors.length === 0}
+            variant="bordered"
+            disallowEmptySelection={false}
+            classNames={{
+              trigger: "pl-12",
+            }}
+          >
+            {floors.map((floor) => (
+              <SelectItem
+                key={floor.id}
+                textValue={`${floor.name} (Floor ${floor.number})`}
+              >
+                {floor.name} (Floor {floor.number})
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
       )}
     </div>
   );

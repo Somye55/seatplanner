@@ -13,6 +13,7 @@ import StudentsPage from "./pages/StudentsPage";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import FacultyManagementPage from "./pages/FacultyManagementPage";
+import AdminManagementPage from "./pages/AdminManagementPage";
 import BlocksPage from "./pages/BlocksPage";
 import FloorsPage from "./pages/FloorsPage";
 import LocationHierarchyPage from "./pages/LocationHierarchyPage";
@@ -78,6 +79,14 @@ const App: React.FC = () => {
                           element={
                             <PrivateRoute requireAdmin={true}>
                               <FacultyManagementPage />
+                            </PrivateRoute>
+                          }
+                        />
+                        <Route
+                          path="/admins"
+                          element={
+                            <PrivateRoute requireSuperAdmin={true}>
+                              <AdminManagementPage />
                             </PrivateRoute>
                           }
                         />

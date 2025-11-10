@@ -150,6 +150,7 @@ enum SeatStatus {
 }
 
 enum UserRole {
+  SuperAdmin
   Admin
   Student
   Teacher

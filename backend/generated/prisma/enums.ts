@@ -18,6 +18,7 @@ export type SeatStatus = (typeof SeatStatus)[keyof typeof SeatStatus]
 
 
 export const UserRole = {
+  SuperAdmin: 'SuperAdmin',
   Admin: 'Admin',
   Student: 'Student',
   Teacher: 'Teacher'

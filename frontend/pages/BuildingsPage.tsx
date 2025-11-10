@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Card,
-  CardBody,
-  CardHeader,
-  CardFooter,
   Button,
   Modal,
   ModalContent,
@@ -20,65 +16,27 @@ import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Building, Block } from "../types";
-import { ConfirmationModal } from "../components/ui";
-
-const BuildingIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-16 w-16 text-primary"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-  >
-    <path
-      fillRule="evenodd"
-      d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
+import {
+  ConfirmationModal,
+  LocationCard,
+  BuildingIcon,
+} from "../components/ui";
 
 const BuildingSkeleton: React.FC = () => (
-  <Card className="w-full">
-    <CardBody className="gap-4">
-      <div className="flex items-center gap-6">
-        {/* Building icon - matches BuildingIcon h-16 w-16 */}
-        <div className="flex-shrink-0">
-          <Skeleton className="rounded-lg">
-            <div className="h-16 w-16 rounded-lg bg-default-300"></div>
-          </Skeleton>
-        </div>
-        <div className="flex-1 space-y-2">
-          {/* Building name - matches h2 text-xl font-bold */}
-          <Skeleton className="w-4/5 rounded-lg">
-            <div className="h-7 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          {/* Building code - matches p text-default-500 */}
-          <Skeleton className="w-2/5 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          {/* Room count - matches p text-secondary font-semibold mt-2 */}
-          <Skeleton className="w-1/3 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-300"></div>
-          </Skeleton>
-        </div>
-      </div>
-    </CardBody>
-    <CardFooter className="justify-between border-t border-divider">
-      {/* View Rooms button */}
-      <Skeleton className="w-24 rounded-lg">
-        <div className="h-9 w-full rounded-lg bg-default-200"></div>
+  <LocationCard
+    icon={
+      <Skeleton className="rounded-2xl">
+        <div className="h-16 w-16 rounded-2xl bg-default-300"></div>
       </Skeleton>
-      {/* Admin buttons */}
-      <div className="flex gap-2">
-        <Skeleton className="w-12 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
-        </Skeleton>
-        <Skeleton className="w-16 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
-        </Skeleton>
-      </div>
-    </CardFooter>
-  </Card>
+    }
+    title=""
+    subtitle=""
+    metadata={[
+      { label: "Rooms", value: "" },
+      { label: "Distance", value: "" },
+    ]}
+    colorScheme="indigo"
+  />
 );
 
 const BuildingsPage: React.FC = () => {
@@ -239,60 +197,56 @@ const BuildingsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {buildings.map((building) => (
-          <Card
+          <LocationCard
             key={building.id}
-            className="hover:scale-105 transition-transform duration-300"
-            isPressable
-          >
-            <CardBody className="gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex-shrink-0">
-                  <BuildingIcon />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{building.name}</h2>
-                  <p className="text-default-500">{building.code}</p>
-                  {building.block && (
-                    <p className="text-default-400 text-sm mt-1">
-                      Block: {building.block.name}
-                    </p>
-                  )}
-                  <p className="text-secondary font-semibold mt-2">
-                    {building.roomCount ?? 0} Rooms • Distance:{" "}
-                    {building.distance}m
-                  </p>
-                </div>
+            icon={<BuildingIcon />}
+            title={building.name}
+            subtitle={`${building.code}${
+              building.block ? ` • Block: ${building.block.name}` : ""
+            }`}
+            metadata={[
+              { label: "Rooms", value: building.roomCount ?? 0 },
+              { label: "Distance", value: `${building.distance}m` },
+            ]}
+            badge={
+              building.block
+                ? { text: building.block.code, color: "primary" }
+                : undefined
+            }
+            colorScheme="indigo"
+            footer={
+              <div className="flex flex-col gap-2 w-full">
+                <Link to={`/buildings/${building.id}/rooms`} className="w-full">
+                  <Button color="primary" variant="shadow" className="w-full">
+                    View Rooms
+                  </Button>
+                </Link>
+                {isAdmin && (
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      size="sm"
+                      color="default"
+                      variant="bordered"
+                      onPress={() => handleEditBuilding(building)}
+                      className="flex-1"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="bordered"
+                      onPress={() => handleDeleteBuilding(building)}
+                      isLoading={deleteLoading === building.id}
+                      className="flex-1"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                )}
               </div>
-            </CardBody>
-            <CardFooter className="justify-between border-t border-divider">
-              <Link to={`/buildings/${building.id}/rooms`}>
-                <Button color="primary" variant="light">
-                  View Rooms
-                </Button>
-              </Link>
-              {isAdmin && (
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    onPress={() => handleEditBuilding(building)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    color="danger"
-                    variant="flat"
-                    onPress={() => handleDeleteBuilding(building)}
-                    isLoading={deleteLoading === building.id}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              )}
-            </CardFooter>
-          </Card>
+            }
+          />
         ))}
       </div>
 

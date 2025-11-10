@@ -8,6 +8,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { PrismaClient } from "../generated/prisma/client";
 import authRouter from "./routes/auth";
+import adminsRouter from "./routes/admins";
 import buildingsRouter from "./routes/buildings";
 import roomsRouter from "./routes/rooms";
 import seatsRouter from "./routes/seats";
@@ -71,6 +72,7 @@ app.get("/api", (req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/admins", adminsRouter);
 app.use("/api/buildings", buildingsRouter);
 app.use("/api/rooms", roomsRouter);
 app.use("/api/seats", seatsRouter);

@@ -4,7 +4,8 @@
     "build": "tsc",
     "start": "node dist/src/index.js",
     "test": "jest",
-    "lint": "npx eslint . --ext .ts"
+    "lint": "npx eslint . --ext .ts",
+    "create-super-admin": "ts-node create-super-admin.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

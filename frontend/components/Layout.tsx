@@ -185,6 +185,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showExpiryWarning, setShowExpiryWarning] = useState(false);
 
+  const isSuperAdmin = authService.isSuperAdmin();
+
   const navigation = isAdmin
     ? [
         { name: "Locations", href: "/locations", icon: "📍" },
@@ -193,6 +195,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: "Floors", href: "/floors", icon: "📐" },
         { name: "Students", href: "/students", icon: "👥" },
         { name: "Faculty", href: "/faculty", icon: "👨‍🏫" },
+        ...(isSuperAdmin
+          ? [{ name: "Admins", href: "/admins", icon: "👑" }]
+          : []),
       ]
     : isTeacher
     ? [
@@ -258,6 +263,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       crumbs.push({ name: "Students", href: "/students" });
     } else if (paths.includes("faculty")) {
       crumbs.push({ name: "Faculty", href: "/faculty" });
+    } else if (paths.includes("admins")) {
+      crumbs.push({ name: "Admins", href: "/admins" });
     }
 
     return crumbs;

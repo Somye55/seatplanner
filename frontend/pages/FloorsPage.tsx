@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Card,
-  CardBody,
-  CardFooter,
   Button,
   Modal,
   ModalContent,
@@ -14,59 +11,47 @@ import {
   SelectItem,
   Skeleton,
 } from "@heroui/react";
-import { ConfirmationModal } from "../components/ui";
+import { ConfirmationModal, LocationCard, FloorIcon } from "../components/ui";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Floor, Building } from "../types";
 
-const FloorIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-16 w-16 text-primary"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-  >
-    <path
-      fillRule="evenodd"
-      d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
 const FloorSkeleton: React.FC = () => (
-  <Card className="w-full">
-    <CardBody className="gap-4">
-      <div className="flex items-center gap-6">
-        <div className="flex-shrink-0">
-          <Skeleton className="rounded-lg">
-            <div className="h-16 w-16 rounded-lg bg-default-300"></div>
+  <div className="border-2 border-green-200 dark:border-green-800 rounded-xl p-4">
+    <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-950/30 dark:to-emerald-900/30 rounded-xl p-4 mb-4">
+      <div className="flex items-start gap-4">
+        <Skeleton className="rounded-2xl flex-shrink-0">
+          <div className="h-16 w-16 rounded-2xl bg-default-300"></div>
+        </Skeleton>
+        <div className="flex-1 min-w-0">
+          <Skeleton className="w-24 rounded-lg mb-2">
+            <div className="h-6 w-24 rounded-lg bg-default-200"></div>
           </Skeleton>
-        </div>
-        <div className="flex-1 space-y-2">
-          <Skeleton className="w-4/5 rounded-lg">
-            <div className="h-7 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-2/5 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-1/3 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-300"></div>
+          <Skeleton className="w-32 rounded-lg">
+            <div className="h-4 w-32 rounded-lg bg-default-200"></div>
           </Skeleton>
         </div>
       </div>
-    </CardBody>
-    <CardFooter className="justify-end border-t border-divider">
-      <div className="flex gap-2">
-        <Skeleton className="w-12 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
-        </Skeleton>
-        <Skeleton className="w-16 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
+    </div>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="bg-default-100 dark:bg-default-50/10 rounded-lg p-3">
+        <p className="text-xs text-default-500 uppercase tracking-wide">
+          Floor Number
+        </p>
+        <Skeleton className="w-8 rounded-lg mt-1">
+          <div className="h-6 w-8 rounded-lg bg-default-200"></div>
         </Skeleton>
       </div>
-    </CardFooter>
-  </Card>
+      <div className="bg-default-100 dark:bg-default-50/10 rounded-lg p-3">
+        <p className="text-xs text-default-500 uppercase tracking-wide">
+          Distance
+        </p>
+        <Skeleton className="w-12 rounded-lg mt-1">
+          <div className="h-6 w-12 rounded-lg bg-default-200"></div>
+        </Skeleton>
+      </div>
+    </div>
+  </div>
 );
 
 const FloorsPage: React.FC = () => {
@@ -212,6 +197,11 @@ const FloorsPage: React.FC = () => {
             <div className="h-10 w-48 rounded-lg bg-default-200"></div>
           </Skeleton>
         </div>
+        <div className="mb-6">
+          <Skeleton className="w-80 rounded-xl">
+            <div className="h-14 w-80 rounded-xl bg-default-200"></div>
+          </Skeleton>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
             <FloorSkeleton key={i} />
@@ -260,64 +250,65 @@ const FloorsPage: React.FC = () => {
         </div>
       )}
 
-      {!loading && floors.length === 0 && (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <FloorSkeleton key={i} />
+          ))}
+        </div>
+      ) : floors.length === 0 ? (
         <p className="text-default-500 text-center">
           No floors found for this building.
         </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {floors.map((floor) => (
+            <LocationCard
+              key={floor.id}
+              icon={<FloorIcon />}
+              title={floor.name}
+              subtitle={`Floor ${floor.number}${
+                floor.building ? ` • ${floor.building.name}` : ""
+              }`}
+              metadata={[
+                { label: "Floor Number", value: floor.number },
+                { label: "Distance", value: `${floor.distance}m` },
+              ]}
+              badge={
+                floor.building
+                  ? { text: floor.building.code, color: "primary" }
+                  : undefined
+              }
+              colorScheme="green"
+              footer={
+                isAdmin ? (
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      size="sm"
+                      color="default"
+                      variant="bordered"
+                      onPress={() => handleEditFloor(floor)}
+                      className="flex-1"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="bordered"
+                      onPress={() => handleDeleteFloor(floor)}
+                      isLoading={deleteLoading === floor.id}
+                      className="flex-1"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                ) : undefined
+              }
+            />
+          ))}
+        </div>
       )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {floors.map((floor) => (
-          <Card
-            key={floor.id}
-            className="hover:scale-105 transition-transform duration-300"
-            isPressable
-          >
-            <CardBody className="gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex-shrink-0">
-                  <FloorIcon />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{floor.name}</h2>
-                  <p className="text-default-500">Floor {floor.number}</p>
-                  {floor.building && (
-                    <p className="text-default-400 text-sm mt-1">
-                      Building: {floor.building.name}
-                    </p>
-                  )}
-                  <p className="text-secondary font-semibold mt-2">
-                    Distance: {floor.distance}m
-                  </p>
-                </div>
-              </div>
-            </CardBody>
-            {isAdmin && (
-              <CardFooter className="justify-end border-t border-divider">
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    onPress={() => handleEditFloor(floor)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    color="danger"
-                    variant="flat"
-                    onPress={() => handleDeleteFloor(floor)}
-                    isLoading={deleteLoading === floor.id}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </CardFooter>
-            )}
-          </Card>
-        ))}
-      </div>
 
       {/* Create Floor Modal */}
       <Modal

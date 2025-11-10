@@ -44,6 +44,12 @@ export enum ErrorCode {
   UNAUTHORIZED = "UNAUTHORIZED",
   FORBIDDEN = "FORBIDDEN",
 
+  // Admin Management Errors
+  USER_EXISTS = "USER_EXISTS",
+  USER_NOT_FOUND = "USER_NOT_FOUND",
+  CANNOT_DELETE_SUPER_ADMIN = "CANNOT_DELETE_SUPER_ADMIN",
+  NOT_AN_ADMIN = "NOT_AN_ADMIN",
+
   // Student Update Errors
   NAME_UPDATE_FORBIDDEN = "NAME_UPDATE_FORBIDDEN",
   STUDENT_NOT_FOUND = "STUDENT_NOT_FOUND",
@@ -94,6 +100,12 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.INVALID_ROLE]: "Invalid user role",
   [ErrorCode.UNAUTHORIZED]: "User not authenticated",
   [ErrorCode.FORBIDDEN]: "Insufficient permissions",
+
+  // Admin Management Errors
+  [ErrorCode.USER_EXISTS]: "User with this email already exists",
+  [ErrorCode.USER_NOT_FOUND]: "User not found",
+  [ErrorCode.CANNOT_DELETE_SUPER_ADMIN]: "Cannot delete super admin accounts",
+  [ErrorCode.NOT_AN_ADMIN]: "User is not an admin",
 
   // Student Update Errors
   [ErrorCode.NAME_UPDATE_FORBIDDEN]: "Student name cannot be modified",

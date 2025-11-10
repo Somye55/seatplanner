@@ -11,16 +11,14 @@ import {
   Card,
   CardBody,
   Chip,
-  Badge,
   Divider,
 } from "@heroui/react";
-import { SeatMapSkeleton } from "../components/ui";
+import { SeatMapSkeleton, LocationBreadcrumb } from "../components/ui";
 import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api, ConflictError } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Seat, SeatStatus, Student, Room, Branch } from "../types";
 import io from "socket.io-client";
-import { ACCESSIBILITY_NEEDS } from "../constants";
 
 const BRANCHES = [
   { id: Branch.ConsultingClub, label: "Consulting Club" },
@@ -247,35 +245,48 @@ const SeatMapPage: React.FC = () => {
         ← Back to Rooms
       </Button>
 
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
-              <svg
-                className="w-8 h-8 text-primary-600 dark:text-primary-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-            </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 dark:from-primary-400 dark:to-secondary-400 bg-clip-text text-transparent">
-              {currentRoom?.name}
-            </h1>
-          </div>
-          <p className="text-lg text-default-600 dark:text-default-400 max-w-2xl mx-auto">
-            Interactive seat map showing real-time availability and allocation
-            status
-          </p>
-        </div>
+      {currentRoom && (
+        <LocationBreadcrumb
+          levels={[
+            ...(currentRoom.building?.block
+              ? [
+                  {
+                    type: "block" as const,
+                    name: currentRoom.building.block.name,
+                    code: currentRoom.building.block.code,
+                    link: "/blocks",
+                  },
+                ]
+              : []),
+            ...(currentRoom.building
+              ? [
+                  {
+                    type: "building" as const,
+                    name: currentRoom.building.name,
+                    code: currentRoom.building.code,
+                    link: `/buildings/${currentRoom.buildingId}/rooms`,
+                  },
+                ]
+              : []),
+            ...(currentRoom.floor
+              ? [
+                  {
+                    type: "floor" as const,
+                    name: currentRoom.floor.name,
+                    code: `Floor ${currentRoom.floor.number}`,
+                  },
+                ]
+              : []),
+            {
+              type: "room" as const,
+              name: currentRoom.name,
+            },
+          ]}
+          className="mb-6"
+        />
+      )}
 
+      <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-gradient-to-br from-default-50 to-white dark:from-[#1a1a1a] dark:to-[#0f0f0f] shadow-sm hover:shadow-md transition-shadow border border-default-200/50 dark:border-default-800/40">

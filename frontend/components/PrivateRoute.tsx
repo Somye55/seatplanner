@@ -5,11 +5,13 @@ import { authService } from "../services/authService";
 interface PrivateRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireSuperAdmin?: boolean;
 }
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({
   children,
   requireAdmin = false,
+  requireSuperAdmin = false,
 }) => {
   const isAuth = authService.isAuthenticated();
   const user = authService.getUser();
@@ -18,12 +20,18 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
     isAuthenticated: isAuth,
     user: user,
     requireAdmin,
+    requireSuperAdmin,
     path: window.location.pathname,
   });
 
   if (!isAuth) {
     console.log("🔒 PrivateRoute: Redirecting to signin");
     return <Navigate to="/signin" replace />;
+  }
+
+  if (requireSuperAdmin && !authService.isSuperAdmin()) {
+    console.log("🔒 PrivateRoute: Not super admin, redirecting to home");
+    return <Navigate to="/" replace />;
   }
 
   if (requireAdmin && !authService.isAdmin()) {

@@ -17,7 +17,11 @@ import {
   Tooltip,
   Chip,
 } from "@heroui/react";
-import { SkeletonCard, ConfirmationModal } from "../components/ui";
+import {
+  SkeletonCard,
+  ConfirmationModal,
+  LocationBreadcrumb,
+} from "../components/ui";
 import { useSeatPlanner } from "../context/SeatPlannerContext";
 import { api, ConflictError } from "../services/apiService";
 import { authService } from "../services/authService";
@@ -580,6 +584,30 @@ const RoomsPage: React.FC = () => {
       >
         ← Back to Buildings
       </Button>
+
+      {building && (
+        <LocationBreadcrumb
+          levels={[
+            ...(building.block
+              ? [
+                  {
+                    type: "block" as const,
+                    name: building.block.name,
+                    code: building.block.code,
+                    link: "/blocks",
+                  },
+                ]
+              : []),
+            {
+              type: "building" as const,
+              name: building.name,
+              code: building.code,
+            },
+          ]}
+          className="mb-6"
+        />
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">
           Rooms in {building?.name || "..."}

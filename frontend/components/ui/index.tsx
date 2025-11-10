@@ -423,3 +423,8 @@ export { default as BookingSkeleton } from "./BookingSkeleton";
 
 // Export the TimeRangePicker component
 export { default as TimeRangePicker } from "./TimeRangePicker";
+
+// Export Location components
+export { LocationCard } from "./LocationCard";
+export { BlockIcon, BuildingIcon, FloorIcon, RoomIcon } from "./LocationIcons";
+export { LocationBreadcrumb } from "./LocationBreadcrumb";

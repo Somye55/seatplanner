@@ -140,7 +140,11 @@ class AuthService {
   }
 
   isAdmin(): boolean {
-    return this.user?.role === "Admin";
+    return this.user?.role === "Admin" || this.user?.role === "SuperAdmin";
+  }
+
+  isSuperAdmin(): boolean {
+    return this.user?.role === "SuperAdmin";
   }
 
   // Helper method to get auth headers

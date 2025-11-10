@@ -272,6 +272,12 @@ async function main() {
     data: [
       {
         id: uuidv4(),
+        email: "superadmin@university.edu",
+        password: hashedPassword,
+        role: "SuperAdmin",
+      },
+      {
+        id: uuidv4(),
         email: "admin@university.edu",
         password: hashedPassword,
         role: "Admin",

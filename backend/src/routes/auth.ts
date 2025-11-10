@@ -28,7 +28,7 @@ router.post(
   [
     body("email").isEmail().normalizeEmail(),
     body("password").exists(),
-    body("role").optional().isIn(["Admin", "Teacher", "Student"]),
+    body("role").optional().isIn(["SuperAdmin", "Admin", "Teacher", "Student"]),
   ],
   async (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -53,9 +53,13 @@ router.post(
       }
 
       // If role is provided, validate it matches the user's actual role
+      // Allow SuperAdmin to login when "Admin" is selected
       // Don't reveal the actual role in the error message for security
       if (role && user.role !== role) {
-        return res.status(401).json({ error: "Invalid credentials" });
+        // Allow SuperAdmin to login as Admin
+        if (!(role === "Admin" && user.role === "SuperAdmin")) {
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
       }
 
       // Generate JWT token with user role (Admin, Student, or Teacher)
@@ -103,10 +107,22 @@ export const authenticateToken = (
   });
 };
 
-// Middleware to check if user is admin
+// Middleware to check if user is admin or super admin
 export const requireAdmin = (req: AuthRequest, res: Response, next: any) => {
-  if (req.user?.role !== "Admin") {
+  if (req.user?.role !== "Admin" && req.user?.role !== "SuperAdmin") {
     return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+};
+
+// Middleware to check if user is super admin only
+export const requireSuperAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: any
+) => {
+  if (req.user?.role !== "SuperAdmin") {
+    return res.status(403).json({ error: "Super Admin access required" });
   }
   next();
 };
@@ -125,7 +141,11 @@ export const requireAdminOrTeacher = (
   res: Response,
   next: any
 ) => {
-  if (req.user?.role !== "Admin" && req.user?.role !== "Teacher") {
+  if (
+    req.user?.role !== "Admin" &&
+    req.user?.role !== "Teacher" &&
+    req.user?.role !== "SuperAdmin"
+  ) {
     return res.status(403).json({ error: "Admin or Teacher access required" });
   }
   next();

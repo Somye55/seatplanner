@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Card,
-  CardBody,
-  CardFooter,
   Button,
   Modal,
   ModalContent,
@@ -12,55 +9,23 @@ import {
   Input,
   Skeleton,
 } from "@heroui/react";
-import { ConfirmationModal } from "../components/ui";
+import { ConfirmationModal, LocationCard, BlockIcon } from "../components/ui";
 import { api } from "../services/apiService";
 import { authService } from "../services/authService";
 import { Block } from "../types";
 
-const BlockIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-16 w-16 text-primary"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-  >
-    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-  </svg>
-);
-
 const BlockSkeleton: React.FC = () => (
-  <Card className="w-full">
-    <CardBody className="gap-4">
-      <div className="flex items-center gap-6">
-        <div className="flex-shrink-0">
-          <Skeleton className="rounded-lg">
-            <div className="h-16 w-16 rounded-lg bg-default-300"></div>
-          </Skeleton>
-        </div>
-        <div className="flex-1 space-y-2">
-          <Skeleton className="w-4/5 rounded-lg">
-            <div className="h-7 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-2/5 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-200"></div>
-          </Skeleton>
-          <Skeleton className="w-1/3 rounded-lg">
-            <div className="h-5 w-full rounded-lg bg-default-300"></div>
-          </Skeleton>
-        </div>
-      </div>
-    </CardBody>
-    <CardFooter className="justify-end border-t border-divider">
-      <div className="flex gap-2">
-        <Skeleton className="w-12 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
-        </Skeleton>
-        <Skeleton className="w-16 rounded-lg">
-          <div className="h-8 w-full rounded-lg bg-default-200"></div>
-        </Skeleton>
-      </div>
-    </CardFooter>
-  </Card>
+  <LocationCard
+    icon={
+      <Skeleton className="rounded-2xl">
+        <div className="h-16 w-16 rounded-2xl bg-default-300"></div>
+      </Skeleton>
+    }
+    title=""
+    subtitle=""
+    metadata={[{ label: "Distance", value: "" }]}
+    colorScheme="blue"
+  />
 );
 
 const BlocksPage: React.FC = () => {
@@ -204,33 +169,22 @@ const BlocksPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blocks.map((block) => (
-          <Card
+          <LocationCard
             key={block.id}
-            className="hover:scale-105 transition-transform duration-300"
-            isPressable
-          >
-            <CardBody className="gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex-shrink-0">
-                  <BlockIcon />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold">{block.name}</h2>
-                  <p className="text-default-500">{block.code}</p>
-                  <p className="text-secondary font-semibold mt-2">
-                    Distance: {block.distance}m
-                  </p>
-                </div>
-              </div>
-            </CardBody>
-            {isAdmin && (
-              <CardFooter className="justify-end border-t border-divider">
-                <div className="flex gap-2">
+            icon={<BlockIcon />}
+            title={block.name}
+            subtitle={block.code}
+            metadata={[{ label: "Distance", value: `${block.distance}m` }]}
+            colorScheme="blue"
+            footer={
+              isAdmin ? (
+                <div className="flex gap-2 w-full">
                   <Button
                     size="sm"
                     color="primary"
                     variant="flat"
                     onPress={() => handleEditBlock(block)}
+                    className="flex-1"
                   >
                     Edit
                   </Button>
@@ -240,13 +194,14 @@ const BlocksPage: React.FC = () => {
                     variant="flat"
                     onPress={() => handleDeleteBlock(block)}
                     isLoading={deleteLoading === block.id}
+                    className="flex-1"
                   >
                     Delete
                   </Button>
                 </div>
-              </CardFooter>
-            )}
-          </Card>
+              ) : undefined
+            }
+          />
         ))}
       </div>
 
