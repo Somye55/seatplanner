@@ -48,6 +48,11 @@ export const toast = {
  * Extract error message from API error response
  */
 export function getErrorMessage(error: any): string {
+  // Check for ApiError with message
+  if (error?.message) {
+    return error.message;
+  }
+
   // Check for structured error response from backend
   if (error?.response?.data?.error) {
     return error.response.data.error;
@@ -61,9 +66,11 @@ export function getErrorMessage(error: any): string {
     }
   }
 
-  // Check for error message property
-  if (error?.message) {
-    return error.message;
+  // Check for details property
+  if (error?.details) {
+    if (Array.isArray(error.details) && error.details.length > 0) {
+      return error.details.map((d: any) => d.message).join(", ");
+    }
   }
 
   // Default error message

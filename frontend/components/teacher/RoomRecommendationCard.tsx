@@ -83,18 +83,24 @@ const RoomRecommendationCard: React.FC<RoomRecommendationCardProps> = ({
       );
       onBookingCreated();
     } catch (error: any) {
-      let errorMsg = (error as Error).message;
+      let errorMsg = error.message || "An unexpected error occurred";
 
       // Handle specific booking conflict errors
       if (error.statusCode === 409) {
-        if (errorMsg.includes("already booked by")) {
-          // Extract teacher name if available
+        // Check for specific error codes
+        if (error.code === "TEACHER_TIME_CONFLICT") {
+          // Teacher already has a booking at this time
+          setBookingError(errorMsg);
+        } else if (errorMsg.includes("already booked by")) {
+          // Room is booked by another teacher
           setBookingError(errorMsg);
         } else if (errorMsg.includes("currently booking")) {
+          // Another teacher is in the process of booking
           setBookingError(
             "Another teacher is currently booking this room. Please wait a moment and try again."
           );
         } else {
+          // Generic conflict error
           setBookingError(
             "This room is no longer available for the selected time. Please choose another room."
           );

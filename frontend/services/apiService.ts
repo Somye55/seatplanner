@@ -106,13 +106,17 @@ async function fetchApi(url: string, options: RequestInit = {}) {
       .json()
       .catch(() => ({ error: "An unknown error occurred" }));
 
-    // Throw structured API error
-    throw new ApiError(
-      errorData.error || errorData.message || "Network response was not ok",
+    // Throw structured API error with proper error message
+    const errorMessage =
+      errorData.error || errorData.message || "Network response was not ok";
+    const apiError = new ApiError(
+      errorMessage,
       response.status,
       errorData.code,
       errorData.details
     );
+
+    throw apiError;
   }
   if (response.status === 204) {
     return;
