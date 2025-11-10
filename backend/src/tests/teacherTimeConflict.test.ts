@@ -47,39 +47,54 @@ describe("Teacher Time Conflict Prevention", () => {
       },
     });
 
-    const floor = await prisma.floor.findFirst({
+    let floor = await prisma.floor.findFirst({
       where: { buildingId: building.id },
     });
 
     if (!floor) {
-      throw new Error("No floor found for testing");
+      floor = await prisma.floor.create({
+        data: {
+          name: "Floor 1",
+          number: 1,
+          buildingId: building.id,
+        },
+      });
     }
 
-    room1 = await prisma.room.upsert({
-      where: { name: "Conflict Test Room 1" },
-      update: {},
-      create: {
-        name: "Conflict Test Room 1",
-        capacity: 30,
-        rows: 5,
-        cols: 6,
-        buildingId: building.id,
-        floorId: floor.id,
-      },
+    // Find or create rooms
+    room1 = await prisma.room.findFirst({
+      where: { name: "Conflict Test Room 1", buildingId: building.id },
     });
 
-    room2 = await prisma.room.upsert({
-      where: { name: "Conflict Test Room 2" },
-      update: {},
-      create: {
-        name: "Conflict Test Room 2",
-        capacity: 40,
-        rows: 8,
-        cols: 5,
-        buildingId: building.id,
-        floorId: floor.id,
-      },
+    if (!room1) {
+      room1 = await prisma.room.create({
+        data: {
+          name: "Conflict Test Room 1",
+          capacity: 30,
+          rows: 5,
+          cols: 6,
+          buildingId: building.id,
+          floorId: floor.id,
+        },
+      });
+    }
+
+    room2 = await prisma.room.findFirst({
+      where: { name: "Conflict Test Room 2", buildingId: building.id },
     });
+
+    if (!room2) {
+      room2 = await prisma.room.create({
+        data: {
+          name: "Conflict Test Room 2",
+          capacity: 40,
+          rows: 8,
+          cols: 5,
+          buildingId: building.id,
+          floorId: floor.id,
+        },
+      });
+    }
 
     // Create teacher
     const hashedPassword = await bcrypt.hash("teacher123", 10);
@@ -105,7 +120,7 @@ describe("Teacher Time Conflict Prevention", () => {
       password: "teacher123",
     });
     teacherToken = loginResponse.body.token;
-  });
+  }, 15000);
 
   afterAll(async () => {
     await prisma.roomBooking.deleteMany({
@@ -118,7 +133,7 @@ describe("Teacher Time Conflict Prevention", () => {
       where: { email: "conflict-test-teacher@example.com" },
     });
     await prisma.$disconnect();
-  });
+  }, 10000);
 
   it("should prevent teacher from booking two rooms at the same time", async () => {
     const startTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
