@@ -23,20 +23,61 @@ import {
 } from "../components/ui";
 
 const BuildingSkeleton: React.FC = () => (
-  <LocationCard
-    icon={
-      <Skeleton className="rounded-2xl">
-        <div className="h-16 w-16 rounded-2xl bg-default-300"></div>
-      </Skeleton>
-    }
-    title=""
-    subtitle=""
-    metadata={[
-      { label: "Rooms", value: "" },
-      { label: "Distance", value: "" },
-    ]}
-    colorScheme="indigo"
-  />
+  <div className="border-2 border-default-200 dark:border-default-800 rounded-xl overflow-hidden">
+    <div className="p-4">
+      <div className="bg-default-100 dark:bg-default-50/10 rounded-xl p-4 mb-4">
+        <div className="flex items-start gap-4">
+          <Skeleton className="rounded-2xl flex-shrink-0">
+            <div className="h-16 w-16 rounded-2xl bg-default-300"></div>
+          </Skeleton>
+          <div className="flex-1 min-w-0">
+            <Skeleton className="w-24 rounded-lg mb-2">
+              <div className="h-6 w-24 rounded-lg bg-default-200"></div>
+            </Skeleton>
+            <Skeleton className="w-32 rounded-lg">
+              <div className="h-4 w-32 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-default-100 dark:bg-default-50/10 rounded-lg p-3">
+          <p className="text-xs text-default-500 uppercase tracking-wide">
+            Rooms
+          </p>
+          <Skeleton className="w-8 rounded-lg mt-1">
+            <div className="h-6 w-8 rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+        <div className="bg-default-100 dark:bg-default-50/10 rounded-lg p-3">
+          <p className="text-xs text-default-500 uppercase tracking-wide">
+            Distance
+          </p>
+          <Skeleton className="w-12 rounded-lg mt-1">
+            <div className="h-6 w-12 rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+      </div>
+    </div>
+    {/* Footer with button skeletons */}
+    <div className="border-t border-divider bg-default-50/50 dark:bg-default-100/10 p-4">
+      <div className="flex flex-col gap-2 w-full">
+        {/* View Rooms button skeleton */}
+        <Skeleton className="rounded-lg w-full">
+          <div className="h-10 w-full rounded-lg bg-default-200"></div>
+        </Skeleton>
+        {/* Edit and Delete buttons skeleton */}
+        <div className="flex gap-2 w-full">
+          <Skeleton className="rounded-lg flex-1">
+            <div className="h-8 w-full rounded-lg bg-default-200"></div>
+          </Skeleton>
+          <Skeleton className="rounded-lg flex-1">
+            <div className="h-8 w-full rounded-lg bg-default-200"></div>
+          </Skeleton>
+        </div>
+      </div>
+    </div>
+  </div>
 );
 
 const BuildingsPage: React.FC = () => {
