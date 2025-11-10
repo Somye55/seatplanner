@@ -335,17 +335,58 @@ router.get(
   "/:id/seats",
   [param("id").isString().notEmpty(), authenticateToken],
   cacheMiddleware("room-seats"),
-  async (req: Request, res: Response) => {
+  async (req: any, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
     try {
-      const roomSeats = await prisma.seat.findMany({
-        where: { roomId: req.params.id },
-        include: { student: true },
-      });
-      res.json(roomSeats);
+      const userRole = req.user?.role;
+      const userId = req.user?.id;
+
+      // Admin and SuperAdmin can see all seats
+      if (
+        userRole === "Admin" ||
+        userRole === "SuperAdmin" ||
+        userRole === "Teacher"
+      ) {
+        const roomSeats = await prisma.seat.findMany({
+          where: { roomId: req.params.id },
+          include: { student: true },
+        });
+        return res.json(roomSeats);
+      }
+
+      // Students can only see their own seat if they have one in this room
+      if (userRole === "Student") {
+        // Find the student record associated with this user
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { student: true },
+        });
+
+        if (!user?.student) {
+          return res.json([]); // Student has no seat
+        }
+
+        // Check if student has a seat in this room
+        const studentSeat = await prisma.seat.findFirst({
+          where: {
+            roomId: req.params.id,
+            studentId: user.student.id,
+          },
+          include: { student: true },
+        });
+
+        if (studentSeat) {
+          return res.json([studentSeat]); // Return only their seat
+        }
+
+        return res.json([]); // Student has no seat in this room
+      }
+
+      // Default: no access
+      return res.status(403).json({ error: "Access denied" });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch seats" });
     }

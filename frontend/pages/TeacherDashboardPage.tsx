@@ -42,6 +42,22 @@ const TeacherDashboardPage: React.FC = () => {
         handleSearch(lastSearchCriteria);
       }
     },
+    onBookingConflict: (event) => {
+      // Show error toast when booking conflict occurs
+      if (event.conflictingBooking) {
+        showErrorToast(
+          new Error(event.message),
+          `Room already booked by ${event.conflictingBooking.teacherName}`
+        );
+      } else {
+        showErrorToast(new Error(event.message), "Booking Conflict");
+      }
+
+      // Refresh search results to show updated availability
+      if (lastSearchCriteria && hasSearched) {
+        handleSearch(lastSearchCriteria);
+      }
+    },
   });
 
   const handleSearch = async (criteria: SearchCriteria) => {

@@ -12,16 +12,13 @@ const SeatMapSkeleton: React.FC = () => {
       {/* Navigation Header */}
       <Skeleton className="w-32 h-10 rounded-lg mb-6" />
 
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        {/* Hero Section */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <Skeleton className="w-14 h-14 rounded-xl" />
-            <Skeleton className="w-64 h-10 rounded-lg" />
-          </div>
-          <Skeleton className="w-96 h-6 rounded-lg mx-auto" />
-        </div>
+      {/* Room Title */}
+      <div className="mb-6 text-center">
+        <Skeleton className="w-64 h-10 rounded-lg mx-auto mb-2" />
+        <Skeleton className="w-24 h-1 rounded-full mx-auto" />
+      </div>
 
+      <div className="max-w-7xl mx-auto px-4 pb-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[1, 2, 3, 4].map((i) => (

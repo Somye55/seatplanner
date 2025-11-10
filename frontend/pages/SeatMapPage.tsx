@@ -36,9 +36,13 @@ const SeatComponent: React.FC<{
   student?: Student;
   onClick: () => void;
   isClickable: boolean;
-}> = ({ seat, student, onClick, isClickable }) => {
-  const isAdmin = authService.isAdmin();
+  isMyOwnSeat?: boolean;
+}> = ({ seat, student, onClick, isClickable, isMyOwnSeat = false }) => {
   const getStatusClasses = (status: SeatStatus) => {
+    // Highlight student's own seat with a special style
+    if (isMyOwnSeat) {
+      return "bg-gradient-to-br from-primary-200 to-primary-300 border-primary-600 hover:from-primary-300 hover:to-primary-400 text-primary-900 dark:from-primary-800 dark:to-primary-700 dark:border-primary-400 dark:text-primary-100 dark:hover:from-primary-700 dark:hover:to-primary-600 ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-background";
+    }
     switch (status) {
       case SeatStatus.Available:
         return "bg-success-100 border-success-400 hover:bg-success-200 text-success-800 dark:bg-success-900/50 dark:border-success-500 dark:text-success-300 dark:hover:bg-success-900/70";
@@ -52,8 +56,9 @@ const SeatComponent: React.FC<{
   };
   const cursorClass = isClickable ? "cursor-pointer" : "cursor-default";
   const tooltipContent = useMemo(() => {
+    const isAdminOrTeacher = authService.isAdmin() || authService.isTeacher();
     if (seat.status === SeatStatus.Allocated) {
-      return isAdmin
+      return isAdminOrTeacher
         ? `Allocated to: ${student?.name || "a student"}`
         : "Allocated";
     }
@@ -61,7 +66,7 @@ const SeatComponent: React.FC<{
       return `Features: ${seat.features.join(", ")}`;
     }
     return seat.label;
-  }, [seat, student, isAdmin]);
+  }, [seat, student]);
 
   return (
     <Tooltip content={tooltipContent} delay={300}>
@@ -111,6 +116,9 @@ const SeatMapPage: React.FC = () => {
   const { state, dispatch } = useSeatPlanner();
   const { seats: allSeats, students, loading } = state;
   const isAdmin = authService.isAdmin();
+  const isTeacher = authService.isTeacher();
+  const isStudent = authService.isStudent();
+  const canEditSeats = isAdmin; // Only admins can edit seat status
 
   const [currentRoom, setCurrentRoom] = useState<Room | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<Seat | null>(null);
@@ -197,14 +205,14 @@ const SeatMapPage: React.FC = () => {
   }, [roomId, dispatch]);
 
   const handleSeatClick = (seat: Seat) => {
-    if (!isAdmin) return;
+    if (!canEditSeats) return;
     setSelectedSeat(seat);
     setModalError("");
     setIsEditModalOpen(true);
   };
 
   const handleUpdateStatus = async (status: SeatStatus) => {
-    if (!selectedSeat || !isAdmin) return;
+    if (!selectedSeat || !canEditSeats) return;
     setIsSubmitting(true);
     setModalError("");
     try {
@@ -403,7 +411,8 @@ const SeatMapPage: React.FC = () => {
                               onClick={() =>
                                 handleSeatClick(column[seatIndex]!)
                               }
-                              isClickable={isAdmin}
+                              isClickable={canEditSeats}
+                              isMyOwnSeat={isStudent && roomSeats.length === 1}
                             />
                           ) : (
                             <div
@@ -417,10 +426,24 @@ const SeatMapPage: React.FC = () => {
                   </div>
                 </div>
 
-                {isAdmin && (
+                {canEditSeats && (
                   <div className="mt-6 text-center">
                     <p className="text-sm text-default-500 dark:text-default-400">
                       💡 Click on any seat to manage its status
+                    </p>
+                  </div>
+                )}
+                {isStudent && roomSeats.length === 0 && (
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-default-500 dark:text-default-400">
+                      You don't have a seat booked in this room
+                    </p>
+                  </div>
+                )}
+                {isStudent && roomSeats.length === 1 && (
+                  <div className="mt-6 text-center">
+                    <p className="text-sm text-success-600 dark:text-success-400 font-medium">
+                      ✓ Your seat: {roomSeats[0].label}
                     </p>
                   </div>
                 )}
@@ -463,19 +486,19 @@ const SeatMapPage: React.FC = () => {
         size="2xl"
         backdrop="blur"
         hideCloseButton={true}
+        scrollBehavior="outside"
         classNames={{
-          base: "bg-gradient-to-br from-white to-default-50 dark:from-default-900 dark:to-default-950",
           backdrop: "bg-black/50 backdrop-blur-sm",
         }}
       >
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-center pb-2 bg-gradient-to-r from-primary-50 to-secondary-50 dark:from-primary-950/50 dark:to-secondary-950/50 rounded-t-lg">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
+              <ModalHeader className="flex flex-col gap-1 text-center pb-1">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <div className="p-1.5 bg-primary-100 dark:bg-primary-900/50 rounded-lg">
                     <svg
-                      className="w-6 h-6 text-primary-600 dark:text-primary-400"
+                      className="w-5 h-5 text-primary-600 dark:text-primary-400"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -494,29 +517,29 @@ const SeatMapPage: React.FC = () => {
                       />
                     </svg>
                   </div>
-                  <h2 className="text-2xl font-bold text-default-800 dark:text-default-200">
+                  <h2 className="text-xl font-bold text-default-800 dark:text-default-200">
                     Seat {selectedSeat?.label}
                   </h2>
                 </div>
-                <p className="text-sm text-default-600 dark:text-default-400">
+                <p className="text-xs text-default-600 dark:text-default-400">
                   Manage seat status and allocation
                 </p>
               </ModalHeader>
 
-              <ModalBody className="py-8 px-8">
+              <ModalBody className="py-4 px-6">
                 {selectedSeat && (
-                  <div className="space-y-8">
+                  <div className="space-y-4">
                     {/* Current Status Section */}
                     <div>
-                      <h3 className="text-lg font-semibold mb-4 text-default-700 dark:text-default-300">
+                      <h3 className="text-base font-semibold mb-2 text-default-700 dark:text-default-300">
                         Current Status
                       </h3>
-                      <Card className="bg-gradient-to-r from-default-50 to-white dark:from-default-900/60 dark:to-default-950/50 border border-default-200 dark:border-default-700">
-                        <CardBody className="py-6">
+                      <Card className="border border-default-200 dark:border-default-700">
+                        <CardBody className="py-4">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex items-center gap-3">
                               <div
-                                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center ${
+                                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center ${
                                   selectedSeat.status === "Available"
                                     ? "bg-success-100 dark:bg-success-900/30 border-success-300 dark:border-success-600 text-success-600 dark:text-success-400"
                                     : selectedSeat.status === "Allocated"
@@ -526,7 +549,7 @@ const SeatMapPage: React.FC = () => {
                               >
                                 {selectedSeat.status === "Available" && (
                                   <svg
-                                    className="w-6 h-6"
+                                    className="w-4 h-4"
                                     fill="currentColor"
                                     viewBox="0 0 20 20"
                                   >
@@ -539,7 +562,7 @@ const SeatMapPage: React.FC = () => {
                                 )}
                                 {selectedSeat.status === "Allocated" && (
                                   <svg
-                                    className="w-6 h-6"
+                                    className="w-4 h-4"
                                     fill="currentColor"
                                     viewBox="0 0 20 20"
                                   >
@@ -552,7 +575,7 @@ const SeatMapPage: React.FC = () => {
                                 )}
                                 {selectedSeat.status === "Broken" && (
                                   <svg
-                                    className="w-6 h-6"
+                                    className="w-4 h-4"
                                     fill="currentColor"
                                     viewBox="0 0 20 20"
                                   >
@@ -621,10 +644,10 @@ const SeatMapPage: React.FC = () => {
 
                     {/* Status Update Section */}
                     <div>
-                      <h3 className="text-lg font-semibold mb-4 text-default-700 dark:text-default-300">
+                      <h3 className="text-base font-semibold mb-2 text-default-700 dark:text-default-300">
                         Update Status
                       </h3>
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-3">
                         <Button
                           color="success"
                           variant={
@@ -638,11 +661,11 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Available"
                           }
-                          className="h-14 text-medium justify-start"
+                          className="h-12 text-sm justify-start"
                           startContent={
-                            <div className="w-8 h-8 bg-success-100 dark:bg-success-900/30 rounded-lg flex items-center justify-center">
+                            <div className="w-7 h-7 bg-success-100 dark:bg-success-900/30 rounded-lg flex items-center justify-center">
                               <svg
-                                className="h-5 w-5 text-success-600 dark:text-success-400"
+                                className="h-4 w-4 text-success-600 dark:text-success-400"
                                 viewBox="0 0 20 20"
                                 fill="currentColor"
                               >
@@ -656,7 +679,7 @@ const SeatMapPage: React.FC = () => {
                           }
                         >
                           <div className="text-left">
-                            <div className="font-semibold">
+                            <div className="font-semibold text-sm">
                               Mark as Available
                             </div>
                             <div className="text-xs opacity-70">
@@ -678,11 +701,11 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Allocated"
                           }
-                          className="h-14 text-medium justify-start"
+                          className="h-12 text-sm justify-start"
                           startContent={
-                            <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+                            <div className="w-7 h-7 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
                               <svg
-                                className="h-5 w-5 text-primary-600 dark:text-primary-400"
+                                className="h-4 w-4 text-primary-600 dark:text-primary-400"
                                 viewBox="0 0 20 20"
                                 fill="currentColor"
                               >
@@ -696,7 +719,7 @@ const SeatMapPage: React.FC = () => {
                           }
                         >
                           <div className="text-left">
-                            <div className="font-semibold">
+                            <div className="font-semibold text-sm">
                               Mark as Occupied
                             </div>
                             <div className="text-xs opacity-70">
@@ -716,11 +739,11 @@ const SeatMapPage: React.FC = () => {
                           isDisabled={
                             isSubmitting || selectedSeat.status === "Broken"
                           }
-                          className="h-14 text-medium justify-start"
+                          className="h-12 text-sm justify-start"
                           startContent={
-                            <div className="w-8 h-8 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
+                            <div className="w-7 h-7 bg-danger-100 dark:bg-danger-900/30 rounded-lg flex items-center justify-center">
                               <svg
-                                className="h-5 w-5 text-danger-600 dark:text-danger-400"
+                                className="h-4 w-4 text-danger-600 dark:text-danger-400"
                                 viewBox="0 0 20 20"
                                 fill="currentColor"
                               >
@@ -734,7 +757,7 @@ const SeatMapPage: React.FC = () => {
                           }
                         >
                           <div className="text-left">
-                            <div className="font-semibold">
+                            <div className="font-semibold text-sm">
                               Mark as Out of Order
                             </div>
                             <div className="text-xs opacity-70">
@@ -746,7 +769,7 @@ const SeatMapPage: React.FC = () => {
                     </div>
 
                     {modalError && (
-                      <Card className="bg-gradient-to-r from-danger-50 to-danger-100/50 dark:from-danger-950/50 dark:to-danger-950/40 border border-danger-200 dark:border-danger-800">
+                      <Card className="bg-danger-50 dark:bg-danger-950/30 border border-danger-200 dark:border-danger-800">
                         <CardBody className="py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-danger-100 dark:bg-danger-900/50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -773,12 +796,12 @@ const SeatMapPage: React.FC = () => {
                 )}
               </ModalBody>
 
-              <ModalFooter className="justify-center pt-4 pb-6">
+              <ModalFooter className="justify-center pt-2 pb-4">
                 <Button
                   color="default"
                   variant="light"
                   onPress={onClose}
-                  className="px-8 h-12"
+                  className="px-6 h-10"
                   startContent={
                     <svg
                       className="w-4 h-4"

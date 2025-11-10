@@ -23,6 +23,7 @@ export enum ErrorCode {
   BOOKING_NOT_FOUND = "BOOKING_NOT_FOUND",
   CANNOT_CANCEL_ONGOING = "CANNOT_CANCEL_ONGOING",
   CANNOT_CANCEL_COMPLETED = "CANNOT_CANCEL_COMPLETED",
+  BOOKING_CONFLICT = "BOOKING_CONFLICT",
 
   // Teacher Management Errors
   TEACHER_EXISTS = "TEACHER_EXISTS",
@@ -78,6 +79,8 @@ export const ErrorMessages: Record<ErrorCode, string> = {
   [ErrorCode.BOOKING_NOT_FOUND]: "Booking not found",
   [ErrorCode.CANNOT_CANCEL_ONGOING]: "Cannot cancel an ongoing booking",
   [ErrorCode.CANNOT_CANCEL_COMPLETED]: "Cannot cancel a completed booking",
+  [ErrorCode.BOOKING_CONFLICT]:
+    "Another teacher is currently booking this room",
 
   // Teacher Management Errors
   [ErrorCode.TEACHER_EXISTS]: "Teacher with this email already exists",
@@ -129,10 +132,11 @@ export function sendError(
   res: Response,
   statusCode: number,
   errorCode: ErrorCode,
+  customMessage?: string,
   details?: any
 ): Response {
   const response: ErrorResponse = {
-    error: ErrorMessages[errorCode],
+    error: customMessage || ErrorMessages[errorCode],
     code: errorCode,
   };
 

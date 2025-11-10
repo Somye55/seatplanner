@@ -64,6 +64,17 @@ const MyBookingsSection: React.FC<MyBookingsSectionProps> = ({
       // Remove booking from context
       dispatch({ type: "DELETE_BOOKING_SUCCESS", payload: event.bookingId });
     },
+    onBookingConflict: (event) => {
+      // Show error notification for booking conflicts
+      if (event.conflictingBooking) {
+        showErrorToast(
+          new Error(event.message),
+          `Room already booked by ${event.conflictingBooking.teacherName}`
+        );
+      } else {
+        showErrorToast(new Error(event.message), "Booking Conflict");
+      }
+    },
   });
 
   const loadBookings = async (isRefresh = false) => {

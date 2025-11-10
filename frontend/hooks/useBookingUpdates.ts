@@ -32,11 +32,26 @@ interface BookingCanceledEvent {
   roomId: string;
 }
 
+interface BookingConflictEvent {
+  roomId: string;
+  startTime: string;
+  endTime: string;
+  userId: string;
+  conflictingBooking?: {
+    id: string;
+    teacherName: string;
+    startTime: string;
+    endTime: string;
+  };
+  message: string;
+}
+
 interface BookingUpdateCallbacks {
   onBookingCreated?: (event: BookingCreatedEvent) => void;
   onBookingStatusChanged?: (event: BookingStatusChangedEvent) => void;
   onBookingExpired?: (event: BookingExpiredEvent) => void;
   onBookingCanceled?: (event: BookingCanceledEvent) => void;
+  onBookingConflict?: (event: BookingConflictEvent) => void;
 }
 
 /**
@@ -63,6 +78,10 @@ interface BookingUpdateCallbacks {
  *   onBookingCanceled: (event) => {
  *     console.log('Booking canceled:', event);
  *     removeBookingFromList(event.bookingId);
+ *   },
+ *   onBookingConflict: (event) => {
+ *     console.log('Booking conflict:', event);
+ *     showErrorToast(event.message);
  *   }
  * });
  * ```
@@ -94,6 +113,10 @@ export const useBookingUpdates = (callbacks: BookingUpdateCallbacks): void => {
       socket.on("bookingCanceled", callbacks.onBookingCanceled);
     }
 
+    if (callbacks.onBookingConflict) {
+      socket.on("bookingConflict", callbacks.onBookingConflict);
+    }
+
     // Cleanup function to disconnect socket and remove listeners
     return () => {
       socket.disconnect();
@@ -103,5 +126,6 @@ export const useBookingUpdates = (callbacks: BookingUpdateCallbacks): void => {
     callbacks.onBookingStatusChanged,
     callbacks.onBookingExpired,
     callbacks.onBookingCanceled,
+    callbacks.onBookingConflict,
   ]);
 };

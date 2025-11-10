@@ -82,9 +82,27 @@ const RoomRecommendationCard: React.FC<RoomRecommendationCardProps> = ({
         `${room.name} has been reserved`
       );
       onBookingCreated();
-    } catch (error) {
-      const errorMsg = (error as Error).message;
-      setBookingError(errorMsg);
+    } catch (error: any) {
+      let errorMsg = (error as Error).message;
+
+      // Handle specific booking conflict errors
+      if (error.statusCode === 409) {
+        if (errorMsg.includes("already booked by")) {
+          // Extract teacher name if available
+          setBookingError(errorMsg);
+        } else if (errorMsg.includes("currently booking")) {
+          setBookingError(
+            "Another teacher is currently booking this room. Please wait a moment and try again."
+          );
+        } else {
+          setBookingError(
+            "This room is no longer available for the selected time. Please choose another room."
+          );
+        }
+      } else {
+        setBookingError(errorMsg);
+      }
+
       showErrorToast(error, "Failed to book room");
     } finally {
       setIsBooking(false);

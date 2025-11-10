@@ -147,6 +147,14 @@ class AuthService {
     return this.user?.role === "SuperAdmin";
   }
 
+  isTeacher(): boolean {
+    return this.user?.role === "Teacher";
+  }
+
+  isStudent(): boolean {
+    return this.user?.role === "Student";
+  }
+
   // Helper method to get auth headers
   getAuthHeaders(): { Authorization?: string } {
     // Check token validity before returning headers

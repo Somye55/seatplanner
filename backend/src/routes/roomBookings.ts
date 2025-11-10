@@ -17,6 +17,7 @@ import {
   handleUnexpectedError,
   ErrorCode,
 } from "../utils/errorHandler";
+import { roomLockService } from "../services/roomLockService";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -154,12 +155,51 @@ router.post(
       return sendValidationError(res, errors.array());
     }
 
+    const startTimeDate = new Date(req.body.startTime);
+    const endTimeDate = new Date(req.body.endTime);
+    const { roomId } = req.body;
+    const userId = req.user?.id;
+
     try {
-      const { roomId, branch, capacity, startTime, endTime } = req.body;
-      const userId = req.user?.id;
+      const { branch, capacity } = req.body;
 
       if (!userId) {
         return sendError(res, 401, ErrorCode.UNAUTHORIZED);
+      }
+
+      // Step 1: Try to acquire lock
+      const lockAcquired = roomLockService.acquireLock(
+        roomId,
+        userId,
+        startTimeDate,
+        endTimeDate
+      );
+
+      if (!lockAcquired) {
+        const lockHolder = roomLockService.getLockHolder(
+          roomId,
+          startTimeDate,
+          endTimeDate
+        );
+
+        // Emit conflict event to the requesting user
+        const io = req.app.get("io");
+        if (io) {
+          io.emit("bookingConflict", {
+            roomId,
+            startTime: startTimeDate,
+            endTime: endTimeDate,
+            userId,
+            message: "Another teacher is currently booking this room",
+          });
+        }
+
+        return sendError(
+          res,
+          409,
+          ErrorCode.ROOM_NOT_AVAILABLE,
+          "Another teacher is currently booking this room. Please try again."
+        );
       }
 
       // Find the teacher by userId
@@ -168,6 +208,7 @@ router.post(
       });
 
       if (!teacher) {
+        roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
         return sendError(res, 404, ErrorCode.TEACHER_NOT_FOUND);
       }
 
@@ -177,14 +218,16 @@ router.post(
       });
 
       if (!room) {
+        roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
         return sendError(res, 404, ErrorCode.ROOM_NOT_FOUND);
       }
 
       if (room.capacity < capacity) {
+        roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
         return sendError(res, 400, ErrorCode.INSUFFICIENT_CAPACITY);
       }
 
-      // Check for overlapping bookings
+      // Step 2: Double-check for overlapping bookings (race condition protection)
       const overlappingBooking = await prisma.roomBooking.findFirst({
         where: {
           roomId,
@@ -192,27 +235,59 @@ router.post(
           OR: [
             {
               AND: [
-                { startTime: { lt: new Date(endTime) } },
-                { endTime: { gt: new Date(startTime) } },
+                { startTime: { lt: endTimeDate } },
+                { endTime: { gt: startTimeDate } },
               ],
             },
           ],
         },
+        include: {
+          teacher: {
+            select: {
+              name: true,
+            },
+          },
+        },
       });
 
       if (overlappingBooking) {
-        return sendError(res, 409, ErrorCode.ROOM_NOT_AVAILABLE);
+        roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
+
+        // Emit conflict event with details
+        const io = req.app.get("io");
+        if (io) {
+          io.emit("bookingConflict", {
+            roomId,
+            startTime: startTimeDate,
+            endTime: endTimeDate,
+            userId,
+            conflictingBooking: {
+              id: overlappingBooking.id,
+              teacherName: overlappingBooking.teacher.name,
+              startTime: overlappingBooking.startTime,
+              endTime: overlappingBooking.endTime,
+            },
+            message: `Room already booked by ${overlappingBooking.teacher.name}`,
+          });
+        }
+
+        return sendError(
+          res,
+          409,
+          ErrorCode.ROOM_NOT_AVAILABLE,
+          `This room is already booked by ${overlappingBooking.teacher.name} for the selected time slot.`
+        );
       }
 
-      // Create the booking
+      // Step 3: Create the booking
       const booking = await prisma.roomBooking.create({
         data: {
           roomId,
           teacherId: teacher.id,
           branch,
           capacity,
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
+          startTime: startTimeDate,
+          endTime: endTimeDate,
           status: "NotStarted",
         },
         include: {
@@ -230,10 +305,13 @@ router.post(
         },
       });
 
+      // Step 4: Release lock after successful booking
+      roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
+
       // Invalidate search cache
       RoomSearchService.invalidateSearchCache();
 
-      // Emit real-time update
+      // Emit real-time update to all connected clients
       const io = req.app.get("io");
       if (io) {
         io.emit("bookingCreated", booking);
@@ -241,6 +319,8 @@ router.post(
 
       res.status(201).json(booking);
     } catch (error) {
+      // Release lock on error
+      roomLockService.releaseLock(roomId, startTimeDate, endTimeDate);
       return handleUnexpectedError(error, res);
     }
   }

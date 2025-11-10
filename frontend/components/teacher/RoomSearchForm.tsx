@@ -160,8 +160,8 @@ const RoomSearchForm: React.FC<RoomSearchFormProps> = ({
       />
 
       {/* Current Location Selector */}
-      <div className="border-2 border-solid border-primary-200 dark:border-primary-800 rounded-xl p-4 bg-primary-50 dark:bg-primary-900/10">
-        <label className="text-sm font-semibold text-primary-700 dark:text-primary-400 mb-3 block">
+      <div className="border-2 border-solid border-default-200 dark:border-default-100 rounded-xl p-4 bg-default-50 dark:bg-default-50/5">
+        <label className="text-sm font-semibold text-default-700 mb-3 block">
           Your Current Location <span className="text-danger">*</span>
         </label>
         <p className="text-xs text-default-500 mb-4">

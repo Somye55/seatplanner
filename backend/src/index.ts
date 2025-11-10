@@ -100,6 +100,15 @@ app.set("io", io);
 const bookingExpirationService = new BookingExpirationService(io);
 const expirationInterval = bookingExpirationService.startScheduledJob();
 
+// Clean up expired room locks every 60 seconds
+import { roomLockService } from "./services/roomLockService";
+const lockCleanupInterval = setInterval(() => {
+  const cleaned = roomLockService.cleanupExpiredLocks();
+  if (cleaned > 0) {
+    console.log(`Cleaned up ${cleaned} expired room locks`);
+  }
+}, 60000);
+
 server.listen(port, () => {
   console.log(`SeatPlanner backend listening at http://localhost:${port}`);
 });
@@ -107,6 +116,7 @@ server.listen(port, () => {
 // Graceful shutdown for nodemon restarts
 process.on("SIGUSR2", async () => {
   bookingExpirationService.stopScheduledJob(expirationInterval);
+  clearInterval(lockCleanupInterval);
   await prisma.$disconnect();
   server.close(() => {
     process.kill(process.pid, "SIGUSR2");
