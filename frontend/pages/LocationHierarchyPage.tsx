@@ -90,11 +90,36 @@ const LocationHierarchyPage: React.FC = () => {
     return (
       <div>
         <h1 className="text-3xl font-bold mb-6">Campus Locations</h1>
+        <Skeleton className="w-96 h-5 rounded-lg mb-6">
+          <div className="w-96 h-5 rounded-lg bg-default-200"></div>
+        </Skeleton>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardBody>
-                <Skeleton className="w-full h-16 rounded-lg" />
+            <Card key={i} className="border-2 border-default-200">
+              <CardBody className="p-4">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3 flex-1">
+                    <Skeleton className="rounded-lg">
+                      <div className="w-8 h-8 rounded-lg bg-default-300"></div>
+                    </Skeleton>
+                    <div className="flex-1">
+                      <Skeleton className="w-32 h-6 rounded-lg mb-2">
+                        <div className="w-32 h-6 rounded-lg bg-default-200"></div>
+                      </Skeleton>
+                      <Skeleton className="w-20 h-4 rounded-lg">
+                        <div className="w-20 h-4 rounded-lg bg-default-200"></div>
+                      </Skeleton>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="rounded-full">
+                      <div className="w-24 h-6 rounded-full bg-default-200"></div>
+                    </Skeleton>
+                    <Skeleton className="rounded-full">
+                      <div className="w-20 h-6 rounded-full bg-default-200"></div>
+                    </Skeleton>
+                  </div>
+                </div>
               </CardBody>
             </Card>
           ))}

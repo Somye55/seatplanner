@@ -27,6 +27,7 @@ router.get(
         select: {
           id: true,
           email: true,
+          password: true,
           role: true,
           createdAt: true,
           updatedAt: true,
@@ -82,6 +83,7 @@ router.post(
         select: {
           id: true,
           email: true,
+          password: true,
           role: true,
           createdAt: true,
           updatedAt: true,
@@ -90,6 +92,89 @@ router.post(
 
       res.status(201).json(admin);
     } catch (error) {
+      return handleUnexpectedError(error, res);
+    }
+  }
+);
+
+// PUT /api/admins/:id - Update admin (super admin only)
+router.put(
+  "/:id",
+  authenticateToken,
+  requireSuperAdmin,
+  [
+    param("id").isString().notEmpty(),
+    body("email")
+      .optional()
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Valid email is required"),
+    body("password")
+      .optional()
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+  ],
+  async (req: AuthRequest, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return sendValidationError(res, errors.array());
+    }
+
+    try {
+      const admin = await prisma.user.findUnique({
+        where: { id: req.params.id },
+      });
+
+      if (!admin) {
+        return sendError(res, 404, ErrorCode.USER_NOT_FOUND);
+      }
+
+      // Prevent updating super admins
+      if (admin.role === UserRole.SuperAdmin) {
+        return sendError(res, 403, ErrorCode.CANNOT_UPDATE_SUPER_ADMIN);
+      }
+
+      // Only allow updating admins
+      if (admin.role !== UserRole.Admin) {
+        return sendError(res, 400, ErrorCode.NOT_AN_ADMIN);
+      }
+
+      const { email, password } = req.body;
+      const updateData: { email?: string; password?: string } = {};
+
+      if (email) {
+        // Check if email is already taken by another user
+        const existingUser = await prisma.user.findUnique({
+          where: { email },
+        });
+        if (existingUser && existingUser.id !== req.params.id) {
+          return sendError(res, 400, ErrorCode.USER_EXISTS);
+        }
+        updateData.email = email;
+      }
+
+      if (password) {
+        updateData.password = await bcrypt.hash(password, 10);
+      }
+
+      const updatedAdmin = await prisma.user.update({
+        where: { id: req.params.id },
+        data: updateData,
+        select: {
+          id: true,
+          email: true,
+          password: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      res.json(updatedAdmin);
+    } catch (error: any) {
+      if (error.code === "P2025") {
+        return sendError(res, 404, ErrorCode.USER_NOT_FOUND);
+      }
       return handleUnexpectedError(error, res);
     }
   }

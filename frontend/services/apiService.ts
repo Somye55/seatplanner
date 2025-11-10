@@ -122,6 +122,16 @@ async function fetchApi(url: string, options: RequestInit = {}) {
 
 // API FUNCTIONS
 export const api = {
+  // Generic HTTP methods
+  get: (url: string) => fetchApi(url),
+  post: (url: string, data?: any) =>
+    fetchApi(url, { method: "POST", body: JSON.stringify(data) }),
+  put: (url: string, data?: any) =>
+    fetchApi(url, { method: "PUT", body: JSON.stringify(data) }),
+  patch: (url: string, data?: any) =>
+    fetchApi(url, { method: "PATCH", body: JSON.stringify(data) }),
+  delete: (url: string) => fetchApi(url, { method: "DELETE" }),
+
   // Buildings
   getBuildings: (): Promise<Building[]> => fetchApi("/buildings"),
   createBuilding: (buildingData: {
@@ -289,6 +299,47 @@ export const api = {
     }),
   deleteTeacher: (teacherId: string): Promise<void> =>
     fetchApi(`/teachers/${teacherId}`, { method: "DELETE" }),
+
+  // Admins
+  getAdmins: (): Promise<
+    Array<{
+      id: string;
+      email: string;
+      password: string;
+      role: string;
+      createdAt: string;
+    }>
+  > => fetchApi("/admins"),
+  createAdmin: (adminData: {
+    email: string;
+    password: string;
+  }): Promise<{
+    id: string;
+    email: string;
+    password: string;
+    role: string;
+    createdAt: string;
+  }> =>
+    fetchApi("/admins", {
+      method: "POST",
+      body: JSON.stringify(adminData),
+    }),
+  updateAdmin: (
+    adminId: string,
+    adminData: { email?: string; password?: string }
+  ): Promise<{
+    id: string;
+    email: string;
+    password: string;
+    role: string;
+    createdAt: string;
+  }> =>
+    fetchApi(`/admins/${adminId}`, {
+      method: "PUT",
+      body: JSON.stringify(adminData),
+    }),
+  deleteAdmin: (adminId: string): Promise<void> =>
+    fetchApi(`/admins/${adminId}`, { method: "DELETE" }),
 
   // Blocks
   getBlocks: (): Promise<Block[]> => fetchApi("/locations/blocks"),
